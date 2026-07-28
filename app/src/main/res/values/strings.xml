@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">OSPy</string>
+    <string name="add_installation">Add installation</string>
+    <string name="server_url">OSPy address</string>
+    <string name="username">User name</string>
+    <string name="password">Password</string>
+    <string name="two_factor">2FA code (when enabled)</string>
+    <string name="connect">Connect securely</string>
+    <string name="remove">Remove</string>
+    <string name="refresh">Refresh</string>
+    <string name="stop_all">STOP ALL</string>
+    <string name="overview">Home</string>
+    <string name="stations">Stations</string>
+    <string name="programs">Programs</string>
+    <string name="sensors">Sensors</string>
+    <string name="weather">Weather</string>
+    <string name="logs">Logs</string>
+    <string name="diagnostics">Diagnostics</string>
+    <string name="plugins">Plug-ins</string>
+    <string name="system">System</string>
+    <string name="loading">Loading…</string>
+    <string name="unlock">Unlock OSPy</string>
+</resources>
+

@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">OSPy</string>
+    <string name="add_installation">Přidat instalaci</string>
+    <string name="server_url">Adresa OSPy</string>
+    <string name="username">Uživatelské jméno</string>
+    <string name="password">Heslo</string>
+    <string name="two_factor">Kód 2FA (pokud je zapnuté)</string>
+    <string name="connect">Bezpečně připojit</string>
+    <string name="remove">Odstranit</string>
+    <string name="refresh">Obnovit</string>
+    <string name="stop_all">VYPNOUT VŠE</string>
+    <string name="overview">Domů</string>
+    <string name="stations">Stanice</string>
+    <string name="programs">Programy</string>
+    <string name="sensors">Snímače</string>
+    <string name="weather">Počasí</string>
+    <string name="logs">Záznamy</string>
+    <string name="diagnostics">Diagnostika</string>
+    <string name="plugins">Pluginy</string>
+    <string name="system">Systém</string>
+    <string name="loading">Načítám…</string>
+    <string name="unlock">Odemknout OSPy</string>
+</resources>
+
