@@ -117,4 +117,8 @@
     <string name="automatic_update">Automatická aktualizace</string>
     <string name="update_available">Dostupná aktualizace</string>
     <string name="actions">Akce</string>
+    <string name="set">Nastavit</string>
+    <string name="rain_delay_hours">Dešťové zpoždění v hodinách</string>
+    <string name="rain_delay_remaining">Zbývá: %1$s</string>
+    <string name="invalid_rain_delay">Zadejte hodnotu větší než 0 a nejvýše 8760 hodin.</string>
 </resources>

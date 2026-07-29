@@ -56,6 +56,10 @@
     <string name="inactive">Inactive</string>
     <string name="turn_on">Turn on</string>
     <string name="turn_off">Turn off</string>
+    <string name="set">Set</string>
+    <string name="rain_delay_hours">Rain delay in hours</string>
+    <string name="rain_delay_remaining">Remaining: %1$s</string>
+    <string name="invalid_rain_delay">Enter a value greater than 0 and no more than 8760 hours.</string>
     <string name="running">Running</string>
     <string name="stopped">Stopped</string>
     <string name="enabled">Enabled</string>

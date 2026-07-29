@@ -480,10 +480,6 @@ public final class MainActivity extends Activity {
     private void renderOverview(JSONObject data) {
         JSONObject instance = data.optJSONObject("instance");
         JSONObject irrigation = data.optJSONObject("irrigation");
-        if (instance != null) {
-            heading(instance.optString("name", "OSPy"));
-            line(getString(R.string.version), instance.optString("version"));
-        }
         if (irrigation != null) {
             heading(getString(R.string.irrigation));
             LinearLayout summary = cardColumn();
@@ -497,14 +493,9 @@ public final class MainActivity extends Activity {
             addIrrigationControl(
                     summary, getString(R.string.manual_mode), manualMode,
                     jsonBoolean("manual_mode", !manualMode));
-            JSONObject rainChange = new JSONObject();
-            try {
-                rainChange.put("rain_delay_hours", rainBlock ? 0 : 24);
-            } catch (Exception ignored) {
-            }
-            addIrrigationControl(
-                    summary, getString(R.string.rain_delay), rainBlock,
-                    rainChange);
+            addRainDelayControl(
+                    summary, rainBlock,
+                    irrigation.optLong("rain_block_seconds", 0));
             JSONArray active = irrigation.optJSONArray("active_stations");
             addPair(summary, getString(R.string.active_stations),
                     active == null ? "0" : String.valueOf(active.length()));
@@ -550,6 +541,15 @@ public final class MainActivity extends Activity {
                             warning.optString("message"), "warning"));
                 }
             }
+        }
+        if (instance != null) {
+            TextView version = text(
+                    getString(R.string.version) + ": " +
+                            instance.optString("version"),
+                    11, false);
+            version.setTextColor(MUTED);
+            version.setGravity(Gravity.END);
+            content.addView(version, new LinearLayout.LayoutParams(-1, -2));
         }
     }
 
@@ -1084,6 +1084,91 @@ public final class MainActivity extends Activity {
         parent.addView(row, new LinearLayout.LayoutParams(-1, -2));
     }
 
+    private void addRainDelayControl(
+            LinearLayout parent, boolean enabled, long remainingSeconds) {
+        LinearLayout row = actionRow();
+        TextView name = text(getString(R.string.rain_delay), 14, true);
+        name.setTextColor(MUTED);
+        row.addView(name, new LinearLayout.LayoutParams(0, -2, 0.38f));
+
+        String value = enabled
+                ? getString(
+                        R.string.rain_delay_remaining,
+                        formatDuration(remainingSeconds))
+                : getString(R.string.inactive);
+        TextView currentState = text(value, 14, false);
+        row.addView(
+                currentState, new LinearLayout.LayoutParams(0, -2, 0.35f));
+
+        Button action = compactButton(
+                getString(enabled ? R.string.turn_off : R.string.set),
+                enabled ? RED : GREEN);
+        action.setOnClickListener(v -> {
+            if (enabled) {
+                JSONObject change = new JSONObject();
+                try {
+                    change.put("rain_delay_hours", 0);
+                } catch (Exception ignored) {
+                }
+                put("/irrigation", change,
+                        () -> load("/overview", "overview"));
+            } else {
+                showRainDelayDialog();
+            }
+        });
+        row.addView(action);
+        parent.addView(row, new LinearLayout.LayoutParams(-1, -2));
+    }
+
+    private void showRainDelayDialog() {
+        EditText hours = new EditText(this);
+        hours.setInputType(
+                InputType.TYPE_CLASS_NUMBER |
+                        InputType.TYPE_NUMBER_FLAG_DECIMAL);
+        hours.setText("24");
+        hours.setSelectAllOnFocus(true);
+
+        LinearLayout wrapper = new LinearLayout(this);
+        wrapper.setPadding(dp(24), dp(4), dp(24), 0);
+        wrapper.addView(hours, new LinearLayout.LayoutParams(-1, -2));
+
+        AlertDialog dialog = new AlertDialog.Builder(this)
+                .setTitle(R.string.rain_delay_hours)
+                .setView(wrapper)
+                .setNegativeButton(android.R.string.cancel, null)
+                .setPositiveButton(R.string.set, null)
+                .create();
+        dialog.setOnShowListener(ignored ->
+                dialog.getButton(AlertDialog.BUTTON_POSITIVE)
+                        .setOnClickListener(v -> {
+                            double value;
+                            try {
+                                value = Double.parseDouble(
+                                        hours.getText().toString()
+                                                .trim().replace(',', '.'));
+                            } catch (Exception error) {
+                                hours.setError(
+                                        getString(R.string.invalid_rain_delay));
+                                return;
+                            }
+                            if (value <= 0 || value > 24 * 365) {
+                                hours.setError(
+                                        getString(R.string.invalid_rain_delay));
+                                return;
+                            }
+                            JSONObject change = new JSONObject();
+                            try {
+                                change.put("rain_delay_hours", value);
+                            } catch (Exception ignoredJson) {
+                            }
+                            put("/irrigation", change, () -> {
+                                dialog.dismiss();
+                                load("/overview", "overview");
+                            });
+                        }));
+        dialog.show();
+    }
+
     private JSONObject jsonBoolean(String key, boolean value) {
         JSONObject result = new JSONObject();
         try {
@@ -1091,6 +1176,24 @@ public final class MainActivity extends Activity {
         } catch (Exception ignored) {
         }
         return result;
+    }
+
+    private String formatDuration(long totalSeconds) {
+        long seconds = Math.max(0, totalSeconds);
+        long days = seconds / 86400;
+        long hours = (seconds % 86400) / 3600;
+        long minutes = (seconds % 3600 + 59) / 60;
+        if (minutes == 60) {
+            hours++;
+            minutes = 0;
+        }
+        if (hours == 24) {
+            days++;
+            hours = 0;
+        }
+        if (days > 0) return days + " d " + hours + " h";
+        if (hours > 0) return hours + " h " + minutes + " min";
+        return minutes + " min";
     }
 
     private String formatTimestamp(String value) {

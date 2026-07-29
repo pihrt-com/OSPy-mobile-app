@@ -15,6 +15,7 @@ final class LiveUpdates {
     private final Listener listener;
     private final Handler handler = new Handler(Looper.getMainLooper());
     private int lastEventId;
+    private boolean synchronizedWithServer;
     private boolean running;
 
     LiveUpdates(ApiClient client, Listener listener) {
@@ -45,9 +46,13 @@ final class LiveUpdates {
                                 if (event == null) continue;
                                 lastEventId = Math.max(
                                         lastEventId, event.optInt("id", lastEventId));
-                                listener.event(event);
+                                // The first response only establishes the
+                                // cursor. Buffered historical notifications
+                                // must not appear as new after login.
+                                if (synchronizedWithServer) listener.event(event);
                             }
                         }
+                        synchronizedWithServer = true;
                         schedule(3000);
                     }
 
@@ -61,4 +66,3 @@ final class LiveUpdates {
         if (running) handler.postDelayed(this::poll, delay);
     }
 }
-
