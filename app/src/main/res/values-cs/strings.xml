@@ -11,6 +11,10 @@
     <string name="back">Zpět</string>
     <string name="open">Otevřít</string>
     <string name="remove">Odstranit</string>
+    <string name="edit">Upravit</string>
+    <string name="edit_installation">Upravit instalaci</string>
+    <string name="installation_name">Název instalace</string>
+    <string name="save">Uložit</string>
     <string name="refresh">Obnovit</string>
     <string name="stop_all">Vypnout vše</string>
     <string name="overview">Domů</string>

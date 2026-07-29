@@ -12,6 +12,8 @@ import android.hardware.biometrics.BiometricPrompt;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.CancellationSignal;
+import android.os.Handler;
+import android.os.Looper;
 import android.text.InputType;
 import android.view.Gravity;
 import android.view.View;
@@ -59,8 +61,25 @@ public final class MainActivity extends Activity {
     private LinearLayout toolbar;
     private TextView title;
     private LinearLayout content;
+    private ScrollView contentScroll;
     private final Map<Button, String> navigationButtons = new LinkedHashMap<>();
     private String activeSection = "";
+    private String currentPath = "";
+    private String currentRenderer = "";
+    private int loadGeneration = 0;
+    private boolean requestInFlight = false;
+    private boolean unlockStarted = false;
+    private final Handler refreshHandler = new Handler(Looper.getMainLooper());
+    private final Runnable refreshTask = new Runnable() {
+        @Override public void run() {
+            if (current != null && !requestInFlight &&
+                    ("overview".equals(currentRenderer) ||
+                            "stations".equals(currentRenderer))) {
+                fetch(currentPath, currentRenderer, false, loadGeneration);
+            }
+            refreshHandler.postDelayed(this, 2000);
+        }
+    };
 
     @Override
     protected void onCreate(Bundle state) {
@@ -70,20 +89,33 @@ public final class MainActivity extends Activity {
         installationStore = new InstallationStore(this);
         notifications = new NotificationCenter(this);
         if (Build.VERSION.SDK_INT >= 33 &&
+                notifications.isEnabled() &&
                 checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)
                         != PackageManager.PERMISSION_GRANTED) {
             requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS}, 10);
+        } else {
+            unlock();
         }
-        unlock();
+        refreshHandler.postDelayed(refreshTask, 2000);
+    }
+
+    @Override
+    public void onRequestPermissionsResult(
+            int requestCode, String[] permissions, int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == 10) unlock();
     }
 
     @Override
     protected void onDestroy() {
+        refreshHandler.removeCallbacks(refreshTask);
         if (liveUpdates != null) liveUpdates.stop();
         super.onDestroy();
     }
 
     private void unlock() {
+        if (unlockStarted) return;
+        unlockStarted = true;
         if (Build.VERSION.SDK_INT < 28) {
             showInstallations();
             return;
@@ -135,13 +167,13 @@ public final class MainActivity extends Activity {
         toolbar.addView(title, new LinearLayout.LayoutParams(0, -2, 1));
         page.addView(toolbar);
 
-        ScrollView scroll = new ScrollView(this);
-        scroll.setFillViewport(true);
+        contentScroll = new ScrollView(this);
+        contentScroll.setFillViewport(true);
         content = new LinearLayout(this);
         content.setOrientation(LinearLayout.VERTICAL);
         content.setPadding(dp(12), dp(10), dp(12), dp(24));
-        scroll.addView(content, new ScrollView.LayoutParams(-1, -2));
-        page.addView(scroll, new LinearLayout.LayoutParams(-1, 0, 1));
+        contentScroll.addView(content, new ScrollView.LayoutParams(-1, -2));
+        page.addView(contentScroll, new LinearLayout.LayoutParams(-1, 0, 1));
         setContentView(page);
 
         page.setOnApplyWindowInsetsListener((view, insets) -> {
@@ -157,6 +189,8 @@ public final class MainActivity extends Activity {
     }
 
     private void showInstallations() {
+        currentPath = "";
+        currentRenderer = "";
         shell(getString(R.string.app_name));
         try {
             installations = installationStore.load();
@@ -173,6 +207,9 @@ public final class MainActivity extends Activity {
             Button open = button(getString(R.string.open), GREEN);
             open.setOnClickListener(v -> open(installation));
             row.addView(open);
+            Button edit = button(getString(R.string.edit), NAVY);
+            edit.setOnClickListener(v -> showEditInstallation(installation));
+            row.addView(edit);
             Button remove = button("×", RED);
             remove.setContentDescription(getString(R.string.remove));
             remove.setOnClickListener(v -> confirmRemove(installation));
@@ -185,6 +222,8 @@ public final class MainActivity extends Activity {
     }
 
     private void showPairing() {
+        currentPath = "";
+        currentRenderer = "";
         shell(getString(R.string.add_installation));
         EditText url = input(getString(R.string.server_url), false);
         url.setText("https://");
@@ -254,6 +293,54 @@ public final class MainActivity extends Activity {
         content.addView(actions);
     }
 
+    private void showEditInstallation(Installation installation) {
+        currentPath = "";
+        currentRenderer = "";
+        shell(getString(R.string.edit_installation));
+        EditText name = input(getString(R.string.installation_name), false);
+        name.setText(installation.name);
+        EditText url = input(getString(R.string.server_url), false);
+        url.setText(installation.baseUrl);
+        CheckBox unverified = new CheckBox(this);
+        unverified.setText(getString(R.string.unverified_certificate));
+        unverified.setTextSize(15);
+        unverified.setChecked(installation.allowUnverifiedCertificate);
+        content.addView(name);
+        content.addView(url);
+        content.addView(unverified);
+
+        LinearLayout actions = actionRow();
+        Button save = button(getString(R.string.save), GREEN);
+        save.setOnClickListener(v -> {
+            String base = Installation.normalize(url.getText().toString());
+            if (!(base.startsWith("https://") || base.startsWith("http://"))) {
+                toast(getString(R.string.complete_address));
+                return;
+            }
+            String displayName = name.getText().toString().trim();
+            Installation changed = new Installation(
+                    installation.id,
+                    displayName.isEmpty() ? "OSPy" : displayName,
+                    base,
+                    installation.username,
+                    installation.refreshToken,
+                    base.startsWith("https://") && unverified.isChecked());
+            try {
+                installationStore.upsert(changed);
+                showInstallations();
+            } catch (Exception error) {
+                message(
+                        getString(R.string.protected_storage_error),
+                        error.getMessage());
+            }
+        });
+        actions.addView(save);
+        Button back = button(getString(R.string.back), RED);
+        back.setOnClickListener(v -> showInstallations());
+        actions.addView(back);
+        content.addView(actions);
+    }
+
     private void open(Installation installation) {
         current = installation;
         api = new ApiClient(installation, installationStore);
@@ -313,11 +400,29 @@ public final class MainActivity extends Activity {
     }
 
     private void load(String path, String renderer) {
+        currentPath = path;
+        currentRenderer = renderer;
+        int generation = ++loadGeneration;
+        // Do not let a response for the previous screen prevent the newly
+        // selected screen from starting its own request.
+        requestInFlight = false;
         selectNavigation(renderer);
         content.removeAllViews();
         content.addView(text(getString(R.string.loading), 16, false));
+        fetch(path, renderer, true, generation);
+    }
+
+    private void fetch(
+            String path, String renderer, boolean showFailure, int generation) {
+        if (requestInFlight) return;
+        requestInFlight = true;
+        int scrollY = contentScroll == null ? 0 : contentScroll.getScrollY();
         api.request("GET", path, null, new ApiClient.Callback() {
             @Override public void success(JSONObject response) {
+                if (generation != loadGeneration ||
+                        !path.equals(currentPath) ||
+                        !renderer.equals(currentRenderer)) return;
+                requestInFlight = false;
                 content.removeAllViews();
                 Object data = response.opt("data");
                 if ("overview".equals(renderer) && data instanceof JSONObject) {
@@ -342,9 +447,17 @@ public final class MainActivity extends Activity {
                 } else {
                     renderFallback(data);
                 }
+                if (!showFailure && contentScroll != null) {
+                    contentScroll.post(() -> contentScroll.scrollTo(0, scrollY));
+                }
             }
 
             @Override public void failure(String error) {
+                if (generation != loadGeneration ||
+                        !path.equals(currentPath) ||
+                        !renderer.equals(currentRenderer)) return;
+                requestInFlight = false;
+                if (!showFailure) return;
                 content.removeAllViews();
                 content.addView(text(localizedError(error), 16, true));
                 Button retry = button(getString(R.string.refresh), GREEN);
@@ -379,11 +492,14 @@ public final class MainActivity extends Activity {
                 for (int i = 0; i < active.length(); i++) {
                     JSONObject station = active.optJSONObject(i);
                     if (station != null) {
+                        int remaining = station.optInt("remaining_seconds", -1);
                         addPair(
                                 summary,
                                 station.optString("name"),
-                                station.optInt("remaining_seconds") + " " +
-                                        getString(R.string.seconds_short));
+                                remaining >= 0
+                                        ? remaining + " " +
+                                                getString(R.string.seconds_short)
+                                        : getString(R.string.running));
                     }
                 }
             }
@@ -420,11 +536,14 @@ public final class MainActivity extends Activity {
             LinearLayout card = card();
             String stationState = station.optBoolean("running")
                     ? getString(R.string.running) : getString(R.string.stopped);
+            int remaining = station.optInt("remaining_seconds", 0);
+            String timing = station.optBoolean("running") && remaining >= 0
+                    ? " · " + remaining + " " +
+                            getString(R.string.seconds_short)
+                    : "";
             TextView label = text(
                     station.optInt("number") + ". " + station.optString("name") +
-                            "\n" + stationState + " · " +
-                            station.optInt("remaining_seconds") + " " +
-                            getString(R.string.seconds_short),
+                            "\n" + stationState + timing,
                     16, true);
             card.addView(label, new LinearLayout.LayoutParams(0, -2, 1));
             if (!station.optBoolean("is_master") &&
@@ -681,6 +800,28 @@ public final class MainActivity extends Activity {
             content.addView(statusCard(
                     "OSPy", getString(R.string.no_data), "warning"));
         }
+        heading(getString(R.string.notifications));
+        LinearLayout notificationSettings = card();
+        notificationSettings.addView(
+                text(getString(R.string.notifications), 16, true),
+                new LinearLayout.LayoutParams(0, -2, 1));
+        Button notificationToggle = button(
+                getString(notifications.isEnabled()
+                        ? R.string.enabled : R.string.disabled),
+                notifications.isEnabled() ? GREEN : NAVY);
+        notificationToggle.setOnClickListener(v -> {
+            boolean enabled = !notifications.isEnabled();
+            notifications.setEnabled(enabled);
+            if (enabled && Build.VERSION.SDK_INT >= 33 &&
+                    checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)
+                            != PackageManager.PERMISSION_GRANTED) {
+                requestPermissions(
+                        new String[]{Manifest.permission.POST_NOTIFICATIONS}, 10);
+            }
+            load("/updates", "system");
+        });
+        notificationSettings.addView(notificationToggle);
+        content.addView(notificationSettings);
         heading(getString(R.string.actions));
         LinearLayout actions = actionRow();
         Button check = button(getString(R.string.check_updates), GREEN);

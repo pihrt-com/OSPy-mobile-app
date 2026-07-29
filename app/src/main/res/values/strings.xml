@@ -11,6 +11,10 @@
     <string name="back">Back</string>
     <string name="open">Open</string>
     <string name="remove">Remove</string>
+    <string name="edit">Edit</string>
+    <string name="edit_installation">Edit installation</string>
+    <string name="installation_name">Installation name</string>
+    <string name="save">Save</string>
     <string name="refresh">Refresh</string>
     <string name="stop_all">Stop all</string>
     <string name="overview">Home</string>

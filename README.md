@@ -3,7 +3,7 @@
 First native Android client for the stable OSPy `/api/v1`. The application
 never parses web-interface HTML.
 
-## Included in version 0.2.0
+## Included in version 0.2.1
 
 - Multiple saved OSPy installations, for example Home, Cottage and Greenhouse.
 - Refresh tokens encrypted by an AES-GCM key stored in Android Keystore.
@@ -19,6 +19,12 @@ never parses web-interface HTML.
 - Compact navigation with a clearly highlighted active section and native,
   localized cards for weather, event logs, diagnostics and update status.
 - Resilient Home and sensor rendering when an optional API field is unavailable.
+- Correct first launch after the Android notification-permission prompt.
+- Live Home and station state refresh, including a known countdown or an
+  explicit running state for direct starts without a scheduled end.
+- Editing of a saved installation name, address and per-installation
+  unverified-certificate choice.
+- An application notification switch on the System screen.
 
 The app uses only Android platform APIs and `org.json`; it has no analytics,
 advertising, cloud relay or third-party runtime library.
