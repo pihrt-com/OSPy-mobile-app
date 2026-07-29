@@ -2,6 +2,18 @@ plugins {
     id "com.android.application"
 }
 
+def signingPropertiesFile = new File(
+        System.getProperty("user.home"),
+        "android-keys/ospy-mobile-signing.properties"
+)
+def signingProperties = new Properties()
+if (signingPropertiesFile.isFile()) {
+    signingPropertiesFile.withInputStream { signingProperties.load(it) }
+}
+def releaseSigningAvailable = ["storeFile", "storePassword", "keyAlias", "keyPassword"].every {
+    signingProperties.getProperty(it)
+}
+
 android {
     namespace "com.pihrt.ospy.mobile"
     compileSdk 35
@@ -14,11 +26,25 @@ android {
         versionName "0.2.4"
     }
 
+    signingConfigs {
+        release {
+            if (releaseSigningAvailable) {
+                storeFile file(signingProperties.getProperty("storeFile"))
+                storePassword signingProperties.getProperty("storePassword")
+                keyAlias signingProperties.getProperty("keyAlias")
+                keyPassword signingProperties.getProperty("keyPassword")
+            }
+        }
+    }
+
     buildTypes {
         release {
             minifyEnabled true
             proguardFiles getDefaultProguardFile("proguard-android-optimize.txt"),
                     "proguard-rules.pro"
+            if (releaseSigningAvailable) {
+                signingConfig signingConfigs.release
+            }
         }
     }
 
