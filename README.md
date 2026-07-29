@@ -3,7 +3,7 @@
 First native Android client for the stable OSPy `/api/v1`. The application
 never parses web-interface HTML.
 
-## Included in version 0.1.0
+## Included in version 0.2.0
 
 - Multiple saved OSPy installations, for example Home, Cottage and Greenhouse.
 - Refresh tokens encrypted by an AES-GCM key stored in Android Keystore.
@@ -16,6 +16,9 @@ never parses web-interface HTML.
 - Foreground live-change polling through the documented SSE fallback, including
   local Android notifications for OSPy notification events.
 - Czech and English application resources.
+- Compact navigation with a clearly highlighted active section and native,
+  localized cards for weather, event logs, diagnostics and update status.
+- Resilient Home and sensor rendering when an optional API field is unavailable.
 
 The app uses only Android platform APIs and `org.json`; it has no analytics,
 advertising, cloud relay or third-party runtime library.
@@ -36,6 +39,15 @@ Update OSPy to a version that provides `/api/v1`. Add the full HTTP(S) address,
 user name, password and optional 2FA code. Use HTTPS whenever OSPy is reachable
 outside a trusted private network. Cleartext HTTP remains allowed for existing
 LAN-only OSPy installations and is visibly present in the saved address.
+
+OSPy commonly uses a locally generated HTTPS certificate that Android cannot
+verify. The pairing form therefore offers an explicit per-installation
+**Trust an unverified HTTPS certificate** option. It disables certificate-chain
+and host-name verification only for that saved installation and is off by
+default. Enable it only for your own OSPy on a trusted private network. Use a
+publicly trusted certificate for any installation exposed through the Internet.
+If Android cannot resolve a local name such as `ospy`, enter the device's local
+IP address instead.
 
 Removing an installation deletes its locally protected refresh token. Use the
 OSPy paired-device endpoint or OSPy web administration to revoke a lost device.

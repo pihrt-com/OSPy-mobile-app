@@ -13,8 +13,15 @@ import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.security.SecureRandom;
+import java.security.cert.X509Certificate;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+
+import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
 
 final class ApiClient {
     interface Callback {
@@ -115,6 +122,10 @@ final class ApiClient {
                                   String bearer) throws Exception {
         HttpURLConnection connection = (HttpURLConnection) new URL(
                 installation.baseUrl + "/api/v1" + path).openConnection();
+        if (connection instanceof HttpsURLConnection &&
+                installation.allowUnverifiedCertificate) {
+            configureUnverifiedHttps((HttpsURLConnection) connection);
+        }
         connection.setRequestMethod(method);
         connection.setConnectTimeout(10000);
         connection.setReadTimeout(20000);
@@ -145,6 +156,27 @@ final class ApiClient {
                     error == null ? null : error.optJSONObject("details"));
         }
         return response;
+    }
+
+    private static void configureUnverifiedHttps(HttpsURLConnection connection)
+            throws Exception {
+        TrustManager[] trustManagers = new TrustManager[]{
+                new X509TrustManager() {
+                    @Override public X509Certificate[] getAcceptedIssuers() {
+                        return new X509Certificate[0];
+                    }
+                    @Override public void checkClientTrusted(
+                            X509Certificate[] chain, String authType) {
+                    }
+                    @Override public void checkServerTrusted(
+                            X509Certificate[] chain, String authType) {
+                    }
+                }
+        };
+        SSLContext context = SSLContext.getInstance("TLS");
+        context.init(null, trustManagers, new SecureRandom());
+        connection.setSSLSocketFactory(context.getSocketFactory());
+        connection.setHostnameVerifier((hostname, session) -> true);
     }
 
     private static String read(InputStream source) throws Exception {
