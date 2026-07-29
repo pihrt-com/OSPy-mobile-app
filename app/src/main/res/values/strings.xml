@@ -121,4 +121,13 @@
     <string name="automatic_update">Automatic update</string>
     <string name="update_available">Update available</string>
     <string name="actions">Actions</string>
+    <string name="app_settings">Application settings</string>
+    <string name="saved_ospy_systems">Saved OSPy systems</string>
+    <string name="about_app">About the application</string>
+    <string name="app_version">Application version</string>
+    <string name="ospy_github">OSPy on GitHub</string>
+    <string name="plugins_github">OSPy plug-ins on GitHub</string>
+    <string name="app_source_github">Application source on GitHub</string>
+    <string name="google_play">Application on Google Play</string>
+    <string name="cannot_open_link">The link could not be opened.</string>
 </resources>

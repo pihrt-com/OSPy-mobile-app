@@ -3,7 +3,7 @@
 First native Android client for the stable OSPy `/api/v1`. The application
 never parses web-interface HTML.
 
-## Included in version 0.2.3
+## Included in version 0.2.4
 
 - Multiple saved OSPy installations, for example Home, Cottage and Greenhouse.
 - Refresh tokens encrypted by an AES-GCM key stored in Android Keystore.
@@ -24,7 +24,13 @@ never parses web-interface HTML.
   explicit running state for direct starts without a scheduled end.
 - Editing of a saved installation name, address and per-installation
   unverified-certificate choice.
-- An application notification switch on the System screen.
+- A gear in the top application bar opens application settings with the
+  notification switch, saved OSPy systems, app version and official project,
+  plug-in, source-code and Google Play links. The OSPy System tab is reserved
+  for server status and administrator actions.
+- Native sensor and plug-in cards can enable or disable an item through the
+  protected API. Plug-in activation still requires prior permission approval
+  and passes through OSPy's compatibility and lifecycle checks.
 - Home refreshes automatically every ten seconds, shows the last successful
   server refresh and reloads immediately after a control action.
 - Home controls the scheduler and manual mode. Rain delay accepts a duration

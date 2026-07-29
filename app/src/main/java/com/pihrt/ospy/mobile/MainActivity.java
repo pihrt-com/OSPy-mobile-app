@@ -4,6 +4,7 @@ import android.Manifest;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.KeyguardManager;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.graphics.Typeface;
@@ -14,6 +15,7 @@ import android.os.Bundle;
 import android.os.CancellationSignal;
 import android.os.Handler;
 import android.os.Looper;
+import android.net.Uri;
 import android.text.InputType;
 import android.view.Gravity;
 import android.view.View;
@@ -23,6 +25,7 @@ import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.HorizontalScrollView;
+import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
@@ -168,6 +171,15 @@ public final class MainActivity extends Activity {
         title = text(heading, 22, true);
         title.setTextColor(Color.WHITE);
         toolbar.addView(title, new LinearLayout.LayoutParams(0, -2, 1));
+        ImageButton settings = new ImageButton(this);
+        settings.setImageResource(R.drawable.ic_settings);
+        settings.setColorFilter(Color.WHITE);
+        settings.setBackgroundColor(Color.TRANSPARENT);
+        settings.setPadding(dp(10), dp(10), dp(10), dp(10));
+        settings.setContentDescription(getString(R.string.app_settings));
+        settings.setOnClickListener(v -> showAppSettings());
+        toolbar.addView(
+                settings, new LinearLayout.LayoutParams(dp(48), dp(48)));
         page.addView(toolbar);
 
         contentScroll = new ScrollView(this);
@@ -225,6 +237,89 @@ public final class MainActivity extends Activity {
         Button add = button(getString(R.string.add_installation), NAVY);
         add.setOnClickListener(v -> showPairing());
         content.addView(add);
+    }
+
+    private void showAppSettings() {
+        currentPath = "";
+        currentRenderer = "";
+        activeRequest = ++requestSequence;
+        requestInFlight = false;
+        shell(getString(R.string.app_settings));
+
+        heading(getString(R.string.notifications));
+        LinearLayout notificationSettings = card();
+        notificationSettings.addView(
+                text(getString(R.string.notifications), 16, true),
+                new LinearLayout.LayoutParams(0, -2, 1));
+        Button notificationToggle = button(
+                getString(notifications.isEnabled()
+                        ? R.string.enabled : R.string.disabled),
+                notifications.isEnabled() ? GREEN : NAVY);
+        notificationToggle.setOnClickListener(v -> {
+            boolean enabled = !notifications.isEnabled();
+            notifications.setEnabled(enabled);
+            if (enabled && Build.VERSION.SDK_INT >= 33 &&
+                    checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)
+                            != PackageManager.PERMISSION_GRANTED) {
+                requestPermissions(
+                        new String[]{Manifest.permission.POST_NOTIFICATIONS}, 10);
+            }
+            showAppSettings();
+        });
+        notificationSettings.addView(notificationToggle);
+        content.addView(notificationSettings);
+
+        heading(getString(R.string.installations));
+        LinearLayout installationsCard = card();
+        installationsCard.addView(
+                text(getString(R.string.saved_ospy_systems), 16, true),
+                new LinearLayout.LayoutParams(0, -2, 1));
+        Button installationsButton = button(
+                getString(R.string.open), NAVY);
+        installationsButton.setOnClickListener(v -> showInstallations());
+        installationsCard.addView(installationsButton);
+        content.addView(installationsCard);
+
+        heading(getString(R.string.about_app));
+        LinearLayout about = cardColumn();
+        addPair(
+                about, getString(R.string.app_version),
+                BuildConfig.VERSION_NAME);
+        about.addView(linkButton(
+                getString(R.string.ospy_github),
+                "https://github.com/martinpihrt/OSPy"));
+        about.addView(linkButton(
+                getString(R.string.plugins_github),
+                "https://github.com/martinpihrt/OSPy-plugins"));
+        about.addView(linkButton(
+                getString(R.string.app_source_github),
+                "https://github.com/martinpihrt/OSPy-mobile-app"));
+        about.addView(linkButton(
+                getString(R.string.google_play),
+                "https://play.google.com/store/apps/details?id=" +
+                        getPackageName()));
+        content.addView(about);
+
+        Button back = button(getString(R.string.back), RED);
+        back.setOnClickListener(v -> {
+            if (current == null) showInstallations();
+            else showDashboard();
+        });
+        content.addView(back);
+    }
+
+    private Button linkButton(String label, String url) {
+        Button link = button(label, NAVY);
+        link.setOnClickListener(v -> {
+            try {
+                startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(url)));
+            } catch (Exception error) {
+                message(
+                        getString(R.string.app_settings),
+                        getString(R.string.cannot_open_link));
+            }
+        });
+        return link;
     }
 
     private void showPairing() {
@@ -628,11 +723,31 @@ public final class MainActivity extends Activity {
                             sensor.optString("name", getString(R.string.sensors)),
                     17, true);
             card.addView(name);
-            card.addView(badge(
-                    sensor.optBoolean("enabled")
+            LinearLayout sensorState = actionRow();
+            boolean sensorEnabled = sensor.optBoolean("enabled");
+            sensorState.addView(badge(
+                    sensorEnabled
                             ? getString(R.string.enabled)
                             : getString(R.string.disabled),
-                    sensor.optBoolean("enabled") ? "ok" : "stopped"));
+                    sensorEnabled ? "ok" : "stopped"));
+            Button sensorToggle = button(
+                    getString(sensorEnabled
+                            ? R.string.turn_off : R.string.turn_on),
+                    sensorEnabled ? RED : GREEN);
+            sensorToggle.setOnClickListener(v -> {
+                JSONObject payload = new JSONObject();
+                try {
+                    payload.put("enabled", !sensorEnabled);
+                } catch (Exception ignored) {
+                    return;
+                }
+                put(
+                        "/sensors/" + sensor.optString("id"),
+                        payload,
+                        () -> load("/sensors", "sensors"));
+            });
+            sensorState.addView(sensorToggle);
+            card.addView(sensorState);
             JSONObject display = sensor.optJSONObject("display");
             JSONObject reading = display == null
                     ? null : display.optJSONObject("reading");
@@ -812,6 +927,24 @@ public final class MainActivity extends Activity {
                 statuses.addView(badge(
                         localizedStatus(healthStatus), healthStatus));
             }
+            boolean pluginEnabled = plugin.optBoolean("enabled");
+            Button pluginToggle = button(
+                    getString(pluginEnabled
+                            ? R.string.turn_off : R.string.turn_on),
+                    pluginEnabled ? RED : GREEN);
+            pluginToggle.setOnClickListener(v -> {
+                JSONObject payload = new JSONObject();
+                try {
+                    payload.put("enabled", !pluginEnabled);
+                } catch (Exception ignored) {
+                    return;
+                }
+                put(
+                        "/plugins/" + plugin.optString("id"),
+                        payload,
+                        () -> load("/plugins", "plugins"));
+            });
+            statuses.addView(pluginToggle);
             card.addView(statuses);
             content.addView(card);
         }
@@ -855,28 +988,6 @@ public final class MainActivity extends Activity {
             content.addView(statusCard(
                     "OSPy", getString(R.string.no_data), "warning"));
         }
-        heading(getString(R.string.notifications));
-        LinearLayout notificationSettings = card();
-        notificationSettings.addView(
-                text(getString(R.string.notifications), 16, true),
-                new LinearLayout.LayoutParams(0, -2, 1));
-        Button notificationToggle = button(
-                getString(notifications.isEnabled()
-                        ? R.string.enabled : R.string.disabled),
-                notifications.isEnabled() ? GREEN : NAVY);
-        notificationToggle.setOnClickListener(v -> {
-            boolean enabled = !notifications.isEnabled();
-            notifications.setEnabled(enabled);
-            if (enabled && Build.VERSION.SDK_INT >= 33 &&
-                    checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)
-                            != PackageManager.PERMISSION_GRANTED) {
-                requestPermissions(
-                        new String[]{Manifest.permission.POST_NOTIFICATIONS}, 10);
-            }
-            load("/updates", "system");
-        });
-        notificationSettings.addView(notificationToggle);
-        content.addView(notificationSettings);
         heading(getString(R.string.actions));
         LinearLayout actions = actionRow();
         Button check = button(getString(R.string.check_updates), GREEN);
@@ -896,10 +1007,6 @@ public final class MainActivity extends Activity {
                 getString(R.string.confirm_restart),
                 "/system/actions/restart-ospy"));
         systemActions.addView(restart);
-        Button installationList = button(
-                getString(R.string.installations), NAVY);
-        installationList.setOnClickListener(v -> showInstallations());
-        systemActions.addView(installationList);
         content.addView(systemActions);
     }
 

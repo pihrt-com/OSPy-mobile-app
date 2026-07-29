@@ -121,4 +121,13 @@
     <string name="rain_delay_hours">Dešťové zpoždění v hodinách</string>
     <string name="rain_delay_remaining">Zbývá: %1$s</string>
     <string name="invalid_rain_delay">Zadejte hodnotu větší než 0 a nejvýše 8760 hodin.</string>
+    <string name="app_settings">Nastavení aplikace</string>
+    <string name="saved_ospy_systems">Uložené systémy OSPy</string>
+    <string name="about_app">O aplikaci</string>
+    <string name="app_version">Verze aplikace</string>
+    <string name="ospy_github">OSPy na GitHubu</string>
+    <string name="plugins_github">Rozšíření OSPy na GitHubu</string>
+    <string name="app_source_github">Zdrojový kód aplikace na GitHubu</string>
+    <string name="google_play">Aplikace na Google Play</string>
+    <string name="cannot_open_link">Odkaz se nepodařilo otevřít.</string>
 </resources>
