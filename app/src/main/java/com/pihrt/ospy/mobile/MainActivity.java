@@ -27,6 +27,7 @@ import android.widget.EditText;
 import android.widget.HorizontalScrollView;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
+import android.widget.ProgressBar;
 import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -34,6 +35,7 @@ import android.widget.Toast;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import java.text.DateFormatSymbols;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -455,6 +457,17 @@ public final class MainActivity extends Activity {
                         data.optString("title", "OSPy"),
                         data.optString("message", ""));
             }
+            String type = event.optString("event");
+            if (type.startsWith("station.") ||
+                    "stations.changed".equals(type) ||
+                    "conditions.changed".equals(type) ||
+                    type.startsWith("program.") ||
+                    "plugin.action".equals(type)) {
+                if (!requestInFlight && currentPath != null &&
+                        !currentPath.isEmpty()) {
+                    fetch(currentPath, currentRenderer, false, loadGeneration);
+                }
+            }
         });
         liveUpdates.start();
     }
@@ -620,11 +633,8 @@ public final class MainActivity extends Activity {
                 "/stations/actions/stop-all",
                 () -> load("/overview", "overview")));
         content.addView(stop);
-        JSONObject weather = data.optJSONObject("weather");
-        if (weather != null) {
-            heading(getString(R.string.weather));
-            renderWeather(weather, false);
-        }
+        heading(getString(R.string.today_schedule));
+        loadTimeline("/schedule?hours=24");
         JSONArray warnings = data.optJSONArray("warnings");
         if (warnings != null && warnings.length() > 0) {
             heading(getString(R.string.warnings));
@@ -692,21 +702,414 @@ public final class MainActivity extends Activity {
         for (int i = 0; i < programItems.length(); i++) {
             JSONObject program = programItems.optJSONObject(i);
             if (program == null) continue;
-            LinearLayout card = card();
+            LinearLayout card = cardColumn();
+            LinearLayout header = actionRow();
             TextView label = text(
                     program.optInt("number") + ". " + program.optString("name") +
                             "\n" + program.optString("summary"), 15, true);
-            card.addView(label, new LinearLayout.LayoutParams(0, -2, 1));
+            header.addView(label, new LinearLayout.LayoutParams(0, -2, 1));
+            boolean enabled = program.optBoolean("enabled");
+            Button toggle = compactButton(
+                    getString(enabled ? R.string.turn_off : R.string.turn_on),
+                    enabled ? RED : GREEN);
+            toggle.setOnClickListener(v -> put(
+                    "/programs/" + program.optString("id"),
+                    jsonBoolean("enabled", !enabled),
+                    () -> load("/programs", "programs")));
+            header.addView(toggle);
             Button run = button(getString(R.string.run), GREEN);
-            run.setEnabled(program.optBoolean("enabled"));
-            run.setAlpha(program.optBoolean("enabled") ? 1.0f : 0.45f);
+            run.setEnabled(enabled);
+            run.setAlpha(enabled ? 1.0f : 0.45f);
             run.setOnClickListener(v -> confirmAction(
                     getString(
                             R.string.confirm_run, program.optString("name")),
                     "/programs/" + program.optString("id") + "/actions/run"));
-            card.addView(run);
+            header.addView(run);
+            card.addView(header);
+            LinearLayout details = programDetails(program);
+            details.setVisibility(View.GONE);
+            Button expand = compactButton(getString(R.string.expand), NAVY);
+            expand.setOnClickListener(v -> {
+                boolean show = details.getVisibility() != View.VISIBLE;
+                details.setVisibility(show ? View.VISIBLE : View.GONE);
+                expand.setText(getString(
+                        show ? R.string.collapse : R.string.expand));
+            });
+            LinearLayout actions = actionRow();
+            actions.addView(expand);
+            Button edit = compactButton(getString(R.string.edit), NAVY);
+            edit.setOnClickListener(v -> loadProgramEditor(program));
+            actions.addView(edit);
+            card.addView(actions);
+            card.addView(details);
             content.addView(card);
         }
+    }
+
+    private void loadTimeline(String path) {
+        final int generation = loadGeneration;
+        api.request("GET", path, null, new ApiClient.Callback() {
+            @Override public void success(JSONObject response) {
+                if (generation != loadGeneration ||
+                        !"overview".equals(currentRenderer)) return;
+                JSONObject data = response.optJSONObject("data");
+                JSONArray items = data == null ? null : data.optJSONArray("items");
+                if (items == null || items.length() == 0) {
+                    content.addView(text(
+                            getString(R.string.no_scheduled_runs), 14, false));
+                    return;
+                }
+                for (int i = 0; i < items.length(); i++) {
+                    JSONObject item = items.optJSONObject(i);
+                    if (item == null || item.optBoolean("is_master")) continue;
+                    LinearLayout card = statusCardContainer(
+                            "blocked".equals(item.optString("state"))
+                                    ? "warning" : "ok");
+                    LinearLayout header = actionRow();
+                    String state = item.optString("state");
+                    TextView name = text(
+                            item.optInt("station_number") + ". " +
+                                    item.optString("station_name"),
+                            15, true);
+                    header.addView(name, new LinearLayout.LayoutParams(0, -2, 1));
+                    header.addView(badge(timelineState(state), state));
+                    card.addView(header);
+                    addPair(
+                            card, getString(R.string.date_time),
+                            shortDateTime(item.optString("start")) + " – " +
+                                    shortTime(item.optString("end")));
+                    addPairIfPresent(
+                            card, item, "program_name",
+                            getString(R.string.program));
+                    if ("running".equals(state)) {
+                        addPair(
+                                card, getString(R.string.remaining),
+                                formatDuration(item.optLong(
+                                        "remaining_seconds", 0)));
+                        ProgressBar progress = new ProgressBar(
+                                MainActivity.this, null,
+                                android.R.attr.progressBarStyleHorizontal);
+                        progress.setMax(1000);
+                        progress.setProgress((int) Math.round(
+                                1000 * item.optDouble("progress", 0)));
+                        card.addView(progress, new LinearLayout.LayoutParams(-1, -2));
+                    }
+                    if ("blocked".equals(state)) {
+                        addPairIfPresent(
+                                card, item, "blocked_reason",
+                                getString(R.string.details));
+                    }
+                    content.addView(card);
+                }
+            }
+
+            @Override public void failure(String error) {
+                if (generation == loadGeneration &&
+                        "overview".equals(currentRenderer)) {
+                    content.addView(statusCard(
+                            getString(R.string.schedule),
+                            localizedError(error), "warning"));
+                }
+            }
+        });
+    }
+
+    private LinearLayout programDetails(JSONObject program) {
+        LinearLayout details = new LinearLayout(this);
+        details.setOrientation(LinearLayout.VERTICAL);
+        details.setPadding(dp(5), dp(5), dp(5), dp(5));
+        JSONArray stationDetails = program.optJSONArray("station_details");
+        StringBuilder names = new StringBuilder();
+        if (stationDetails != null) {
+            for (int i = 0; i < stationDetails.length(); i++) {
+                JSONObject station = stationDetails.optJSONObject(i);
+                if (station == null) continue;
+                if (names.length() > 0) names.append(", ");
+                names.append(station.optInt("number"))
+                        .append(". ")
+                        .append(station.optString("name"));
+            }
+        }
+        addPair(
+                details, getString(R.string.program_stations),
+                names.length() == 0 ? getString(R.string.no_data) : names.toString());
+        JSONObject editor = program.optJSONObject("editor");
+        if (editor != null) {
+            addPair(
+                    details, getString(R.string.schedule),
+                    readable(editor.optString("type_name")));
+            JSONObject fields = editor.optJSONObject("fields");
+            if (fields != null) {
+                java.util.Iterator<String> keys = fields.keys();
+                while (keys.hasNext()) {
+                    String key = keys.next();
+                    addPair(
+                            details, readable(key),
+                            String.valueOf(fields.opt(key)));
+                }
+            }
+        }
+        return details;
+    }
+
+    private void loadProgramEditor(JSONObject program) {
+        api.request("GET", "/stations", null, new ApiClient.Callback() {
+            @Override public void success(JSONObject response) {
+                JSONArray allStations = response.optJSONArray("data");
+                showProgramEditor(
+                        program, allStations == null ? new JSONArray() : allStations);
+            }
+
+            @Override public void failure(String error) {
+                message("OSPy", localizedError(error));
+            }
+        });
+    }
+
+    private void showProgramEditor(
+            JSONObject program, JSONArray allStations) {
+        ScrollView scroll = new ScrollView(this);
+        LinearLayout form = new LinearLayout(this);
+        form.setOrientation(LinearLayout.VERTICAL);
+        form.setPadding(dp(18), dp(4), dp(18), dp(4));
+        EditText name = input(getString(R.string.program), false);
+        name.setText(program.optString("name"));
+        form.addView(name);
+
+        TextView stationHeading = text(
+                getString(R.string.program_stations), 15, true);
+        form.addView(stationHeading);
+        List<CheckBox> stationChecks = new ArrayList<>();
+        JSONArray selected = program.optJSONArray("stations");
+        for (int i = 0; i < allStations.length(); i++) {
+            JSONObject station = allStations.optJSONObject(i);
+            if (station == null || station.optBoolean("is_master") ||
+                    station.optBoolean("is_master_two")) continue;
+            CheckBox check = new CheckBox(this);
+            check.setText(
+                    station.optInt("number") + ". " +
+                            station.optString("name"));
+            check.setTag(station.optInt("legacy_index"));
+            check.setChecked(jsonArrayContains(
+                    selected, station.optInt("legacy_index")));
+            stationChecks.add(check);
+            form.addView(check);
+        }
+
+        JSONArray originalTypeData = program.optJSONArray("type_data");
+        JSONObject fields = program.optJSONObject("editor") == null
+                ? null : program.optJSONObject("editor").optJSONObject("fields");
+        int type = program.optInt("type", -1);
+        EditText start = null;
+        EditText duration = null;
+        EditText pause = null;
+        EditText repeats = null;
+        List<CheckBox> dayChecks = new ArrayList<>();
+        EditText advanced = null;
+        if ((type == 0 || type == 2) && fields != null) {
+            start = input(getString(R.string.start_time), false);
+            start.setInputType(InputType.TYPE_CLASS_DATETIME);
+            start.setText(minutesToTime(fields.optInt("start_minute")));
+            form.addView(labelledInput(getString(R.string.start_time), start));
+            duration = numericInput(String.valueOf(
+                    fields.optInt("duration_minutes", 1)));
+            form.addView(labelledInput(getString(R.string.duration), duration));
+            pause = numericInput(String.valueOf(
+                    fields.optInt("pause_minutes", 0)));
+            form.addView(labelledInput(getString(R.string.pause), pause));
+            repeats = numericInput(String.valueOf(
+                    fields.optInt("repeat_count", 0)));
+            form.addView(labelledInput(getString(R.string.repeat_count), repeats));
+            if (type == 0) {
+                LinearLayout days = actionRow();
+                JSONArray chosenDays = fields.optJSONArray("days");
+                String[] labels = new DateFormatSymbols().getShortWeekdays();
+                for (int day = 0; day < 7; day++) {
+                    CheckBox check = new CheckBox(this);
+                    check.setText(labels[((day + 1) % 7) + 1]);
+                    check.setTag(day);
+                    check.setChecked(jsonArrayContains(chosenDays, day));
+                    dayChecks.add(check);
+                    days.addView(check);
+                }
+                form.addView(text(getString(R.string.days), 14, true));
+                form.addView(days);
+            }
+        } else {
+            advanced = new EditText(this);
+            advanced.setText(
+                    originalTypeData == null ? "[]" : originalTypeData.toString());
+            advanced.setMinLines(3);
+            advanced.setGravity(Gravity.TOP);
+            form.addView(labelledInput(
+                    getString(R.string.advanced_schedule_data), advanced));
+        }
+        scroll.addView(form);
+
+        final EditText startField = start;
+        final EditText durationField = duration;
+        final EditText pauseField = pause;
+        final EditText repeatsField = repeats;
+        final EditText advancedField = advanced;
+        AlertDialog dialog = new AlertDialog.Builder(this)
+                .setTitle(program.optString("name"))
+                .setView(scroll)
+                .setNegativeButton(android.R.string.cancel, null)
+                .setPositiveButton(R.string.save, null)
+                .create();
+        dialog.setOnShowListener(ignored ->
+                dialog.getButton(AlertDialog.BUTTON_POSITIVE)
+                        .setOnClickListener(v -> {
+                            try {
+                                JSONArray stations = new JSONArray();
+                                for (CheckBox check : stationChecks) {
+                                    if (check.isChecked()) stations.put(check.getTag());
+                                }
+                                JSONArray typeData;
+                                if (startField != null) {
+                                    typeData = new JSONArray(
+                                            originalTypeData == null
+                                                    ? "[]" : originalTypeData.toString());
+                                    while (typeData.length() < (type == 0 ? 5 : 6)) {
+                                        typeData.put(0);
+                                    }
+                                    typeData.put(0, timeToMinutes(
+                                            startField.getText().toString()));
+                                    typeData.put(1, positiveInteger(durationField));
+                                    typeData.put(2, nonNegativeInteger(pauseField));
+                                    typeData.put(3, nonNegativeInteger(repeatsField));
+                                    if (type == 0) {
+                                        JSONArray chosen = new JSONArray();
+                                        for (CheckBox check : dayChecks) {
+                                            if (check.isChecked()) {
+                                                chosen.put(check.getTag());
+                                            }
+                                        }
+                                        if (chosen.length() == 0) {
+                                            throw new IllegalArgumentException();
+                                        }
+                                        typeData.put(4, chosen);
+                                    }
+                                } else {
+                                    typeData = new JSONArray(
+                                            advancedField.getText().toString());
+                                }
+                                JSONObject payload = new JSONObject();
+                                payload.put("name", name.getText().toString().trim());
+                                payload.put("stations", stations);
+                                payload.put("type", type);
+                                payload.put("type_data", typeData);
+                                put(
+                                        "/programs/" + program.optString("id"),
+                                        payload, () -> {
+                                            dialog.dismiss();
+                                            load("/programs", "programs");
+                                        });
+                            } catch (Exception error) {
+                                toast(getString(R.string.invalid_program_data));
+                            }
+                        }));
+        dialog.show();
+    }
+
+    private void renderStationRun(JSONObject event) {
+        LinearLayout card = cardColumn();
+        LinearLayout header = actionRow();
+        header.addView(text(
+                event.optInt("station_number") + ". " +
+                        event.optString("station_name"), 16, true),
+                new LinearLayout.LayoutParams(0, -2, 1));
+        header.addView(badge(
+                timelineState(event.optString("state")),
+                event.optString("state")));
+        card.addView(header);
+        addPair(
+                card, getString(R.string.date_time),
+                shortDateTime(event.optString("start")) + " – " +
+                        shortTime(event.optString("end")));
+        addPairIfPresent(
+                card, event, "program_name", getString(R.string.program));
+        addPair(
+                card, getString(R.string.actual_duration),
+                formatDuration(event.optLong("duration_seconds", 0)));
+        content.addView(card);
+    }
+
+    private void loadPluginMobile(
+            JSONObject plugin, LinearLayout parent, Button trigger) {
+        trigger.setEnabled(false);
+        trigger.setText(getString(R.string.loading));
+        api.request(
+                "GET", "/plugins/" + plugin.optString("id") + "/mobile",
+                null, new ApiClient.Callback() {
+                    @Override public void success(JSONObject response) {
+                        trigger.setVisibility(View.GONE);
+                        JSONObject data = response.optJSONObject("data");
+                        if (data == null) {
+                            parent.addView(text(
+                                    getString(R.string.no_mobile_data), 14, false));
+                            return;
+                        }
+                        JSONObject status = data.optJSONObject("status");
+                        if (status != null) {
+                            LinearLayout statusCard = statusCardContainer(
+                                    status.optString("status", "ok"));
+                            statusCard.addView(text(
+                                    status.optString(
+                                            "title",
+                                            getString(R.string.operating_data)),
+                                    15, true));
+                            addPairIfPresent(
+                                    statusCard, status, "summary",
+                                    getString(R.string.status));
+                            addPairIfPresent(
+                                    statusCard, status, "updated",
+                                    getString(R.string.updated));
+                            parent.addView(statusCard);
+                        }
+                        JSONArray cards = data.optJSONArray("cards");
+                        if (cards == null || cards.length() == 0) {
+                            if (status == null) parent.addView(text(
+                                    getString(R.string.no_mobile_data), 14, false));
+                            return;
+                        }
+                        for (int i = 0; i < cards.length(); i++) {
+                            JSONObject mobileCard = cards.optJSONObject(i);
+                            if (mobileCard == null) continue;
+                            LinearLayout card = cardColumn();
+                            card.addView(text(
+                                    mobileCard.optString(
+                                            "title",
+                                            getString(R.string.operating_data)),
+                                    15, true));
+                            JSONArray metrics = mobileCard.optJSONArray("metrics");
+                            if (metrics != null) {
+                                for (int j = 0; j < metrics.length(); j++) {
+                                    JSONObject metric = metrics.optJSONObject(j);
+                                    if (metric == null) continue;
+                                    String unit = metric.optString("unit");
+                                    addPair(
+                                            card, metric.optString("label"),
+                                            String.valueOf(metric.opt("value")) +
+                                                    (unit.isEmpty()
+                                                            ? "" : " " + unit));
+                                }
+                            }
+                            JSONArray series = mobileCard.optJSONArray("series");
+                            if (series != null && series.length() > 0) {
+                                card.addView(new MobileChartView(
+                                        MainActivity.this, series));
+                            }
+                            parent.addView(card);
+                        }
+                    }
+
+                    @Override public void failure(String error) {
+                        trigger.setEnabled(true);
+                        trigger.setText(getString(R.string.mobile_data));
+                        message("OSPy", localizedError(error));
+                    }
+                });
     }
 
     private void renderSensors(JSONArray sensorItems) {
@@ -846,6 +1249,19 @@ public final class MainActivity extends Activity {
     }
 
     private void renderLogs(JSONArray events) {
+        LinearLayout choices = actionRow();
+        boolean stationLog = currentPath.contains("/logs/runs");
+        Button eventsButton = compactButton(
+                getString(R.string.event_log), stationLog ? NAVY : GREEN);
+        eventsButton.setOnClickListener(v ->
+                load("/logs/events?limit=100", "logs"));
+        choices.addView(eventsButton);
+        Button runsButton = compactButton(
+                getString(R.string.station_log), stationLog ? GREEN : NAVY);
+        runsButton.setOnClickListener(v ->
+                load("/logs/runs?limit=100", "logs"));
+        choices.addView(runsButton);
+        content.addView(choices);
         if (events.length() == 0) {
             content.addView(text(getString(R.string.no_data), 16, false));
             return;
@@ -853,6 +1269,10 @@ public final class MainActivity extends Activity {
         for (int i = 0; i < events.length(); i++) {
             JSONObject event = events.optJSONObject(i);
             if (event == null) continue;
+            if (stationLog) {
+                renderStationRun(event);
+                continue;
+            }
             LinearLayout card = cardColumn();
             LinearLayout header = actionRow();
             TextView subject = text(
@@ -946,6 +1366,16 @@ public final class MainActivity extends Activity {
             });
             statuses.addView(pluginToggle);
             card.addView(statuses);
+            JSONObject mobile = plugin.optJSONObject("mobile");
+            boolean mobileAvailable =
+                    mobile != null && mobile.optBoolean("available");
+            Button dataButton = compactButton(
+                    getString(R.string.mobile_data),
+                    mobileAvailable ? NAVY : MUTED);
+            dataButton.setEnabled(mobileAvailable);
+            dataButton.setOnClickListener(v ->
+                    loadPluginMobile(plugin, card, dataButton));
+            card.addView(dataButton);
             content.addView(card);
         }
     }
@@ -1285,6 +1715,80 @@ public final class MainActivity extends Activity {
         return result;
     }
 
+    private LinearLayout labelledInput(String label, EditText input) {
+        LinearLayout wrapper = new LinearLayout(this);
+        wrapper.setOrientation(LinearLayout.VERTICAL);
+        wrapper.addView(text(label, 13, true));
+        wrapper.addView(input, new LinearLayout.LayoutParams(-1, -2));
+        return wrapper;
+    }
+
+    private EditText numericInput(String value) {
+        EditText input = new EditText(this);
+        input.setInputType(InputType.TYPE_CLASS_NUMBER);
+        input.setText(value);
+        input.setSingleLine(true);
+        return input;
+    }
+
+    private int positiveInteger(EditText input) {
+        int value = Integer.parseInt(input.getText().toString().trim());
+        if (value <= 0) throw new IllegalArgumentException();
+        return value;
+    }
+
+    private int nonNegativeInteger(EditText input) {
+        int value = Integer.parseInt(input.getText().toString().trim());
+        if (value < 0) throw new IllegalArgumentException();
+        return value;
+    }
+
+    private static boolean jsonArrayContains(JSONArray values, int needle) {
+        if (values == null) return false;
+        for (int i = 0; i < values.length(); i++) {
+            if (values.optInt(i, Integer.MIN_VALUE) == needle) return true;
+        }
+        return false;
+    }
+
+    private static String minutesToTime(int minutes) {
+        int normalized = Math.max(0, minutes) % (24 * 60);
+        return String.format(
+                Locale.ROOT, "%02d:%02d", normalized / 60, normalized % 60);
+    }
+
+    private static int timeToMinutes(String value) {
+        String[] parts = value.trim().split(":");
+        if (parts.length != 2) throw new IllegalArgumentException();
+        int hour = Integer.parseInt(parts[0]);
+        int minute = Integer.parseInt(parts[1]);
+        if (hour < 0 || hour > 23 || minute < 0 || minute > 59) {
+            throw new IllegalArgumentException();
+        }
+        return hour * 60 + minute;
+    }
+
+    private String timelineState(String value) {
+        if ("running".equals(value)) return getString(R.string.running);
+        if ("completed".equals(value)) return getString(R.string.completed);
+        if ("blocked".equals(value)) return getString(R.string.blocked);
+        return getString(R.string.upcoming);
+    }
+
+    private static String shortDateTime(String value) {
+        if (value == null || value.isEmpty()) return "—";
+        String normalized = value.replace('T', ' ');
+        return normalized.length() >= 16
+                ? normalized.substring(0, 16) : normalized;
+    }
+
+    private static String shortTime(String value) {
+        if (value == null || value.isEmpty()) return "—";
+        String normalized = value.replace('T', ' ');
+        return normalized.length() >= 16
+                ? normalized.substring(11, 16) : normalized;
+    }
+
     private String formatDuration(long totalSeconds) {
         long seconds = Math.max(0, totalSeconds);
         long days = seconds / 86400;
@@ -1375,7 +1879,7 @@ public final class MainActivity extends Activity {
         if ("ok".equals(status) || "success".equals(status) ||
                 "running".equals(status)) {
             color = GREEN;
-        } else if ("warning".equals(status)) {
+        } else if ("warning".equals(status) || "blocked".equals(status)) {
             color = AMBER;
         } else if ("error".equals(status) || "critical".equals(status)) {
             color = RED;

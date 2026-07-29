@@ -3,7 +3,7 @@
 First native Android client for the stable OSPy `/api/v1`. The application
 never parses web-interface HTML.
 
-## Included in version 0.2.4
+## Included in version 0.3.0
 
 - Multiple saved OSPy installations, for example Home, Cottage and Greenhouse.
 - Refresh tokens encrypted by an AES-GCM key stored in Android Keystore.
@@ -42,6 +42,14 @@ never parses web-interface HTML.
   information instead of legacy arrays and numeric type codes.
 - Installation cards keep the name and address on separate rows with their
   actions below, so long local HTTPS addresses remain readable.
+- Home replaces the duplicate weather cards with a live, normalized watering
+  timeline showing scheduled, running, blocked and completed station work.
+- Programs show their stations and schedule details, support enable/disable
+  and run actions, and provide a native editor for the stable Mobile API
+  scheduling fields.
+- Logs can switch between the OSPy event log and station-run history.
+- Official plug-ins can expose optional read-only native metric and chart
+  cards through the documented JSON-only plug-in adapter contract.
 
 The app uses only Android platform APIs and `org.json`; it has no analytics,
 advertising, cloud relay or third-party runtime library.
@@ -51,7 +59,7 @@ advertising, cloud relay or third-party runtime library.
 Install Android Studio with Android SDK 35 and JDK 17. Open this directory,
 allow Gradle to synchronize and run or build the `app` configuration.
 GitHub Actions also builds a debug APK on every push and pull request using
-JDK 17 and Gradle 8.9.
+JDK 17 and the Gradle version pinned by the repository wrapper.
 
 The repository intentionally does not contain `local.properties`, SDK files,
 signing keys or built APK files.
