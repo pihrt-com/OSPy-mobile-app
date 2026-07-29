@@ -48,6 +48,7 @@ public final class MainActivity extends Activity {
     private static final int LIGHT_AMBER = Color.rgb(255, 245, 218);
     private static final int TEXT = Color.rgb(30, 30, 30);
     private static final int MUTED = Color.rgb(96, 102, 112);
+    private static final long LIVE_REFRESH_MS = 10_000L;
 
     private InstallationStore installationStore;
     private List<Installation> installations = new ArrayList<>();
@@ -67,6 +68,8 @@ public final class MainActivity extends Activity {
     private String currentPath = "";
     private String currentRenderer = "";
     private int loadGeneration = 0;
+    private int requestSequence = 0;
+    private int activeRequest = 0;
     private boolean requestInFlight = false;
     private boolean unlockStarted = false;
     private final Handler refreshHandler = new Handler(Looper.getMainLooper());
@@ -77,7 +80,7 @@ public final class MainActivity extends Activity {
                             "stations".equals(currentRenderer))) {
                 fetch(currentPath, currentRenderer, false, loadGeneration);
             }
-            refreshHandler.postDelayed(this, 2000);
+            refreshHandler.postDelayed(this, LIVE_REFRESH_MS);
         }
     };
 
@@ -96,7 +99,7 @@ public final class MainActivity extends Activity {
         } else {
             unlock();
         }
-        refreshHandler.postDelayed(refreshTask, 2000);
+        refreshHandler.postDelayed(refreshTask, LIVE_REFRESH_MS);
     }
 
     @Override
@@ -200,20 +203,23 @@ public final class MainActivity extends Activity {
         }
         heading(getString(R.string.installations));
         for (Installation installation : installations) {
-            LinearLayout row = card();
-            TextView name = text(
-                    installation.name + "\n" + installation.baseUrl, 16, true);
-            row.addView(name, new LinearLayout.LayoutParams(0, -2, 1));
+            LinearLayout row = cardColumn();
+            row.addView(text(installation.name, 17, true));
+            TextView address = text(installation.baseUrl, 14, false);
+            address.setTextIsSelectable(true);
+            row.addView(address);
+            LinearLayout actions = actionRow();
             Button open = button(getString(R.string.open), GREEN);
             open.setOnClickListener(v -> open(installation));
-            row.addView(open);
+            actions.addView(open);
             Button edit = button(getString(R.string.edit), NAVY);
             edit.setOnClickListener(v -> showEditInstallation(installation));
-            row.addView(edit);
+            actions.addView(edit);
             Button remove = button("×", RED);
             remove.setContentDescription(getString(R.string.remove));
             remove.setOnClickListener(v -> confirmRemove(installation));
-            row.addView(remove);
+            actions.addView(remove);
+            row.addView(actions);
             content.addView(row);
         }
         Button add = button(getString(R.string.add_installation), NAVY);
@@ -416,13 +422,16 @@ public final class MainActivity extends Activity {
             String path, String renderer, boolean showFailure, int generation) {
         if (requestInFlight) return;
         requestInFlight = true;
+        int requestNumber = ++requestSequence;
+        activeRequest = requestNumber;
         int scrollY = contentScroll == null ? 0 : contentScroll.getScrollY();
         api.request("GET", path, null, new ApiClient.Callback() {
             @Override public void success(JSONObject response) {
+                if (requestNumber != activeRequest) return;
+                requestInFlight = false;
                 if (generation != loadGeneration ||
                         !path.equals(currentPath) ||
                         !renderer.equals(currentRenderer)) return;
-                requestInFlight = false;
                 content.removeAllViews();
                 Object data = response.opt("data");
                 if ("overview".equals(renderer) && data instanceof JSONObject) {
@@ -453,10 +462,11 @@ public final class MainActivity extends Activity {
             }
 
             @Override public void failure(String error) {
+                if (requestNumber != activeRequest) return;
+                requestInFlight = false;
                 if (generation != loadGeneration ||
                         !path.equals(currentPath) ||
                         !renderer.equals(currentRenderer)) return;
-                requestInFlight = false;
                 if (!showFailure) return;
                 content.removeAllViews();
                 content.addView(text(localizedError(error), 16, true));
@@ -477,14 +487,24 @@ public final class MainActivity extends Activity {
         if (irrigation != null) {
             heading(getString(R.string.irrigation));
             LinearLayout summary = cardColumn();
-            addPair(summary, getString(R.string.scheduler),
-                    state(irrigation.optBoolean("scheduler_enabled")));
-            addPair(summary, getString(R.string.manual_mode),
-                    state(irrigation.optBoolean("manual_mode")));
-            addPair(summary, getString(R.string.rain),
-                    irrigation.optBoolean("rain_block")
-                            ? getString(R.string.active)
-                            : getString(R.string.inactive));
+            boolean schedulerEnabled =
+                    irrigation.optBoolean("scheduler_enabled");
+            boolean manualMode = irrigation.optBoolean("manual_mode");
+            boolean rainBlock = irrigation.optBoolean("rain_block");
+            addIrrigationControl(
+                    summary, getString(R.string.scheduler), schedulerEnabled,
+                    jsonBoolean("scheduler_enabled", !schedulerEnabled));
+            addIrrigationControl(
+                    summary, getString(R.string.manual_mode), manualMode,
+                    jsonBoolean("manual_mode", !manualMode));
+            JSONObject rainChange = new JSONObject();
+            try {
+                rainChange.put("rain_delay_hours", rainBlock ? 0 : 24);
+            } catch (Exception ignored) {
+            }
+            addIrrigationControl(
+                    summary, getString(R.string.rain_delay), rainBlock,
+                    rainChange);
             JSONArray active = irrigation.optJSONArray("active_stations");
             addPair(summary, getString(R.string.active_stations),
                     active == null ? "0" : String.valueOf(active.length()));
@@ -505,10 +525,14 @@ public final class MainActivity extends Activity {
             }
             content.addView(summary);
         }
+        line(
+                getString(R.string.updated),
+                formatTimestamp(data.optString("updated")));
         Button stop = button(getString(R.string.stop_all), RED);
         stop.setOnClickListener(v -> confirmAction(
                 getString(R.string.confirm_stop_all),
-                "/stations/actions/stop-all"));
+                "/stations/actions/stop-all",
+                () -> load("/overview", "overview")));
         content.addView(stop);
         JSONObject weather = data.optJSONObject("weather");
         if (weather != null) {
@@ -609,21 +633,52 @@ public final class MainActivity extends Activity {
                             ? getString(R.string.enabled)
                             : getString(R.string.disabled),
                     sensor.optBoolean("enabled") ? "ok" : "stopped"));
-            addPairIfPresent(
-                    card, sensor, "last_read_value",
-                    getString(R.string.current_value));
+            JSONObject display = sensor.optJSONObject("display");
+            JSONObject reading = display == null
+                    ? null : display.optJSONObject("reading");
+            if (display != null) {
+                card.addView(badge(
+                        display.optBoolean("connected")
+                                ? getString(R.string.connected)
+                                : getString(R.string.no_response),
+                        display.optBoolean("connected") ? "ok" : "error"));
+            }
+            if (reading != null) {
+                addPair(
+                        card, getString(R.string.current_value),
+                        sensorReading(reading));
+            }
             addPairIfPresent(
                     card, sensor, "last_response_datetime",
                     getString(R.string.last_response));
-            addPairIfPresent(
-                    card, sensor, "last_battery",
-                    getString(R.string.battery));
-            addPairIfPresent(card, sensor, "rssi", getString(R.string.signal));
-            addPairIfPresent(card, sensor, "fw", getString(R.string.firmware));
-            addPairIfPresent(
-                    card, sensor, "sens_type", getString(R.string.sensor_type));
-            addPairIfPresent(
-                    card, sensor, "com_type", getString(R.string.communication));
+            if (sensor.has("last_battery") && !sensor.isNull("last_battery")) {
+                addPair(
+                        card, getString(R.string.battery),
+                        sensor.optString("last_battery") + " " +
+                                (display == null ? "V" :
+                                        display.optString("battery_unit", "V")));
+            }
+            if (sensor.has("rssi") && !sensor.isNull("rssi")) {
+                addPair(
+                        card, getString(R.string.signal),
+                        sensor.optString("rssi") + " " +
+                                (display == null ? "" :
+                                        display.optString("signal_unit")));
+            }
+            if (display != null) {
+                addPairIfPresent(
+                        card, display, "firmware",
+                        getString(R.string.firmware));
+                addPair(
+                        card, getString(R.string.sensor_type),
+                        sensorType(display));
+                addPair(
+                        card, getString(R.string.communication),
+                        communicationType(display.optString("communication")));
+                addPairIfPresent(
+                        card, display, "ip_address",
+                        getString(R.string.ip_address));
+            }
             JSONArray errors = sensor.optJSONArray("field_errors");
             if (errors != null && errors.length() > 0) {
                 TextView unavailable = text(
@@ -884,13 +939,30 @@ public final class MainActivity extends Activity {
         });
     }
 
+    private void put(String path, JSONObject body, Runnable done) {
+        api.request("PUT", path, body, new ApiClient.Callback() {
+            @Override public void success(JSONObject response) {
+                done.run();
+            }
+
+            @Override public void failure(String error) {
+                message("OSPy", localizedError(error));
+            }
+        });
+    }
+
     private void confirmAction(String prompt, String path) {
+        confirmAction(
+                prompt, path,
+                () -> toast(getString(R.string.accepted)));
+    }
+
+    private void confirmAction(String prompt, String path, Runnable done) {
         new AlertDialog.Builder(this)
                 .setMessage(prompt)
                 .setNegativeButton(android.R.string.cancel, null)
                 .setPositiveButton(android.R.string.ok, (dialog, which) ->
-                        post(path, new JSONObject(),
-                                () -> toast(getString(R.string.accepted))))
+                        post(path, new JSONObject(), done))
                 .show();
     }
 
@@ -990,6 +1062,86 @@ public final class MainActivity extends Activity {
                 value == null || value.isEmpty() ? "—" : value, 14, false);
         row.addView(contentValue, new LinearLayout.LayoutParams(0, -2, 0.58f));
         parent.addView(row, new LinearLayout.LayoutParams(-1, -2));
+    }
+
+    private void addIrrigationControl(
+            LinearLayout parent, String label, boolean enabled,
+            JSONObject change) {
+        LinearLayout row = actionRow();
+        TextView name = text(label, 14, true);
+        name.setTextColor(MUTED);
+        row.addView(name, new LinearLayout.LayoutParams(0, -2, 0.38f));
+        TextView currentState = text(state(enabled), 14, false);
+        row.addView(
+                currentState, new LinearLayout.LayoutParams(0, -2, 0.25f));
+        Button toggle = compactButton(
+                getString(enabled ? R.string.turn_off : R.string.turn_on),
+                enabled ? RED : GREEN);
+        toggle.setOnClickListener(v -> put(
+                "/irrigation", change,
+                () -> load("/overview", "overview")));
+        row.addView(toggle);
+        parent.addView(row, new LinearLayout.LayoutParams(-1, -2));
+    }
+
+    private JSONObject jsonBoolean(String key, boolean value) {
+        JSONObject result = new JSONObject();
+        try {
+            result.put(key, value);
+        } catch (Exception ignored) {
+        }
+        return result;
+    }
+
+    private String formatTimestamp(String value) {
+        if (value == null || value.isEmpty()) return getString(R.string.no_data);
+        String formatted = value.replace('T', ' ');
+        return formatted.length() >= 19
+                ? formatted.substring(0, 19) : formatted;
+    }
+
+    private String sensorReading(JSONObject reading) {
+        String status = reading.optString("status");
+        if ("probe_error".equals(status)) return getString(R.string.probe_error);
+        if ("pending".equals(status)) return getString(R.string.pending);
+        if (!"ok".equals(status)) return getString(R.string.no_data);
+        String stateCode = reading.optString("state");
+        if (!stateCode.isEmpty()) return sensorState(stateCode);
+        Object value = reading.opt("value");
+        String unit = reading.optString("unit");
+        return String.valueOf(value) + (unit.isEmpty() ? "" : " " + unit);
+    }
+
+    private String sensorState(String code) {
+        if ("closed".equals(code)) return getString(R.string.closed);
+        if ("open".equals(code)) return getString(R.string.open_state);
+        if ("motion".equals(code)) return getString(R.string.motion);
+        if ("no_motion".equals(code)) return getString(R.string.no_motion);
+        return readable(code);
+    }
+
+    private String sensorType(JSONObject display) {
+        String subtype = display.optString("subtype");
+        String code = subtype.isEmpty() ? display.optString("type") : subtype;
+        if ("temperature".equals(code) || code.startsWith("temperature_ds")) {
+            return getString(R.string.temperature_sensor);
+        }
+        if ("ultrasonic".equals(code)) return getString(R.string.ultrasonic);
+        if ("dry_contact".equals(code)) return getString(R.string.dry_contact);
+        if ("leak_detector".equals(code)) {
+            return getString(R.string.leak_detector);
+        }
+        if ("moisture".equals(code) || "soil_moisture".equals(code)) {
+            return getString(R.string.moisture_sensor);
+        }
+        if ("motion".equals(code)) return getString(R.string.motion_sensor);
+        return readable(code);
+    }
+
+    private String communicationType(String code) {
+        if ("wifi_lan".equals(code)) return getString(R.string.wifi_lan);
+        if ("radio".equals(code)) return getString(R.string.radio);
+        return readable(code);
     }
 
     private void addPairIfPresent(
