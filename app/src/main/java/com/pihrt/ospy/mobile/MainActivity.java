@@ -4,12 +4,18 @@ import android.Manifest;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.KeyguardManager;
+import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.hardware.biometrics.BiometricPrompt;
+import android.net.ConnectivityManager;
+import android.net.Network;
+import android.net.NetworkCapabilities;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.CancellationSignal;
@@ -17,6 +23,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.net.Uri;
 import android.text.InputType;
+import android.util.Base64;
 import android.view.Gravity;
 import android.view.View;
 import android.view.WindowInsets;
@@ -26,6 +33,7 @@ import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.HorizontalScrollView;
 import android.widget.ImageButton;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.ScrollView;
@@ -56,6 +64,7 @@ public final class MainActivity extends Activity {
     private static final long LIVE_REFRESH_MS = 10_000L;
 
     private InstallationStore installationStore;
+    private AppPreferences appPreferences;
     private List<Installation> installations = new ArrayList<>();
     private Installation current;
     private ApiClient api;
@@ -95,6 +104,7 @@ public final class MainActivity extends Activity {
         getWindow().setStatusBarColor(GREEN);
         getWindow().setNavigationBarColor(NAVY);
         installationStore = new InstallationStore(this);
+        appPreferences = new AppPreferences(this);
         notifications = new NotificationCenter(this);
         if (Build.VERSION.SDK_INT >= 33 &&
                 notifications.isEnabled() &&
@@ -125,12 +135,12 @@ public final class MainActivity extends Activity {
         if (unlockStarted) return;
         unlockStarted = true;
         if (Build.VERSION.SDK_INT < 28) {
-            showInstallations();
+            afterUnlock();
             return;
         }
         KeyguardManager keyguard = getSystemService(KeyguardManager.class);
         if (keyguard == null || !keyguard.isDeviceSecure()) {
-            showInstallations();
+            afterUnlock();
             return;
         }
         BiometricPrompt.Builder builder = new BiometricPrompt.Builder(this)
@@ -149,7 +159,7 @@ public final class MainActivity extends Activity {
                     @Override
                     public void onAuthenticationSucceeded(
                             BiometricPrompt.AuthenticationResult result) {
-                        showInstallations();
+                        afterUnlock();
                     }
 
                     @Override
@@ -159,6 +169,64 @@ public final class MainActivity extends Activity {
                         }
                     }
                 });
+    }
+
+    private void afterUnlock() {
+        try {
+            installations = installationStore.load();
+        } catch (Exception error) {
+            showInstallations();
+            return;
+        }
+        if (!appPreferences.openLastInstallation() || installations.isEmpty()) {
+            showInstallations();
+            return;
+        }
+        boolean preferPrivate = appPreferences.watchNetwork() && isOnWifi();
+        List<Installation> candidates = new ArrayList<>();
+        String lastId = appPreferences.lastInstallationId();
+        for (Installation installation : installations) {
+            if (appPreferences.watchNetwork() &&
+                    installation.isPrivateAddress() != preferPrivate) continue;
+            if (installation.id.equals(lastId)) candidates.add(0, installation);
+            else candidates.add(installation);
+        }
+        if (candidates.isEmpty()) {
+            for (Installation installation : installations) {
+                if (installation.id.equals(lastId)) candidates.add(0, installation);
+                else candidates.add(installation);
+            }
+        }
+        openFirstReachable(candidates, 0);
+    }
+
+    private void openFirstReachable(List<Installation> candidates, int index) {
+        if (index >= candidates.size()) {
+            showInstallations();
+            toast(getString(R.string.no_reachable_installation));
+            return;
+        }
+        Installation candidate = candidates.get(index);
+        new ApiClient(candidate, installationStore).probe(new ApiClient.Callback() {
+            @Override public void success(JSONObject response) {
+                open(candidate);
+            }
+
+            @Override public void failure(String error) {
+                openFirstReachable(candidates, index + 1);
+            }
+        });
+    }
+
+    private boolean isOnWifi() {
+        ConnectivityManager manager =
+                (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+        if (manager == null) return false;
+        Network network = manager.getActiveNetwork();
+        NetworkCapabilities capabilities =
+                network == null ? null : manager.getNetworkCapabilities(network);
+        return capabilities != null &&
+                capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI);
     }
 
     private void shell(String heading) {
@@ -248,7 +316,6 @@ public final class MainActivity extends Activity {
         requestInFlight = false;
         shell(getString(R.string.app_settings));
 
-        heading(getString(R.string.notifications));
         LinearLayout notificationSettings = card();
         notificationSettings.addView(
                 text(getString(R.string.notifications), 16, true),
@@ -271,7 +338,17 @@ public final class MainActivity extends Activity {
         notificationSettings.addView(notificationToggle);
         content.addView(notificationSettings);
 
-        heading(getString(R.string.installations));
+        LinearLayout networkSettings = cardColumn();
+        addPreferenceToggle(
+                networkSettings, getString(R.string.watch_network),
+                appPreferences.watchNetwork(),
+                enabled -> appPreferences.setWatchNetwork(enabled));
+        addPreferenceToggle(
+                networkSettings, getString(R.string.open_last_installation),
+                appPreferences.openLastInstallation(),
+                enabled -> appPreferences.setOpenLastInstallation(enabled));
+        content.addView(networkSettings);
+
         LinearLayout installationsCard = card();
         installationsCard.addView(
                 text(getString(R.string.saved_ospy_systems), 16, true),
@@ -308,6 +385,27 @@ public final class MainActivity extends Activity {
             else showDashboard();
         });
         content.addView(back);
+    }
+
+    private interface PreferenceSetter {
+        void set(boolean enabled);
+    }
+
+    private void addPreferenceToggle(
+            LinearLayout parent, String label, boolean enabled,
+            PreferenceSetter setter) {
+        LinearLayout row = actionRow();
+        row.addView(text(label, 15, true),
+                new LinearLayout.LayoutParams(0, -2, 1));
+        Button toggle = compactButton(
+                getString(enabled ? R.string.enabled : R.string.disabled),
+                enabled ? GREEN : NAVY);
+        toggle.setOnClickListener(v -> {
+            setter.set(!enabled);
+            showAppSettings();
+        });
+        row.addView(toggle);
+        parent.addView(row);
     }
 
     private Button linkButton(String label, String url) {
@@ -445,6 +543,7 @@ public final class MainActivity extends Activity {
     }
 
     private void open(Installation installation) {
+        appPreferences.setLastInstallationId(installation.id);
         current = installation;
         api = new ApiClient(installation, installationStore);
         showDashboard();
@@ -634,7 +733,7 @@ public final class MainActivity extends Activity {
                 () -> load("/overview", "overview")));
         content.addView(stop);
         heading(getString(R.string.today_schedule));
-        loadTimeline("/schedule?hours=24");
+        loadTimeline("/schedule?date=today");
         JSONArray warnings = data.optJSONArray("warnings");
         if (warnings != null && warnings.length() > 0) {
             heading(getString(R.string.warnings));
@@ -759,48 +858,37 @@ public final class MainActivity extends Activity {
                             getString(R.string.no_scheduled_runs), 14, false));
                     return;
                 }
+                List<JSONObject> completed = new ArrayList<>();
+                List<JSONObject> currentAndNext = new ArrayList<>();
                 for (int i = 0; i < items.length(); i++) {
                     JSONObject item = items.optJSONObject(i);
                     if (item == null || item.optBoolean("is_master")) continue;
-                    LinearLayout card = statusCardContainer(
-                            "blocked".equals(item.optString("state"))
-                                    ? "warning" : "ok");
-                    LinearLayout header = actionRow();
                     String state = item.optString("state");
-                    TextView name = text(
-                            item.optInt("station_number") + ". " +
-                                    item.optString("station_name"),
-                            15, true);
-                    header.addView(name, new LinearLayout.LayoutParams(0, -2, 1));
-                    header.addView(badge(timelineState(state), state));
-                    card.addView(header);
-                    addPair(
-                            card, getString(R.string.date_time),
-                            shortDateTime(item.optString("start")) + " – " +
-                                    shortTime(item.optString("end")));
-                    addPairIfPresent(
-                            card, item, "program_name",
-                            getString(R.string.program));
-                    if ("running".equals(state)) {
-                        addPair(
-                                card, getString(R.string.remaining),
-                                formatDuration(item.optLong(
-                                        "remaining_seconds", 0)));
-                        ProgressBar progress = new ProgressBar(
-                                MainActivity.this, null,
-                                android.R.attr.progressBarStyleHorizontal);
-                        progress.setMax(1000);
-                        progress.setProgress((int) Math.round(
-                                1000 * item.optDouble("progress", 0)));
-                        card.addView(progress, new LinearLayout.LayoutParams(-1, -2));
-                    }
-                    if ("blocked".equals(state)) {
-                        addPairIfPresent(
-                                card, item, "blocked_reason",
-                                getString(R.string.details));
-                    }
-                    content.addView(card);
+                    if ("completed".equals(state)) completed.add(item);
+                    else currentAndNext.add(item);
                 }
+                LinearLayout timeline = cardColumn();
+                TextView now = text(
+                        getString(R.string.now) + " " +
+                                new java.text.SimpleDateFormat(
+                                        "HH:mm", Locale.getDefault())
+                                        .format(new java.util.Date()),
+                        14, true);
+                now.setTextColor(NAVY);
+                timeline.addView(now);
+                int completedStart = Math.max(0, completed.size() - 2);
+                for (int i = completedStart; i < completed.size(); i++) {
+                    addTimelineRow(timeline, completed.get(i));
+                }
+                int upcomingLimit = Math.min(currentAndNext.size(), 5);
+                for (int i = 0; i < upcomingLimit; i++) {
+                    addTimelineRow(timeline, currentAndNext.get(i));
+                }
+                if (completedStart == completed.size() && upcomingLimit == 0) {
+                    timeline.addView(text(
+                            getString(R.string.no_scheduled_runs), 14, false));
+                }
+                content.addView(timeline);
             }
 
             @Override public void failure(String error) {
@@ -812,6 +900,44 @@ public final class MainActivity extends Activity {
                 }
             }
         });
+    }
+
+    private void addTimelineRow(LinearLayout parent, JSONObject item) {
+        String state = item.optString("state");
+        LinearLayout row = new LinearLayout(this);
+        row.setOrientation(LinearLayout.VERTICAL);
+        row.setPadding(dp(5), dp(7), dp(5), dp(7));
+        LinearLayout header = actionRow();
+        String interval = shortTime(item.optString("start")) + "\u2013" +
+                shortTime(item.optString("end"));
+        header.addView(text(
+                        interval + "  " + item.optInt("station_number") + ". " +
+                                item.optString("station_name"), 14, true),
+                new LinearLayout.LayoutParams(0, -2, 1));
+        header.addView(badge(timelineState(state), state));
+        row.addView(header);
+        if ("running".equals(state)) {
+            int percent = (int) Math.round(100 * item.optDouble("progress", 0));
+            TextView remaining = text(
+                    getString(R.string.remaining) + ": " +
+                            formatDuration(item.optLong("remaining_seconds", 0)) +
+                            " \u00b7 " + percent + " %", 12, false);
+            remaining.setTextColor(MUTED);
+            row.addView(remaining);
+            ProgressBar progress = new ProgressBar(
+                    this, null, android.R.attr.progressBarStyleHorizontal);
+            progress.setMax(100);
+            progress.setProgress(percent);
+            row.addView(progress, new LinearLayout.LayoutParams(-1, dp(8)));
+        } else if ("blocked".equals(state)) {
+            TextView reason = text(
+                    item.optString(
+                            "blocked_reason",
+                            getString(R.string.rain_delay)), 12, false);
+            reason.setTextColor(AMBER);
+            row.addView(reason);
+        }
+        parent.addView(row);
     }
 
     private LinearLayout programDetails(JSONObject program) {
@@ -1039,14 +1165,25 @@ public final class MainActivity extends Activity {
             JSONObject plugin, LinearLayout parent, Button trigger) {
         trigger.setEnabled(false);
         trigger.setText(getString(R.string.loading));
+        LinearLayout mobileContent = cardColumn();
         api.request(
                 "GET", "/plugins/" + plugin.optString("id") + "/mobile",
                 null, new ApiClient.Callback() {
                     @Override public void success(JSONObject response) {
-                        trigger.setVisibility(View.GONE);
+                        trigger.setEnabled(true);
+                        trigger.setText(getString(R.string.collapse));
+                        parent.addView(mobileContent);
+                        trigger.setOnClickListener(v -> {
+                            boolean visible =
+                                    mobileContent.getVisibility() == View.VISIBLE;
+                            mobileContent.setVisibility(
+                                    visible ? View.GONE : View.VISIBLE);
+                            trigger.setText(getString(
+                                    visible ? R.string.expand : R.string.collapse));
+                        });
                         JSONObject data = response.optJSONObject("data");
                         if (data == null) {
-                            parent.addView(text(
+                            mobileContent.addView(text(
                                     getString(R.string.no_mobile_data), 14, false));
                             return;
                         }
@@ -1065,11 +1202,11 @@ public final class MainActivity extends Activity {
                             addPairIfPresent(
                                     statusCard, status, "updated",
                                     getString(R.string.updated));
-                            parent.addView(statusCard);
+                            mobileContent.addView(statusCard);
                         }
                         JSONArray cards = data.optJSONArray("cards");
                         if (cards == null || cards.length() == 0) {
-                            if (status == null) parent.addView(text(
+                            if (status == null) mobileContent.addView(text(
                                     getString(R.string.no_mobile_data), 14, false));
                             return;
                         }
@@ -1078,9 +1215,7 @@ public final class MainActivity extends Activity {
                             if (mobileCard == null) continue;
                             LinearLayout card = cardColumn();
                             card.addView(text(
-                                    mobileCard.optString(
-                                            "title",
-                                            getString(R.string.operating_data)),
+                                    mobileCardTitle(mobileCard),
                                     15, true));
                             JSONArray metrics = mobileCard.optJSONArray("metrics");
                             if (metrics != null) {
@@ -1089,18 +1224,22 @@ public final class MainActivity extends Activity {
                                     if (metric == null) continue;
                                     String unit = metric.optString("unit");
                                     addPair(
-                                            card, metric.optString("label"),
-                                            String.valueOf(metric.opt("value")) +
+                                            card, mobileMetricLabel(metric),
+                                            mobileMetricValue(metric) +
                                                     (unit.isEmpty()
                                                             ? "" : " " + unit));
                                 }
+                            }
+                            JSONObject image = mobileCard.optJSONObject("image");
+                            if (image != null) {
+                                addMobileImage(card, image);
                             }
                             JSONArray series = mobileCard.optJSONArray("series");
                             if (series != null && series.length() > 0) {
                                 card.addView(new MobileChartView(
                                         MainActivity.this, series));
                             }
-                            parent.addView(card);
+                            mobileContent.addView(card);
                         }
                     }
 
@@ -1110,6 +1249,108 @@ public final class MainActivity extends Activity {
                         message("OSPy", localizedError(error));
                     }
                 });
+    }
+
+    private String mobileCardTitle(JSONObject card) {
+        switch (card.optString("id")) {
+            case "temperatures":
+                return getString(R.string.temperature_sensors);
+            case "radar":
+                return getString(R.string.radar_at_location);
+            case "masters":
+                return getString(R.string.master_station_consumption);
+            case "stations":
+                return getString(R.string.running_station_consumption);
+            case "wind":
+                return getString(R.string.wind_speed);
+            default:
+                return card.optString(
+                        "title", getString(R.string.operating_data));
+        }
+    }
+
+    private String mobileMetricLabel(JSONObject metric) {
+        String id = metric.optString("id");
+        switch (id) {
+            case "rain_state":
+                return getString(R.string.rain_status);
+            case "radar_source":
+                return getString(R.string.radar_source);
+            case "actual":
+                return getString(R.string.current_value);
+            case "maximum":
+                return getString(R.string.maximum);
+            case "trend":
+                return getString(R.string.trend);
+            case "pulses":
+                return getString(R.string.pulses);
+            case "dht_humidity":
+                return getString(R.string.humidity);
+            case "station_current":
+                return metric.optString(
+                        "label", getString(R.string.station_consumption));
+            default:
+                if (id.startsWith("master_") && id.endsWith("_current")) {
+                    return getString(R.string.current_master_consumption);
+                }
+                if (id.startsWith("master_") && id.endsWith("_total")) {
+                    return getString(R.string.total_master_consumption);
+                }
+                return metric.optString("label", id);
+        }
+    }
+
+    private String mobileMetricValue(JSONObject metric) {
+        String id = metric.optString("id");
+        String value = String.valueOf(metric.opt("value"));
+        if ("trend".equals(id)) {
+            switch (value.toLowerCase(Locale.ROOT)) {
+                case "rising":
+                    return "\u2191 " + getString(R.string.rising);
+                case "falling":
+                    return "\u2193 " + getString(R.string.falling);
+                case "steady":
+                    return "\u2192 " + getString(R.string.steady);
+                default:
+                    return "\u00b7 " + getString(R.string.pending);
+            }
+        }
+        if ("rain_state".equals(id)) {
+            if ("rain".equalsIgnoreCase(value) ||
+                    "raining".equalsIgnoreCase(value)) {
+                return getString(R.string.rain_detected);
+            }
+            if ("dry".equalsIgnoreCase(value) ||
+                    "no_rain".equalsIgnoreCase(value)) {
+                return getString(R.string.no_rain_detected);
+            }
+        }
+        return value;
+    }
+
+    private void addMobileImage(LinearLayout parent, JSONObject imageData) {
+        try {
+            byte[] bytes = Base64.decode(
+                    imageData.optString("data_base64"), Base64.DEFAULT);
+            Bitmap bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.length);
+            if (bitmap == null) return;
+            ImageView image = new ImageView(this);
+            image.setImageBitmap(bitmap);
+            image.setAdjustViewBounds(true);
+            image.setScaleType(ImageView.ScaleType.FIT_CENTER);
+            image.setContentDescription(getString(R.string.radar_image));
+            parent.addView(image, new LinearLayout.LayoutParams(-1, -2));
+            String updated = imageData.optString("updated");
+            if (!updated.isEmpty()) {
+                TextView label = text(
+                        getString(R.string.updated) + ": " +
+                                formatTimestamp(updated), 11, false);
+                label.setTextColor(MUTED);
+                parent.addView(label);
+            }
+        } catch (Exception ignored) {
+            // A malformed optional image must not hide the remaining telemetry.
+        }
     }
 
     private void renderSensors(JSONArray sensorItems) {
@@ -2017,8 +2258,38 @@ public final class MainActivity extends Activity {
         return "☁";
     }
 
-    private static String readable(String value) {
+    private String readable(String value) {
         if (value == null || value.isEmpty()) return "";
+        switch (value.toLowerCase(Locale.ROOT)) {
+            case "days_simple":
+                return getString(R.string.schedule_days);
+            case "days_advanced":
+                return getString(R.string.schedule_advanced);
+            case "interval":
+                return getString(R.string.schedule_interval);
+            case "start_minute":
+                return getString(R.string.start_time);
+            case "duration_minutes":
+                return getString(R.string.duration);
+            case "pause_minutes":
+                return getString(R.string.pause);
+            case "repeat_count":
+                return getString(R.string.repeat_count);
+            case "days":
+                return getString(R.string.days);
+            case "enabled":
+                return getString(R.string.enabled);
+            case "automatic_update":
+                return getString(R.string.automatic_update);
+            case "update_available":
+                return getString(R.string.update_available);
+            case "current_version":
+                return getString(R.string.current_version);
+            case "current_commit":
+                return getString(R.string.current_commit);
+            case "target_commit":
+                return getString(R.string.target_commit);
+        }
         String display = value.replace('_', ' ');
         return Character.toUpperCase(display.charAt(0)) + display.substring(1);
     }

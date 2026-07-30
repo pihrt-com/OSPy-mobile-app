@@ -3,6 +3,8 @@ package com.pihrt.ospy.mobile;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.net.URI;
+
 final class Installation {
     String id;
     String name;
@@ -26,6 +28,26 @@ final class Installation {
         while (result.endsWith("/")) result = result.substring(0, result.length() - 1);
         if (result.endsWith("/api/v1")) result = result.substring(0, result.length() - 7);
         return result;
+    }
+
+    boolean isPrivateAddress() {
+        try {
+            String host = URI.create(baseUrl).getHost();
+            if (host == null) return false;
+            host = host.toLowerCase();
+            if ("localhost".equals(host) || host.startsWith("127.")) return true;
+            if (host.startsWith("10.") || host.startsWith("192.168.")) return true;
+            if (host.startsWith("172.")) {
+                String[] parts = host.split("\\.");
+                if (parts.length > 1) {
+                    int second = Integer.parseInt(parts[1]);
+                    return second >= 16 && second <= 31;
+                }
+            }
+        } catch (Exception ignored) {
+            // An invalid URL is handled by the connection screen.
+        }
+        return false;
     }
 
     JSONObject toJson() throws JSONException {

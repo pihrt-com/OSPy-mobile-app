@@ -52,6 +52,10 @@ final class ApiClient {
         });
     }
 
+    void probe(Callback callback) {
+        request("GET", "/server", null, callback);
+    }
+
     void pair(String username, String password, String twoFactor, Callback callback) {
         executor.execute(() -> {
             try {

@@ -3,7 +3,7 @@
 First native Android client for the stable OSPy `/api/v1`. The application
 never parses web-interface HTML.
 
-## Included in version 0.3.0
+## Included in version 0.3.1
 
 - Multiple saved OSPy installations, for example Home, Cottage and Greenhouse.
 - Refresh tokens encrypted by an AES-GCM key stored in Android Keystore.
@@ -50,6 +50,14 @@ never parses web-interface HTML.
 - Logs can switch between the OSPy event log and station-run history.
 - Official plug-ins can expose optional read-only native metric and chart
   cards through the documented JSON-only plug-in adapter contract.
+- Home uses the current local OSPy day, keeps only a compact recent/running/
+  upcoming timeline and shows running progress and remaining time.
+- Native plug-in cards can be collapsed again, localize their known metric
+  names in the app, show chart legends and time bounds, and render a bounded
+  current radar image.
+- Optional network-aware installation selection prefers a saved private
+  address on Wi-Fi and a public address outside Wi-Fi. The last reachable
+  installation can be opened automatically after application unlock.
 
 The app uses only Android platform APIs and `org.json`; it has no analytics,
 advertising, cloud relay or third-party runtime library.
