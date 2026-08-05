@@ -13,6 +13,9 @@ import org.json.JSONObject;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
 
 /** Dependency-free chart with legend and a visible time range. */
 final class MobileChartView extends View {
@@ -29,6 +32,7 @@ final class MobileChartView extends View {
         String firstTime = "";
         String lastTime = "";
         float[] values;
+        long[] times;
     }
 
     private final List<Series> lines = new ArrayList<>();
@@ -45,8 +49,12 @@ final class MobileChartView extends View {
             JSONArray points = item == null ? null : item.optJSONArray("points");
             if (points == null) continue;
             List<Float> values = new ArrayList<>();
+            List<Long> times = new ArrayList<>();
             Series line = new Series();
-            line.label = item.optString("label", item.optString("id", "Series"));
+            line.label = item.optString(
+                    "label",
+                    item.optString(
+                            "id", getContext().getString(R.string.chart_series)));
             line.unit = item.optString("unit");
             for (int j = 0; j < points.length(); j++) {
                 Object point = points.opt(j);
@@ -65,6 +73,7 @@ final class MobileChartView extends View {
                 }
                 if (!Double.isNaN(value) && !Double.isInfinite(value)) {
                     values.add((float) value);
+                    times.add(parseTime(time));
                     if (!time.isEmpty()) {
                         if (line.firstTime.isEmpty()) line.firstTime = time;
                         line.lastTime = time;
@@ -73,7 +82,11 @@ final class MobileChartView extends View {
             }
             if (values.isEmpty()) continue;
             line.values = new float[values.size()];
-            for (int j = 0; j < values.size(); j++) line.values[j] = values.get(j);
+            line.times = new long[times.size()];
+            for (int j = 0; j < values.size(); j++) {
+                line.values[j] = values.get(j);
+                line.times[j] = times.get(j);
+            }
             lines.add(line);
         }
     }
@@ -108,12 +121,30 @@ final class MobileChartView extends View {
             }
         }
         if (maximum <= minimum) maximum = minimum + 1;
+        long earliest = Long.MAX_VALUE;
+        long latest = Long.MIN_VALUE;
+        for (Series line : lines) {
+            for (long time : line.times) {
+                if (time < 0) continue;
+                earliest = Math.min(earliest, time);
+                latest = Math.max(latest, time);
+            }
+        }
+        boolean useRealTime = earliest != Long.MAX_VALUE && latest > earliest;
         for (int lineIndex = 0; lineIndex < lines.size(); lineIndex++) {
-            float[] values = lines.get(lineIndex).values;
+            Series line = lines.get(lineIndex);
+            float[] values = line.values;
             Path path = new Path();
             for (int i = 0; i < values.length; i++) {
-                float x = values.length == 1
-                        ? left : left + (right - left) * i / (values.length - 1f);
+                float x;
+                if (useRealTime && line.times[i] >= 0) {
+                    x = left + (right - left) *
+                            (line.times[i] - earliest) / (float) (latest - earliest);
+                } else {
+                    x = values.length == 1
+                            ? left : left + (right - left) * i /
+                                    (values.length - 1f);
+                }
                 float y = bottom - (bottom - top) *
                         (values[i] - minimum) / (maximum - minimum);
                 if (i == 0) path.moveTo(x, y);
@@ -130,8 +161,8 @@ final class MobileChartView extends View {
                 dp(2), top + dp(8), paint);
         canvas.drawText(String.format(Locale.getDefault(), "%.1f", minimum),
                 dp(2), bottom, paint);
-        String first = compactTime(lines.get(0).firstTime);
-        String last = compactTime(lines.get(0).lastTime);
+        String first = compactTime(globalBoundary(true));
+        String last = compactTime(globalBoundary(false));
         canvas.drawText(first, left, bottom + dp(15), paint);
         float lastWidth = paint.measureText(last);
         canvas.drawText(last, right - lastWidth, bottom + dp(15), paint);
@@ -150,6 +181,41 @@ final class MobileChartView extends View {
             canvas.drawText(ellipsize(label, columnWidth - dp(18)),
                     x + dp(16), y + dp(1), paint);
         }
+    }
+
+    private long parseTime(String value) {
+        if (value == null || value.isEmpty()) return -1;
+        try {
+            return OffsetDateTime.parse(value).toInstant().toEpochMilli();
+        } catch (Exception ignored) {
+        }
+        try {
+            return LocalDateTime.parse(value).atZone(ZoneId.systemDefault())
+                    .toInstant().toEpochMilli();
+        } catch (Exception ignored) {
+            return -1;
+        }
+    }
+
+    private String globalBoundary(boolean first) {
+        long boundary = first ? Long.MAX_VALUE : Long.MIN_VALUE;
+        String result = "";
+        for (Series line : lines) {
+            for (int index = 0; index < line.times.length; index++) {
+                long time = line.times[index];
+                if (time < 0) continue;
+                if ((first && time < boundary) || (!first && time > boundary)) {
+                    boundary = time;
+                    result = index == 0 ? line.firstTime
+                            : index == line.times.length - 1 ? line.lastTime :
+                            java.time.Instant.ofEpochMilli(time)
+                                    .atZone(ZoneId.systemDefault())
+                                    .toLocalDateTime().toString();
+                }
+            }
+        }
+        if (!result.isEmpty()) return result;
+        return first ? lines.get(0).firstTime : lines.get(0).lastTime;
     }
 
     private String compactTime(String value) {

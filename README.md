@@ -1,10 +1,23 @@
 # OSPy Mobile
+Android client for the OSPy `/api/v1`. App on [Google store](https://play.google.com/store/apps/details?id=com.pihrt.ospy.mobile)
 
-First native Android client for the stable OSPy `/api/v1`. The application
-never parses web-interface HTML.
+## Included in version 0.3.3
+- Station countdowns use localized hours, minutes and seconds.
+- Program details show a readable start time, explicit duration and pause
+  units, and localized weekday names; the editor arranges all seven weekdays
+  across two rows.
+- Every native plug-in chart supports 1 hour, Today, 7 days, Month, Year and a
+  custom date range. Today is the default. Points use their real timestamps,
+  empty ranges are identified clearly and the last available sample is shown.
+- Long plug-in histories are requested from OSPy in a bounded range and are
+  reduced on the server while preserving bucket minima and maxima.
+
+## Included in version 0.3.2
+- German, Polish and Slovak application resources.
+- Smooth refresh home page
+- Schedule days
 
 ## Included in version 0.3.1
-
 - Multiple saved OSPy installations, for example Home, Cottage and Greenhouse.
 - Refresh tokens encrypted by an AES-GCM key stored in Android Keystore.
 - Application unlock with biometrics or the device credential when configured.
@@ -15,7 +28,7 @@ never parses web-interface HTML.
 - Update check, system-backup creation and OSPy restart actions.
 - Foreground live-change polling through the documented SSE fallback, including
   local Android notifications for OSPy notification events.
-- Czech and English application resources.
+- English, Czech application resources.
 - Compact navigation with a clearly highlighted active section and native,
   localized cards for weather, event logs, diagnostics and update status.
 - Resilient Home and sensor rendering when an optional API field is unavailable.
@@ -32,7 +45,9 @@ never parses web-interface HTML.
   protected API. Plug-in activation still requires prior permission approval
   and passes through OSPy's compatibility and lifecycle checks.
 - Home refreshes automatically every ten seconds, shows the last successful
-  server refresh and reloads immediately after a control action.
+  server refresh and reloads immediately after a control action. Background
+  refreshes update the existing values and timeline rows in place, so the Home
+  screen does not disappear or flash during polling.
 - Home controls the scheduler and manual mode. Rain delay accepts a duration
   selected by the user, displays the remaining time and can be cancelled.
 - Initial live-event synchronization does not replay old weather or diagnostic
@@ -61,6 +76,13 @@ never parses web-interface HTML.
 
 The app uses only Android platform APIs and `org.json`; it has no analytics,
 advertising, cloud relay or third-party runtime library.
+
+## Localization
+
+The app uses native Android string resources and includes English, Czech,
+German, Polish and Slovak. Android 13 and newer can select a language
+specifically for OSPy Mobile. See [TRANSLATIONS.md](TRANSLATIONS.md) for the
+POEditor, Weblate and Android Studio workflow and automated validation.
 
 ## Build
 

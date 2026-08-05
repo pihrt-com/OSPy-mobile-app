@@ -3,6 +3,7 @@ package com.pihrt.ospy.mobile;
 import android.Manifest;
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.app.DatePickerDialog;
 import android.app.KeyguardManager;
 import android.content.Context;
 import android.content.Intent;
@@ -21,6 +22,7 @@ import android.os.Bundle;
 import android.os.CancellationSignal;
 import android.os.Handler;
 import android.os.Looper;
+import android.provider.Settings;
 import android.net.Uri;
 import android.text.InputType;
 import android.util.Base64;
@@ -34,6 +36,7 @@ import android.widget.EditText;
 import android.widget.HorizontalScrollView;
 import android.widget.ImageButton;
 import android.widget.ImageView;
+import android.widget.GridLayout;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.ScrollView;
@@ -44,7 +47,13 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.text.DateFormatSymbols;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.FormatStyle;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -86,6 +95,91 @@ public final class MainActivity extends Activity {
     private int activeRequest = 0;
     private boolean requestInFlight = false;
     private boolean unlockStarted = false;
+
+    // The overview is kept attached during background refreshes. Only values
+    // that actually changed are updated, preventing the page and timeline from
+    // disappearing and being recreated every ten seconds.
+    private LinearLayout overviewRoot;
+    private LinearLayout overviewIrrigationSection;
+    private OverviewControlBinding overviewSchedulerControl;
+    private OverviewControlBinding overviewManualControl;
+    private OverviewControlBinding overviewRainControl;
+    private PairBinding overviewActiveCount;
+    private LinearLayout overviewActiveStationsContainer;
+    private final List<PairBinding> overviewActiveStationRows = new ArrayList<>();
+    private String overviewActiveStationStructure = "";
+    private TextView overviewUpdatedView;
+    private TextView overviewVersionView;
+    private LinearLayout overviewWarningsSection;
+    private String overviewWarningsSignature = "";
+    private TextView overviewTimelineNow;
+    private LinearLayout overviewTimelineRowsContainer;
+    private TextView overviewTimelineError;
+    private Button overviewYesterdayButton;
+    private Button overviewTodayButton;
+    private Button overviewTomorrowButton;
+    private final List<TimelineRowBinding> overviewTimelineRows = new ArrayList<>();
+    private String overviewTimelineStructure = "";
+    private int overviewTimelineRequestSequence = 0;
+    private int activeOverviewTimelineRequest = 0;
+    private boolean overviewTimelineRequestInFlight = false;
+    private boolean overviewTimelineRefreshPending = false;
+    private String overviewTimelineActivePath = "";
+    private String overviewTimelinePendingPath = "";
+    private LocalDate overviewServerDate;
+    private ScheduleDay selectedScheduleDay = ScheduleDay.TODAY;
+
+    private enum ScheduleDay {
+        YESTERDAY(-1),
+        TODAY(0),
+        TOMORROW(1);
+
+        final int offsetDays;
+
+        ScheduleDay(int offsetDays) {
+            this.offsetDays = offsetDays;
+        }
+    }
+
+    private static final class OverviewControlBinding {
+        final TextView value;
+        final Button action;
+
+        OverviewControlBinding(TextView value, Button action) {
+            this.value = value;
+            this.action = action;
+        }
+    }
+
+    private static final class PairBinding {
+        final TextView label;
+        final TextView value;
+
+        PairBinding(TextView label, TextView value) {
+            this.label = label;
+            this.value = value;
+        }
+    }
+
+    private static final class TimelineRowBinding {
+        final String key;
+        final String state;
+        final TextView title;
+        final TextView status;
+        final TextView detail;
+        final ProgressBar progress;
+
+        TimelineRowBinding(
+                String key, String state, TextView title, TextView status,
+                TextView detail, ProgressBar progress) {
+            this.key = key;
+            this.state = state;
+            this.title = title;
+            this.status = status;
+            this.detail = detail;
+            this.progress = progress;
+        }
+    }
     private final Handler refreshHandler = new Handler(Looper.getMainLooper());
     private final Runnable refreshTask = new Runnable() {
         @Override public void run() {
@@ -280,7 +374,9 @@ public final class MainActivity extends Activity {
         try {
             installations = installationStore.load();
         } catch (Exception error) {
-            message(getString(R.string.protected_storage_error), error.getMessage());
+            message(
+                    getString(R.string.protected_storage_error),
+                    getString(R.string.protected_storage_error_detail));
             installations = new ArrayList<>();
         }
         heading(getString(R.string.installations));
@@ -348,6 +444,32 @@ public final class MainActivity extends Activity {
                 appPreferences.openLastInstallation(),
                 enabled -> appPreferences.setOpenLastInstallation(enabled));
         content.addView(networkSettings);
+
+        LinearLayout languageSettings = cardColumn();
+        languageSettings.addView(text(
+                getString(R.string.application_language), 16, true));
+        TextView languageDescription = text(
+                getString(R.string.application_language_description), 13, false);
+        languageDescription.setTextColor(MUTED);
+        languageSettings.addView(languageDescription);
+        if (Build.VERSION.SDK_INT >= 33) {
+            Button languageButton = button(
+                    getString(R.string.open_language_settings), NAVY);
+            languageButton.setOnClickListener(v -> {
+                try {
+                    Intent intent = new Intent(
+                            Settings.ACTION_APP_LOCALE_SETTINGS,
+                            Uri.parse("package:" + getPackageName()));
+                    startActivity(intent);
+                } catch (Exception error) {
+                    message(
+                            getString(R.string.app_settings),
+                            getString(R.string.cannot_open_link));
+                }
+            });
+            languageSettings.addView(languageButton);
+        }
+        content.addView(languageSettings);
 
         LinearLayout installationsCard = card();
         installationsCard.addView(
@@ -521,7 +643,7 @@ public final class MainActivity extends Activity {
             String displayName = name.getText().toString().trim();
             Installation changed = new Installation(
                     installation.id,
-                    displayName.isEmpty() ? "OSPy" : displayName,
+                    displayName.isEmpty() ? getString(R.string.app_name) : displayName,
                     base,
                     installation.username,
                     installation.refreshToken,
@@ -532,7 +654,7 @@ public final class MainActivity extends Activity {
             } catch (Exception error) {
                 message(
                         getString(R.string.protected_storage_error),
-                        error.getMessage());
+                        getString(R.string.protected_storage_error_detail));
             }
         });
         actions.addView(save);
@@ -553,7 +675,7 @@ public final class MainActivity extends Activity {
                 JSONObject data = event.optJSONObject("data");
                 if (data != null) notifications.show(
                         data.optInt("id", (int) System.currentTimeMillis()),
-                        data.optString("title", "OSPy"),
+                        data.optString("title", getString(R.string.app_name)),
                         data.optString("message", ""));
             }
             String type = event.optString("event");
@@ -619,6 +741,7 @@ public final class MainActivity extends Activity {
         // Do not let a response for the previous screen prevent the newly
         // selected screen from starting its own request.
         requestInFlight = false;
+        resetOverviewViewState();
         selectNavigation(renderer);
         content.removeAllViews();
         content.addView(text(getString(R.string.loading), 16, false));
@@ -639,7 +762,13 @@ public final class MainActivity extends Activity {
                 if (generation != loadGeneration ||
                         !path.equals(currentPath) ||
                         !renderer.equals(currentRenderer)) return;
-                content.removeAllViews();
+
+                boolean updateOverviewInPlace =
+                        "overview".equals(renderer) && !showFailure &&
+                                overviewRoot != null &&
+                                overviewRoot.getParent() == content;
+                if (!updateOverviewInPlace) content.removeAllViews();
+
                 Object data = response.opt("data");
                 if ("overview".equals(renderer) && data instanceof JSONObject) {
                     renderOverview((JSONObject) data);
@@ -676,6 +805,7 @@ public final class MainActivity extends Activity {
                         !renderer.equals(currentRenderer)) return;
                 if (!showFailure) return;
                 content.removeAllViews();
+                resetOverviewViewState();
                 content.addView(text(localizedError(error), 16, true));
                 Button retry = button(getString(R.string.refresh), GREEN);
                 retry.setOnClickListener(v -> load(path, renderer));
@@ -685,75 +815,448 @@ public final class MainActivity extends Activity {
     }
 
     private void renderOverview(JSONObject data) {
+        ensureOverviewLayout();
+
         JSONObject instance = data.optJSONObject("instance");
         JSONObject irrigation = data.optJSONObject("irrigation");
-        if (irrigation != null) {
-            heading(getString(R.string.irrigation));
-            LinearLayout summary = cardColumn();
+        if (irrigation == null) {
+            overviewIrrigationSection.setVisibility(View.GONE);
+        } else {
+            overviewIrrigationSection.setVisibility(View.VISIBLE);
             boolean schedulerEnabled =
                     irrigation.optBoolean("scheduler_enabled");
             boolean manualMode = irrigation.optBoolean("manual_mode");
             boolean rainBlock = irrigation.optBoolean("rain_block");
-            addIrrigationControl(
-                    summary, getString(R.string.scheduler), schedulerEnabled,
-                    jsonBoolean("scheduler_enabled", !schedulerEnabled));
-            addIrrigationControl(
-                    summary, getString(R.string.manual_mode), manualMode,
-                    jsonBoolean("manual_mode", !manualMode));
-            addRainDelayControl(
-                    summary, rainBlock,
-                    irrigation.optLong("rain_block_seconds", 0));
-            JSONArray active = irrigation.optJSONArray("active_stations");
-            addPair(summary, getString(R.string.active_stations),
-                    active == null ? "0" : String.valueOf(active.length()));
-            if (active != null) {
-                for (int i = 0; i < active.length(); i++) {
-                    JSONObject station = active.optJSONObject(i);
-                    if (station != null) {
-                        int remaining = station.optInt("remaining_seconds", -1);
-                        addPair(
-                                summary,
-                                station.optString("name"),
-                                remaining >= 0
-                                        ? remaining + " " +
-                                                getString(R.string.seconds_short)
-                                        : getString(R.string.running));
-                    }
-                }
-            }
-            content.addView(summary);
+
+            updateOverviewToggle(
+                    overviewSchedulerControl, schedulerEnabled,
+                    "scheduler_enabled");
+            updateOverviewToggle(
+                    overviewManualControl, manualMode, "manual_mode");
+            updateOverviewRainControl(
+                    rainBlock, irrigation.optLong("rain_block_seconds", 0));
+            updateOverviewActiveStations(
+                    irrigation.optJSONArray("active_stations"));
         }
-        line(
-                getString(R.string.updated),
-                formatTimestamp(data.optString("updated")));
+
+        String updated = data.optString("updated");
+        updateOverviewServerDate(updated);
+        overviewUpdatedView.setText(
+                getString(R.string.updated) + ": " +
+                        formatTimestamp(updated));
+
+        JSONArray warnings = data.optJSONArray("warnings");
+        updateOverviewWarnings(warnings);
+
+        if (instance == null || instance.optString("version").isEmpty()) {
+            overviewVersionView.setVisibility(View.GONE);
+        } else {
+            overviewVersionView.setText(
+                    getString(R.string.version) + ": " +
+                            instance.optString("version"));
+            overviewVersionView.setVisibility(View.VISIBLE);
+        }
+
+        // Keep the existing timeline visible while fresh data for the selected
+        // calendar day is loaded.
+        updateScheduleDayButtons();
+        updateOverviewTimelineHeader();
+        loadTimeline(schedulePathForSelectedDay());
+    }
+
+
+    private void resetOverviewViewState() {
+        activeOverviewTimelineRequest = ++overviewTimelineRequestSequence;
+        overviewTimelineRequestInFlight = false;
+        overviewTimelineRefreshPending = false;
+        overviewTimelineActivePath = "";
+        overviewTimelinePendingPath = "";
+        overviewServerDate = null;
+        selectedScheduleDay = ScheduleDay.TODAY;
+        overviewRoot = null;
+        overviewIrrigationSection = null;
+        overviewSchedulerControl = null;
+        overviewManualControl = null;
+        overviewRainControl = null;
+        overviewActiveCount = null;
+        overviewActiveStationsContainer = null;
+        overviewActiveStationRows.clear();
+        overviewActiveStationStructure = "";
+        overviewUpdatedView = null;
+        overviewVersionView = null;
+        overviewWarningsSection = null;
+        overviewWarningsSignature = "";
+        overviewTimelineNow = null;
+        overviewTimelineRowsContainer = null;
+        overviewTimelineError = null;
+        overviewYesterdayButton = null;
+        overviewTodayButton = null;
+        overviewTomorrowButton = null;
+        overviewTimelineRows.clear();
+        overviewTimelineStructure = "";
+    }
+
+    private void ensureOverviewLayout() {
+        if (overviewRoot != null && overviewRoot.getParent() == content) return;
+
+        resetOverviewViewState();
+        overviewRoot = new LinearLayout(this);
+        overviewRoot.setOrientation(LinearLayout.VERTICAL);
+
+        overviewIrrigationSection = new LinearLayout(this);
+        overviewIrrigationSection.setOrientation(LinearLayout.VERTICAL);
+        overviewIrrigationSection.addView(
+                overviewHeading(getString(R.string.irrigation)));
+
+        LinearLayout summary = cardColumn();
+        overviewSchedulerControl = createOverviewControl(
+                summary, getString(R.string.scheduler), 0.25f);
+        overviewManualControl = createOverviewControl(
+                summary, getString(R.string.manual_mode), 0.25f);
+        overviewRainControl = createOverviewControl(
+                summary, getString(R.string.rain_delay), 0.35f);
+        overviewActiveCount = createPairBinding(
+                summary, getString(R.string.active_stations));
+        overviewActiveStationsContainer = new LinearLayout(this);
+        overviewActiveStationsContainer.setOrientation(LinearLayout.VERTICAL);
+        summary.addView(
+                overviewActiveStationsContainer,
+                new LinearLayout.LayoutParams(-1, -2));
+        overviewIrrigationSection.addView(summary);
+        overviewRoot.addView(overviewIrrigationSection);
+
+        overviewUpdatedView = text("", 15, false);
+        overviewRoot.addView(overviewUpdatedView);
+
         Button stop = button(getString(R.string.stop_all), RED);
         stop.setOnClickListener(v -> confirmAction(
                 getString(R.string.confirm_stop_all),
                 "/stations/actions/stop-all",
-                () -> load("/overview", "overview")));
-        content.addView(stop);
-        heading(getString(R.string.today_schedule));
-        loadTimeline("/schedule?date=today");
-        JSONArray warnings = data.optJSONArray("warnings");
-        if (warnings != null && warnings.length() > 0) {
-            heading(getString(R.string.warnings));
+                this::refreshCurrentOverview));
+        overviewRoot.addView(stop);
+
+        overviewRoot.addView(
+                overviewHeading(getString(R.string.schedule)));
+
+        LinearLayout scheduleDaySelector = actionRow();
+        overviewYesterdayButton = createScheduleDayButton(
+                scheduleDaySelector, getString(R.string.yesterday),
+                ScheduleDay.YESTERDAY);
+        overviewTodayButton = createScheduleDayButton(
+                scheduleDaySelector, getString(R.string.today),
+                ScheduleDay.TODAY);
+        overviewTomorrowButton = createScheduleDayButton(
+                scheduleDaySelector, getString(R.string.tomorrow),
+                ScheduleDay.TOMORROW);
+        overviewRoot.addView(
+                scheduleDaySelector,
+                new LinearLayout.LayoutParams(-1, -2));
+        updateScheduleDayButtons();
+
+        overviewVersionView = text("", 11, false);
+        overviewVersionView.setTextColor(MUTED);
+        overviewVersionView.setGravity(Gravity.END);
+        overviewRoot.addView(
+                overviewVersionView,
+                new LinearLayout.LayoutParams(-1, -2));
+
+        LinearLayout timeline = cardColumn();
+        overviewTimelineNow = text("", 14, true);
+        overviewTimelineNow.setTextColor(NAVY);
+        timeline.addView(overviewTimelineNow);
+        overviewTimelineRowsContainer = new LinearLayout(this);
+        overviewTimelineRowsContainer.setOrientation(LinearLayout.VERTICAL);
+        overviewTimelineRowsContainer.addView(text(
+                getString(R.string.loading), 14, false));
+        timeline.addView(
+                overviewTimelineRowsContainer,
+                new LinearLayout.LayoutParams(-1, -2));
+        overviewTimelineError = text("", 13, false);
+        overviewTimelineError.setTextColor(RED);
+        overviewTimelineError.setVisibility(View.GONE);
+        timeline.addView(overviewTimelineError);
+        overviewRoot.addView(timeline);
+
+        overviewWarningsSection = new LinearLayout(this);
+        overviewWarningsSection.setOrientation(LinearLayout.VERTICAL);
+        overviewWarningsSection.setVisibility(View.GONE);
+        overviewRoot.addView(overviewWarningsSection);
+
+        content.addView(
+                overviewRoot, new LinearLayout.LayoutParams(-1, -2));
+    }
+
+    private Button createScheduleDayButton(
+            LinearLayout parent, String label, ScheduleDay day) {
+        Button button = compactButton(label, NAVY);
+        LinearLayout.LayoutParams layout =
+                new LinearLayout.LayoutParams(0, -2, 1);
+        layout.setMargins(dp(3), dp(3), dp(3), dp(6));
+        button.setLayoutParams(layout);
+        button.setOnClickListener(v -> selectScheduleDay(day));
+        parent.addView(button);
+        return button;
+    }
+
+    private void selectScheduleDay(ScheduleDay day) {
+        boolean changed = selectedScheduleDay != day;
+        selectedScheduleDay = day;
+        updateScheduleDayButtons();
+        updateOverviewTimelineHeader();
+
+        if (changed) {
+            // Invalidate an older response immediately. It may still arrive,
+            // but its callback is ignored and cannot replace the selected day.
+            activeOverviewTimelineRequest = ++overviewTimelineRequestSequence;
+            overviewTimelineRequestInFlight = false;
+            overviewTimelineRefreshPending = false;
+            overviewTimelineActivePath = "";
+            overviewTimelinePendingPath = "";
+            showOverviewTimelineLoading();
+        }
+        loadTimeline(schedulePathForSelectedDay());
+    }
+
+    private void updateScheduleDayButtons() {
+        styleScheduleDayButton(
+                overviewYesterdayButton,
+                selectedScheduleDay == ScheduleDay.YESTERDAY);
+        styleScheduleDayButton(
+                overviewTodayButton,
+                selectedScheduleDay == ScheduleDay.TODAY);
+        styleScheduleDayButton(
+                overviewTomorrowButton,
+                selectedScheduleDay == ScheduleDay.TOMORROW);
+    }
+
+    private void styleScheduleDayButton(Button button, boolean selected) {
+        if (button == null) return;
+        styleButton(button, selected ? GREEN : NAVY, selected);
+        button.setAlpha(selected ? 1.0f : 0.82f);
+    }
+
+    private void showOverviewTimelineLoading() {
+        overviewTimelineStructure = "";
+        overviewTimelineRows.clear();
+        if (overviewTimelineRowsContainer != null) {
+            overviewTimelineRowsContainer.removeAllViews();
+            overviewTimelineRowsContainer.addView(text(
+                    getString(R.string.loading), 14, false));
+        }
+        if (overviewTimelineError != null) {
+            overviewTimelineError.setVisibility(View.GONE);
+        }
+    }
+
+    private void updateOverviewServerDate(String timestamp) {
+        if (timestamp == null || timestamp.length() < 10) return;
+        try {
+            overviewServerDate = LocalDate.parse(timestamp.substring(0, 10));
+        } catch (Exception ignored) {
+            // Keep the previous server date. The device date is used only when
+            // the API response does not contain a parseable ISO date.
+        }
+    }
+
+    private LocalDate selectedScheduleDate() {
+        LocalDate base = overviewServerDate == null
+                ? LocalDate.now() : overviewServerDate;
+        return base.plusDays(selectedScheduleDay.offsetDays);
+    }
+
+    private String schedulePathForSelectedDay() {
+        if (selectedScheduleDay == ScheduleDay.TODAY) {
+            return "/schedule?date=today";
+        }
+        return "/schedule?date=" + selectedScheduleDate();
+    }
+
+    private int selectedScheduleDayLabel() {
+        switch (selectedScheduleDay) {
+            case YESTERDAY:
+                return R.string.yesterday;
+            case TOMORROW:
+                return R.string.tomorrow;
+            case TODAY:
+            default:
+                return R.string.today;
+        }
+    }
+
+    private void updateOverviewTimelineHeader() {
+        if (overviewTimelineNow == null) return;
+        LocalDate date = selectedScheduleDate();
+        String formattedDate = DateTimeFormatter
+                .ofLocalizedDate(FormatStyle.MEDIUM)
+                .withLocale(Locale.getDefault())
+                .format(date);
+        String label = getString(selectedScheduleDayLabel());
+        if (selectedScheduleDay == ScheduleDay.TODAY) {
+            String currentTime = new java.text.SimpleDateFormat(
+                    "HH:mm", Locale.getDefault())
+                    .format(new java.util.Date());
+            overviewTimelineNow.setText(
+                    label + " · " + formattedDate + " · " +
+                            getString(R.string.now) + " " + currentTime);
+        } else {
+            overviewTimelineNow.setText(label + " · " + formattedDate);
+        }
+    }
+
+    private TextView overviewHeading(String value) {
+        TextView view = text(value, 18, true);
+        view.setTextColor(NAVY);
+        view.setPadding(0, dp(10), 0, dp(5));
+        return view;
+    }
+
+    private OverviewControlBinding createOverviewControl(
+            LinearLayout parent, String label, float valueWeight) {
+        LinearLayout row = actionRow();
+        TextView name = text(label, 14, true);
+        name.setTextColor(MUTED);
+        row.addView(name, new LinearLayout.LayoutParams(0, -2, 0.38f));
+        TextView currentState = text("", 14, false);
+        row.addView(
+                currentState,
+                new LinearLayout.LayoutParams(0, -2, valueWeight));
+        Button action = compactButton("", GREEN);
+        row.addView(action);
+        parent.addView(row, new LinearLayout.LayoutParams(-1, -2));
+        return new OverviewControlBinding(currentState, action);
+    }
+
+    private PairBinding createPairBinding(
+            LinearLayout parent, String labelText) {
+        LinearLayout row = actionRow();
+        TextView label = text(labelText, 14, true);
+        label.setTextColor(MUTED);
+        row.addView(label, new LinearLayout.LayoutParams(0, -2, 0.42f));
+        TextView value = text("", 14, false);
+        row.addView(value, new LinearLayout.LayoutParams(0, -2, 0.58f));
+        parent.addView(row, new LinearLayout.LayoutParams(-1, -2));
+        return new PairBinding(label, value);
+    }
+
+    private void updateOverviewToggle(
+            OverviewControlBinding binding, boolean enabled, String key) {
+        binding.value.setText(state(enabled));
+        binding.action.setText(getString(
+                enabled ? R.string.turn_off : R.string.turn_on));
+        styleButton(binding.action, enabled ? RED : GREEN, false);
+        binding.action.setOnClickListener(v -> put(
+                "/irrigation", jsonBoolean(key, !enabled),
+                this::refreshCurrentOverview));
+    }
+
+    private void updateOverviewRainControl(
+            boolean enabled, long remainingSeconds) {
+        overviewRainControl.value.setText(
+                enabled
+                        ? getString(
+                                R.string.rain_delay_remaining,
+                                formatDuration(remainingSeconds))
+                        : getString(R.string.inactive));
+        overviewRainControl.action.setText(getString(
+                enabled ? R.string.turn_off : R.string.set));
+        styleButton(
+                overviewRainControl.action, enabled ? RED : GREEN, false);
+        overviewRainControl.action.setOnClickListener(v -> {
+            if (enabled) {
+                JSONObject change = new JSONObject();
+                try {
+                    change.put("rain_delay_hours", 0);
+                } catch (Exception ignored) {
+                }
+                put("/irrigation", change, this::refreshCurrentOverview);
+            } else {
+                showRainDelayDialog();
+            }
+        });
+    }
+
+    private void refreshCurrentOverview() {
+        if (!"overview".equals(currentRenderer) ||
+                currentPath == null || currentPath.isEmpty() ||
+                requestInFlight) return;
+        fetch(currentPath, currentRenderer, false, loadGeneration);
+    }
+
+    private void updateOverviewActiveStations(JSONArray active) {
+        int count = active == null ? 0 : active.length();
+        overviewActiveCount.value.setText(String.valueOf(count));
+
+        StringBuilder structure = new StringBuilder();
+        for (int i = 0; i < count; i++) {
+            JSONObject station = active.optJSONObject(i);
+            if (station == null) continue;
+            structure.append(stationStableKey(station))
+                    .append('|')
+                    .append(station.optString("name"))
+                    .append(';');
+        }
+        String newStructure = structure.toString();
+        if (!newStructure.equals(overviewActiveStationStructure)) {
+            overviewActiveStationStructure = newStructure;
+            overviewActiveStationsContainer.removeAllViews();
+            overviewActiveStationRows.clear();
+            for (int i = 0; i < count; i++) {
+                JSONObject station = active.optJSONObject(i);
+                if (station == null) continue;
+                overviewActiveStationRows.add(createPairBinding(
+                        overviewActiveStationsContainer,
+                        station.optString("name")));
+            }
+        }
+
+        int row = 0;
+        for (int i = 0; i < count; i++) {
+            JSONObject station = active.optJSONObject(i);
+            if (station == null) continue;
+            if (row >= overviewActiveStationRows.size()) break;
+            PairBinding binding = overviewActiveStationRows.get(row++);
+            binding.label.setText(station.optString("name"));
+            int remaining = station.optInt("remaining_seconds", -1);
+            binding.value.setText(
+                    remaining >= 0
+                            ? formatCountdown(remaining)
+                            : getString(R.string.running));
+        }
+    }
+
+    private String stationStableKey(JSONObject station) {
+        return station.optInt("number", -1) + "|" +
+                station.optString("name");
+    }
+
+    private void updateOverviewWarnings(JSONArray warnings) {
+        StringBuilder signature = new StringBuilder();
+        if (warnings != null) {
             for (int i = 0; i < warnings.length(); i++) {
                 JSONObject warning = warnings.optJSONObject(i);
                 if (warning != null) {
-                    content.addView(statusCard(
-                            getString(R.string.warnings),
-                            warning.optString("message"), "warning"));
+                    signature.append(warning.optString("message")).append('\n');
                 }
             }
         }
-        if (instance != null) {
-            TextView version = text(
-                    getString(R.string.version) + ": " +
-                            instance.optString("version"),
-                    11, false);
-            version.setTextColor(MUTED);
-            version.setGravity(Gravity.END);
-            content.addView(version, new LinearLayout.LayoutParams(-1, -2));
+        String newSignature = signature.toString();
+        if (newSignature.equals(overviewWarningsSignature)) return;
+        overviewWarningsSignature = newSignature;
+        overviewWarningsSection.removeAllViews();
+        if (newSignature.isEmpty()) {
+            overviewWarningsSection.setVisibility(View.GONE);
+            return;
+        }
+        overviewWarningsSection.setVisibility(View.VISIBLE);
+        overviewWarningsSection.addView(
+                overviewHeading(getString(R.string.warnings)));
+        for (int i = 0; i < warnings.length(); i++) {
+            JSONObject warning = warnings.optJSONObject(i);
+            if (warning != null) {
+                overviewWarningsSection.addView(statusCard(
+                        getString(R.string.warnings),
+                        warning.optString("message"), "warning"));
+            }
         }
     }
 
@@ -766,8 +1269,7 @@ public final class MainActivity extends Activity {
                     ? getString(R.string.running) : getString(R.string.stopped);
             int remaining = station.optInt("remaining_seconds", 0);
             String timing = station.optBoolean("running") && remaining >= 0
-                    ? " · " + remaining + " " +
-                            getString(R.string.seconds_short)
+                    ? " · " + formatCountdown(remaining)
                     : "";
             TextView label = text(
                     station.optInt("number") + ". " + station.optString("name") +
@@ -846,99 +1348,226 @@ public final class MainActivity extends Activity {
     }
 
     private void loadTimeline(String path) {
+        if (overviewTimelineRequestInFlight) {
+            if (path.equals(overviewTimelineActivePath)) {
+                overviewTimelineRefreshPending = true;
+                overviewTimelinePendingPath = path;
+                return;
+            }
+            // The user selected another day, or the OSPy local date changed.
+            // Invalidate the older request and start the newly selected path.
+            activeOverviewTimelineRequest = ++overviewTimelineRequestSequence;
+            overviewTimelineRequestInFlight = false;
+            overviewTimelineRefreshPending = false;
+            overviewTimelineActivePath = "";
+            overviewTimelinePendingPath = "";
+        }
+
+        overviewTimelineRequestInFlight = true;
+        overviewTimelineRefreshPending = false;
+        overviewTimelineActivePath = path;
+        overviewTimelinePendingPath = "";
         final int generation = loadGeneration;
+        final int requestNumber = ++overviewTimelineRequestSequence;
+        activeOverviewTimelineRequest = requestNumber;
         api.request("GET", path, null, new ApiClient.Callback() {
             @Override public void success(JSONObject response) {
+                if (requestNumber != activeOverviewTimelineRequest) return;
                 if (generation != loadGeneration ||
-                        !"overview".equals(currentRenderer)) return;
-                JSONObject data = response.optJSONObject("data");
-                JSONArray items = data == null ? null : data.optJSONArray("items");
-                if (items == null || items.length() == 0) {
-                    content.addView(text(
-                            getString(R.string.no_scheduled_runs), 14, false));
+                        !"overview".equals(currentRenderer) ||
+                        overviewRoot == null ||
+                        overviewRoot.getParent() != content ||
+                        !path.equals(schedulePathForSelectedDay())) {
+                    overviewTimelineRequestInFlight = false;
+                    overviewTimelineRefreshPending = false;
+                    overviewTimelineActivePath = "";
+                    overviewTimelinePendingPath = "";
                     return;
                 }
-                List<JSONObject> completed = new ArrayList<>();
-                List<JSONObject> currentAndNext = new ArrayList<>();
-                for (int i = 0; i < items.length(); i++) {
-                    JSONObject item = items.optJSONObject(i);
-                    if (item == null || item.optBoolean("is_master")) continue;
-                    String state = item.optString("state");
-                    if ("completed".equals(state)) completed.add(item);
-                    else currentAndNext.add(item);
-                }
-                LinearLayout timeline = cardColumn();
-                TextView now = text(
-                        getString(R.string.now) + " " +
-                                new java.text.SimpleDateFormat(
-                                        "HH:mm", Locale.getDefault())
-                                        .format(new java.util.Date()),
-                        14, true);
-                now.setTextColor(NAVY);
-                timeline.addView(now);
-                int completedStart = Math.max(0, completed.size() - 2);
-                for (int i = completedStart; i < completed.size(); i++) {
-                    addTimelineRow(timeline, completed.get(i));
-                }
-                int upcomingLimit = Math.min(currentAndNext.size(), 5);
-                for (int i = 0; i < upcomingLimit; i++) {
-                    addTimelineRow(timeline, currentAndNext.get(i));
-                }
-                if (completedStart == completed.size() && upcomingLimit == 0) {
-                    timeline.addView(text(
-                            getString(R.string.no_scheduled_runs), 14, false));
-                }
-                content.addView(timeline);
+                JSONObject data = response.optJSONObject("data");
+                JSONArray items = data == null ? null : data.optJSONArray("items");
+                updateOverviewTimeline(items);
+                overviewTimelineError.setVisibility(View.GONE);
+                finishOverviewTimelineRequest(generation);
             }
 
             @Override public void failure(String error) {
-                if (generation == loadGeneration &&
-                        "overview".equals(currentRenderer)) {
-                    content.addView(statusCard(
-                            getString(R.string.schedule),
-                            localizedError(error), "warning"));
+                if (requestNumber != activeOverviewTimelineRequest) return;
+                if (generation != loadGeneration ||
+                        !"overview".equals(currentRenderer) ||
+                        overviewTimelineError == null ||
+                        !path.equals(schedulePathForSelectedDay())) {
+                    overviewTimelineRequestInFlight = false;
+                    overviewTimelineRefreshPending = false;
+                    overviewTimelineActivePath = "";
+                    overviewTimelinePendingPath = "";
+                    return;
                 }
+                // Keep the previous timeline on screen and only show a compact
+                // warning. A temporary request failure must not blank the card.
+                overviewTimelineError.setText(localizedError(error));
+                overviewTimelineError.setVisibility(View.VISIBLE);
+                finishOverviewTimelineRequest(generation);
             }
         });
     }
 
-    private void addTimelineRow(LinearLayout parent, JSONObject item) {
-        String state = item.optString("state");
+    private void finishOverviewTimelineRequest(int generation) {
+        boolean refreshAgain = overviewTimelineRefreshPending;
+        String nextPath = overviewTimelinePendingPath;
+        overviewTimelineRequestInFlight = false;
+        overviewTimelineRefreshPending = false;
+        overviewTimelineActivePath = "";
+        overviewTimelinePendingPath = "";
+        if (refreshAgain && generation == loadGeneration &&
+                "overview".equals(currentRenderer) &&
+                overviewRoot != null && overviewRoot.getParent() == content) {
+            loadTimeline(nextPath.isEmpty()
+                    ? schedulePathForSelectedDay() : nextPath);
+        }
+    }
+
+    private void updateOverviewTimeline(JSONArray items) {
+        List<JSONObject> completed = new ArrayList<>();
+        List<JSONObject> currentAndNext = new ArrayList<>();
+        if (items != null) {
+            for (int i = 0; i < items.length(); i++) {
+                JSONObject item = items.optJSONObject(i);
+                if (item == null || item.optBoolean("is_master")) continue;
+                String itemState = item.optString("state");
+                if ("completed".equals(itemState)) completed.add(item);
+                else currentAndNext.add(item);
+            }
+        }
+
+        List<JSONObject> visible = new ArrayList<>();
+        if (selectedScheduleDay == ScheduleDay.TODAY) {
+            // Keep Home compact for the live current day: the last two
+            // completed runs, all running rows and the nearest future rows.
+            int completedStart = Math.max(0, completed.size() - 2);
+            for (int i = completedStart; i < completed.size(); i++) {
+                visible.add(completed.get(i));
+            }
+            int upcomingLimit = Math.min(currentAndNext.size(), 5);
+            for (int i = 0; i < upcomingLimit; i++) {
+                visible.add(currentAndNext.get(i));
+            }
+        } else {
+            // A deliberately selected past or future day is a day view, so do
+            // not hide most of its entries behind the compact Home limits.
+            if (items != null) {
+                for (int i = 0; i < items.length(); i++) {
+                    JSONObject item = items.optJSONObject(i);
+                    if (item == null || item.optBoolean("is_master")) continue;
+                    visible.add(item);
+                }
+            }
+        }
+
+        updateOverviewTimelineHeader();
+
+        StringBuilder structure = new StringBuilder();
+        if (visible.isEmpty()) {
+            structure.append("empty");
+        } else {
+            for (JSONObject item : visible) {
+                structure.append(timelineStableKey(item))
+                        .append('|')
+                        .append(item.optString("state"))
+                        .append(';');
+            }
+        }
+        String newStructure = structure.toString();
+        if (!newStructure.equals(overviewTimelineStructure)) {
+            overviewTimelineStructure = newStructure;
+            overviewTimelineRowsContainer.removeAllViews();
+            overviewTimelineRows.clear();
+            if (visible.isEmpty()) {
+                overviewTimelineRowsContainer.addView(text(
+                        getString(R.string.no_scheduled_runs), 14, false));
+            } else {
+                for (JSONObject item : visible) {
+                    overviewTimelineRows.add(createTimelineRow(item));
+                }
+            }
+        }
+
+        if (!visible.isEmpty()) {
+            for (int i = 0;
+                    i < visible.size() && i < overviewTimelineRows.size(); i++) {
+                updateTimelineRow(overviewTimelineRows.get(i), visible.get(i));
+            }
+        }
+    }
+
+    private String timelineStableKey(JSONObject item) {
+        return item.optString("start") + "|" +
+                item.optString("end") + "|" +
+                item.optInt("station_number", -1) + "|" +
+                item.optString("station_name");
+    }
+
+    private TimelineRowBinding createTimelineRow(JSONObject item) {
+        String itemState = item.optString("state");
         LinearLayout row = new LinearLayout(this);
         row.setOrientation(LinearLayout.VERTICAL);
         row.setPadding(dp(5), dp(7), dp(5), dp(7));
+
         LinearLayout header = actionRow();
-        String interval = shortTime(item.optString("start")) + "\u2013" +
-                shortTime(item.optString("end"));
-        header.addView(text(
-                        interval + "  " + item.optInt("station_number") + ". " +
-                                item.optString("station_name"), 14, true),
-                new LinearLayout.LayoutParams(0, -2, 1));
-        header.addView(badge(timelineState(state), state));
+        TextView title = text("", 14, true);
+        header.addView(title, new LinearLayout.LayoutParams(0, -2, 1));
+        TextView status = badge(timelineState(itemState), itemState);
+        header.addView(status);
         row.addView(header);
-        if ("running".equals(state)) {
-            int percent = (int) Math.round(100 * item.optDouble("progress", 0));
-            TextView remaining = text(
-                    getString(R.string.remaining) + ": " +
-                            formatDuration(item.optLong("remaining_seconds", 0)) +
-                            " \u00b7 " + percent + " %", 12, false);
-            remaining.setTextColor(MUTED);
-            row.addView(remaining);
-            ProgressBar progress = new ProgressBar(
+
+        TextView detail = null;
+        ProgressBar progress = null;
+        if ("running".equals(itemState)) {
+            detail = text("", 12, false);
+            detail.setTextColor(MUTED);
+            row.addView(detail);
+            progress = new ProgressBar(
                     this, null, android.R.attr.progressBarStyleHorizontal);
             progress.setMax(100);
-            progress.setProgress(percent);
             row.addView(progress, new LinearLayout.LayoutParams(-1, dp(8)));
-        } else if ("blocked".equals(state)) {
-            TextView reason = text(
-                    item.optString(
-                            "blocked_reason",
-                            getString(R.string.rain_delay)), 12, false);
-            reason.setTextColor(AMBER);
-            row.addView(reason);
+        } else if ("blocked".equals(itemState)) {
+            detail = text("", 12, false);
+            detail.setTextColor(AMBER);
+            row.addView(detail);
         }
-        parent.addView(row);
+
+        overviewTimelineRowsContainer.addView(row);
+        return new TimelineRowBinding(
+                timelineStableKey(item), itemState, title, status,
+                detail, progress);
     }
+
+    private void updateTimelineRow(
+            TimelineRowBinding binding, JSONObject item) {
+        String interval = shortTime(item.optString("start")) + "\u2013" +
+                shortTime(item.optString("end"));
+        binding.title.setText(
+                interval + "  " + item.optInt("station_number") + ". " +
+                        item.optString("station_name"));
+        binding.status.setText(timelineState(item.optString("state")));
+
+        if ("running".equals(binding.state) &&
+                binding.detail != null && binding.progress != null) {
+            int percent = (int) Math.round(
+                    100 * item.optDouble("progress", 0));
+            binding.detail.setText(
+                    getString(R.string.remaining) + ": " +
+                            formatDuration(
+                                    item.optLong("remaining_seconds", 0)) +
+                            " \u00b7 " + percent + " %");
+            binding.progress.setProgress(percent);
+        } else if ("blocked".equals(binding.state) &&
+                binding.detail != null) {
+            binding.detail.setText(item.optString(
+                    "blocked_reason", getString(R.string.rain_delay)));
+        }
+    }
+
 
     private LinearLayout programDetails(JSONObject program) {
         LinearLayout details = new LinearLayout(this);
@@ -971,7 +1600,7 @@ public final class MainActivity extends Activity {
                     String key = keys.next();
                     addPair(
                             details, readable(key),
-                            String.valueOf(fields.opt(key)));
+                            programFieldValue(key, fields.opt(key)));
                 }
             }
         }
@@ -987,7 +1616,7 @@ public final class MainActivity extends Activity {
             }
 
             @Override public void failure(String error) {
-                message("OSPy", localizedError(error));
+                message(getString(R.string.app_name), localizedError(error));
             }
         });
     }
@@ -1047,16 +1676,21 @@ public final class MainActivity extends Activity {
                     fields.optInt("repeat_count", 0)));
             form.addView(labelledInput(getString(R.string.repeat_count), repeats));
             if (type == 0) {
-                LinearLayout days = actionRow();
+                GridLayout days = new GridLayout(this);
+                days.setColumnCount(4);
+                days.setRowCount(2);
                 JSONArray chosenDays = fields.optJSONArray("days");
-                String[] labels = new DateFormatSymbols().getShortWeekdays();
                 for (int day = 0; day < 7; day++) {
                     CheckBox check = new CheckBox(this);
-                    check.setText(labels[((day + 1) % 7) + 1]);
+                    check.setText(weekdayName(day));
                     check.setTag(day);
                     check.setChecked(jsonArrayContains(chosenDays, day));
                     dayChecks.add(check);
-                    days.addView(check);
+                    GridLayout.LayoutParams dayParams = new GridLayout.LayoutParams();
+                    dayParams.width = 0;
+                    dayParams.columnSpec = GridLayout.spec(day % 4, 1, 1f);
+                    dayParams.rowSpec = GridLayout.spec(day / 4);
+                    days.addView(check, dayParams);
                 }
                 form.addView(text(getString(R.string.days), 14, true));
                 form.addView(days);
@@ -1163,16 +1797,66 @@ public final class MainActivity extends Activity {
 
     private void loadPluginMobile(
             JSONObject plugin, LinearLayout parent, Button trigger) {
+        loadPluginMobileRange(plugin, parent, trigger, "today", null, null);
+    }
+
+    private void loadPluginMobileRange(
+            JSONObject plugin, LinearLayout parent, Button trigger,
+            String selectedRange, LocalDateTime customFrom,
+            LocalDateTime customTo) {
         trigger.setEnabled(false);
         trigger.setText(getString(R.string.loading));
-        LinearLayout mobileContent = cardColumn();
+        LinearLayout mobileContent;
+        Object existing = trigger.getTag();
+        if (existing instanceof LinearLayout) {
+            mobileContent = (LinearLayout) existing;
+            mobileContent.removeAllViews();
+            mobileContent.setVisibility(View.VISIBLE);
+        } else {
+            mobileContent = cardColumn();
+            trigger.setTag(mobileContent);
+            parent.addView(mobileContent);
+        }
+        mobileContent.addView(text(getString(R.string.loading), 14, false));
+
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime from = customFrom;
+        LocalDateTime to = customTo;
+        if (from == null || to == null) {
+            to = now;
+            switch (selectedRange) {
+                case "hour":
+                    from = now.minusHours(1);
+                    break;
+                case "week":
+                    from = now.minusDays(7);
+                    break;
+                case "month":
+                    from = now.minusMonths(1);
+                    break;
+                case "year":
+                    from = now.minusYears(1);
+                    break;
+                default:
+                    from = LocalDate.now().atStartOfDay();
+                    selectedRange = "today";
+                    break;
+            }
+        }
+        String path = "/plugins/" + plugin.optString("id") + "/mobile" +
+                "?from=" + Uri.encode(from.toString()) +
+                "&to=" + Uri.encode(to.toString()) +
+                "&max_points=400";
+        final String activeRange = selectedRange;
+        final LocalDateTime activeFrom = from;
+        final LocalDateTime activeTo = to;
         api.request(
-                "GET", "/plugins/" + plugin.optString("id") + "/mobile",
+                "GET", path,
                 null, new ApiClient.Callback() {
                     @Override public void success(JSONObject response) {
                         trigger.setEnabled(true);
                         trigger.setText(getString(R.string.collapse));
-                        parent.addView(mobileContent);
+                        mobileContent.removeAllViews();
                         trigger.setOnClickListener(v -> {
                             boolean visible =
                                     mobileContent.getVisibility() == View.VISIBLE;
@@ -1210,6 +1894,19 @@ public final class MainActivity extends Activity {
                                     getString(R.string.no_mobile_data), 14, false));
                             return;
                         }
+                        boolean hasSeries = false;
+                        for (int i = 0; i < cards.length(); i++) {
+                            JSONObject candidate = cards.optJSONObject(i);
+                            if (candidate != null && candidate.has("series")) {
+                                hasSeries = true;
+                                break;
+                            }
+                        }
+                        if (hasSeries) {
+                            addHistoryRangeControls(
+                                    mobileContent, plugin, parent, trigger,
+                                    activeRange, activeFrom, activeTo);
+                        }
                         for (int i = 0; i < cards.length(); i++) {
                             JSONObject mobileCard = cards.optJSONObject(i);
                             if (mobileCard == null) continue;
@@ -1235,9 +1932,25 @@ public final class MainActivity extends Activity {
                                 addMobileImage(card, image);
                             }
                             JSONArray series = mobileCard.optJSONArray("series");
-                            if (series != null && series.length() > 0) {
+                            if (hasSeriesPoints(series)) {
                                 card.addView(new MobileChartView(
                                         MainActivity.this, series));
+                            } else if (series != null) {
+                                TextView empty = text(
+                                        getString(R.string.no_data_period),
+                                        13, false);
+                                empty.setTextColor(MUTED);
+                                card.addView(empty);
+                            }
+                            JSONObject history =
+                                    mobileCard.optJSONObject("history");
+                            if (history != null &&
+                                    !history.optString("last_available").isEmpty()) {
+                                addPair(
+                                        card,
+                                        getString(R.string.last_available_data),
+                                        formatTimestamp(history.optString(
+                                                "last_available")));
                             }
                             mobileContent.addView(card);
                         }
@@ -1246,9 +1959,87 @@ public final class MainActivity extends Activity {
                     @Override public void failure(String error) {
                         trigger.setEnabled(true);
                         trigger.setText(getString(R.string.mobile_data));
-                        message("OSPy", localizedError(error));
+                        message(getString(R.string.app_name), localizedError(error));
                     }
                 });
+    }
+
+    private boolean hasSeriesPoints(JSONArray series) {
+        if (series == null) return false;
+        for (int index = 0; index < series.length(); index++) {
+            JSONObject item = series.optJSONObject(index);
+            JSONArray points = item == null ? null : item.optJSONArray("points");
+            if (points != null && points.length() > 0) return true;
+        }
+        return false;
+    }
+
+    private void addHistoryRangeControls(
+            LinearLayout parent, JSONObject plugin, LinearLayout pluginParent,
+            Button trigger, String selectedRange, LocalDateTime from,
+            LocalDateTime to) {
+        parent.addView(text(getString(R.string.history_range), 14, true));
+        GridLayout ranges = new GridLayout(this);
+        ranges.setColumnCount(3);
+        String[] keys = {"hour", "today", "week", "month", "year", "custom"};
+        int[] labels = {R.string.history_one_hour, R.string.today,
+                R.string.history_seven_days, R.string.history_month,
+                R.string.history_year, R.string.history_custom};
+        for (int index = 0; index < keys.length; index++) {
+            String key = keys[index];
+            Button range = compactButton(
+                    getString(labels[index]),
+                    key.equals(selectedRange) ? GREEN : NAVY);
+            if ("custom".equals(key)) {
+                range.setOnClickListener(v -> showCustomHistoryRange(
+                        plugin, pluginParent, trigger, from, to));
+            } else {
+                range.setOnClickListener(v -> loadPluginMobileRange(
+                        plugin, pluginParent, trigger, key, null, null));
+            }
+            GridLayout.LayoutParams params = new GridLayout.LayoutParams();
+            params.width = 0;
+            params.columnSpec = GridLayout.spec(index % 3, 1, 1f);
+            params.rowSpec = GridLayout.spec(index / 3);
+            params.setMargins(dp(2), dp(2), dp(2), dp(2));
+            ranges.addView(range, params);
+        }
+        parent.addView(ranges, new LinearLayout.LayoutParams(-1, -2));
+    }
+
+    private void showCustomHistoryRange(
+            JSONObject plugin, LinearLayout parent, Button trigger,
+            LocalDateTime currentFrom, LocalDateTime currentTo) {
+        LocalDate initialFrom = currentFrom == null
+                ? LocalDate.now() : currentFrom.toLocalDate();
+        LocalDate initialTo = currentTo == null
+                ? LocalDate.now() : currentTo.toLocalDate();
+        DatePickerDialog startDialog = new DatePickerDialog(
+                this, (startPicker, startYear, startMonth, startDay) -> {
+                    LocalDate selectedFrom = LocalDate.of(
+                            startYear, startMonth + 1, startDay);
+                    DatePickerDialog endDialog = new DatePickerDialog(
+                            this, (endPicker, endYear, endMonth, endDay) -> {
+                                LocalDate selectedTo = LocalDate.of(
+                                        endYear, endMonth + 1, endDay);
+                                if (selectedTo.isBefore(selectedFrom)) {
+                                    message(
+                                            getString(R.string.history_range),
+                                            getString(R.string.invalid_date_range));
+                                    return;
+                                }
+                                loadPluginMobileRange(
+                                        plugin, parent, trigger, "custom",
+                                        selectedFrom.atStartOfDay(),
+                                        selectedTo.plusDays(1).atStartOfDay());
+                            }, initialTo.getYear(), initialTo.getMonthValue() - 1,
+                            initialTo.getDayOfMonth());
+                    endDialog.setTitle(getString(R.string.date_to));
+                    endDialog.show();
+                }, initialFrom.getYear(), initialFrom.getMonthValue() - 1,
+                initialFrom.getDayOfMonth());
+        startDialog.setTitle(getString(R.string.date_from));
+        startDialog.show();
     }
 
     private String mobileCardTitle(JSONObject card) {
@@ -1627,7 +2418,7 @@ public final class MainActivity extends Activity {
         JSONObject ospy = root.optJSONObject("ospy");
         if (ospy != null) {
             LinearLayout card = cardColumn();
-            card.addView(text("OSPy", 19, true));
+            card.addView(text(getString(R.string.app_name), 19, true));
             addPairIfPresent(card, ospy, "status", getString(R.string.status));
             addPairIfPresent(card, ospy, "summary", getString(R.string.details));
             JSONObject details = ospy.optJSONObject("details");
@@ -1657,7 +2448,8 @@ public final class MainActivity extends Activity {
             content.addView(card);
         } else {
             content.addView(statusCard(
-                    "OSPy", getString(R.string.no_data), "warning"));
+                    getString(R.string.app_name),
+                    getString(R.string.no_data), "warning"));
         }
         heading(getString(R.string.actions));
         LinearLayout actions = actionRow();
@@ -1712,7 +2504,7 @@ public final class MainActivity extends Activity {
             }
 
             @Override public void failure(String error) {
-                message("OSPy", localizedError(error));
+                message(getString(R.string.app_name), localizedError(error));
             }
         });
     }
@@ -1724,7 +2516,7 @@ public final class MainActivity extends Activity {
             }
 
             @Override public void failure(String error) {
-                message("OSPy", localizedError(error));
+                message(getString(R.string.app_name), localizedError(error));
             }
         });
     }
@@ -1755,7 +2547,7 @@ public final class MainActivity extends Activity {
                     } catch (Exception error) {
                         message(
                                 getString(R.string.protected_storage_error),
-                                error.getMessage());
+                                getString(R.string.protected_storage_error_detail));
                     }
                 }).show();
     }
@@ -1842,61 +2634,7 @@ public final class MainActivity extends Activity {
         parent.addView(row, new LinearLayout.LayoutParams(-1, -2));
     }
 
-    private void addIrrigationControl(
-            LinearLayout parent, String label, boolean enabled,
-            JSONObject change) {
-        LinearLayout row = actionRow();
-        TextView name = text(label, 14, true);
-        name.setTextColor(MUTED);
-        row.addView(name, new LinearLayout.LayoutParams(0, -2, 0.38f));
-        TextView currentState = text(state(enabled), 14, false);
-        row.addView(
-                currentState, new LinearLayout.LayoutParams(0, -2, 0.25f));
-        Button toggle = compactButton(
-                getString(enabled ? R.string.turn_off : R.string.turn_on),
-                enabled ? RED : GREEN);
-        toggle.setOnClickListener(v -> put(
-                "/irrigation", change,
-                () -> load("/overview", "overview")));
-        row.addView(toggle);
-        parent.addView(row, new LinearLayout.LayoutParams(-1, -2));
-    }
 
-    private void addRainDelayControl(
-            LinearLayout parent, boolean enabled, long remainingSeconds) {
-        LinearLayout row = actionRow();
-        TextView name = text(getString(R.string.rain_delay), 14, true);
-        name.setTextColor(MUTED);
-        row.addView(name, new LinearLayout.LayoutParams(0, -2, 0.38f));
-
-        String value = enabled
-                ? getString(
-                        R.string.rain_delay_remaining,
-                        formatDuration(remainingSeconds))
-                : getString(R.string.inactive);
-        TextView currentState = text(value, 14, false);
-        row.addView(
-                currentState, new LinearLayout.LayoutParams(0, -2, 0.35f));
-
-        Button action = compactButton(
-                getString(enabled ? R.string.turn_off : R.string.set),
-                enabled ? RED : GREEN);
-        action.setOnClickListener(v -> {
-            if (enabled) {
-                JSONObject change = new JSONObject();
-                try {
-                    change.put("rain_delay_hours", 0);
-                } catch (Exception ignored) {
-                }
-                put("/irrigation", change,
-                        () -> load("/overview", "overview"));
-            } else {
-                showRainDelayDialog();
-            }
-        });
-        row.addView(action);
-        parent.addView(row, new LinearLayout.LayoutParams(-1, -2));
-    }
 
     private void showRainDelayDialog() {
         EditText hours = new EditText(this);
@@ -1941,7 +2679,7 @@ public final class MainActivity extends Activity {
                             }
                             put("/irrigation", change, () -> {
                                 dialog.dismiss();
-                                load("/overview", "overview");
+                                refreshCurrentOverview();
                             });
                         }));
         dialog.show();
@@ -2043,9 +2781,69 @@ public final class MainActivity extends Activity {
             days++;
             hours = 0;
         }
-        if (days > 0) return days + " d " + hours + " h";
-        if (hours > 0) return hours + " h " + minutes + " min";
-        return minutes + " min";
+        if (days > 0) {
+            String dayText = getResources().getQuantityString(
+                    R.plurals.duration_days, (int) days, days);
+            String hourText = getResources().getQuantityString(
+                    R.plurals.duration_hours, (int) hours, hours);
+            return getString(R.string.duration_join, dayText, hourText);
+        }
+        if (hours > 0) {
+            String hourText = getResources().getQuantityString(
+                    R.plurals.duration_hours, (int) hours, hours);
+            String minuteText = getResources().getQuantityString(
+                    R.plurals.duration_minutes, (int) minutes, minutes);
+            return getString(R.string.duration_join, hourText, minuteText);
+        }
+        return getResources().getQuantityString(
+                R.plurals.duration_minutes, (int) minutes, minutes);
+    }
+
+    private String formatCountdown(long totalSeconds) {
+        long seconds = Math.max(0, totalSeconds);
+        long hours = seconds / 3600;
+        long minutes = (seconds % 3600) / 60;
+        long remainder = seconds % 60;
+        List<String> parts = new ArrayList<>();
+        if (hours > 0) {
+            parts.add(hours + " " + getString(R.string.hours_short));
+        }
+        if (minutes > 0 || hours > 0) {
+            parts.add(minutes + " " + getString(R.string.minutes_short));
+        }
+        parts.add(remainder + " " + getString(R.string.seconds_short));
+        return android.text.TextUtils.join(" ", parts);
+    }
+
+    private String programFieldValue(String key, Object value) {
+        if ("start_minute".equals(key)) {
+            return minutesToTime(value instanceof Number
+                    ? ((Number) value).intValue() : 0);
+        }
+        if ("duration_minutes".equals(key) || "pause_minutes".equals(key)) {
+            return String.valueOf(value) + " " + getString(R.string.minutes_short);
+        }
+        if ("days".equals(key) && value instanceof JSONArray) {
+            JSONArray days = (JSONArray) value;
+            List<String> labels = new ArrayList<>();
+            for (int index = 0; index < days.length(); index++) {
+                labels.add(weekdayName(days.optInt(index, -1)));
+            }
+            return android.text.TextUtils.join(", ", labels);
+        }
+        return String.valueOf(value);
+    }
+
+    private String weekdayName(int day) {
+        int[] labels = {R.string.weekday_monday_short,
+                R.string.weekday_tuesday_short,
+                R.string.weekday_wednesday_short,
+                R.string.weekday_thursday_short,
+                R.string.weekday_friday_short,
+                R.string.weekday_saturday_short,
+                R.string.weekday_sunday_short};
+        return day >= 0 && day < labels.length
+                ? getString(labels[day]) : getString(R.string.no_data);
     }
 
     private String formatTimestamp(String value) {

@@ -26,6 +26,7 @@
     <string name="event_log">Event log</string>
     <string name="station_log">Station log</string>
     <string name="today_schedule">Today\'s schedule</string>
+    <string name="yesterday">Yesterday</string>
     <string name="today">Today</string>
     <string name="tomorrow">Tomorrow</string>
     <string name="upcoming">Upcoming</string>
@@ -185,4 +186,46 @@
     <string name="station_consumption">Station consumption</string>
     <string name="current_master_consumption">Current master consumption</string>
     <string name="total_master_consumption">Total master consumption</string>
+    <string name="notification_channel_name">OSPy events</string>
+    <string name="notification_channel_description">Notifications received from OSPy systems</string>
+    <string name="application_language">Application language</string>
+    <string name="application_language_description">Uses the language selected for this app in Android. On older versions, it follows the device language.</string>
+    <string name="open_language_settings">Open language settings</string>
+    <string name="protected_storage_error_detail">Saved installations could not be read or updated.</string>
+    <string name="chart_series">Series</string>
+    <string name="duration_join">%1$s %2$s</string>
+
+    <!-- Localized duration units -->
+    <plurals name="duration_days">
+        <item quantity="one">%1$d day</item>
+        <item quantity="other">%1$d days</item>
+    </plurals>
+    <plurals name="duration_hours">
+        <item quantity="one">%1$d hour</item>
+        <item quantity="other">%1$d hours</item>
+    </plurals>
+    <plurals name="duration_minutes">
+        <item quantity="one">%1$d minute</item>
+        <item quantity="other">%1$d minutes</item>
+    </plurals>
+    <string name="hours_short">h</string>
+    <string name="minutes_short">min</string>
+    <string name="weekday_monday_short">Mon</string>
+    <string name="weekday_tuesday_short">Tue</string>
+    <string name="weekday_wednesday_short">Wed</string>
+    <string name="weekday_thursday_short">Thu</string>
+    <string name="weekday_friday_short">Fri</string>
+    <string name="weekday_saturday_short">Sat</string>
+    <string name="weekday_sunday_short">Sun</string>
+    <string name="history_range">History range</string>
+    <string name="history_one_hour">1 hour</string>
+    <string name="history_seven_days">7 days</string>
+    <string name="history_month">Month</string>
+    <string name="history_year">Year</string>
+    <string name="history_custom">Custom</string>
+    <string name="no_data_period">No data in this period</string>
+    <string name="last_available_data">Last available data</string>
+    <string name="invalid_date_range">The end date must not precede the start date.</string>
+    <string name="date_from">From</string>
+    <string name="date_to">To</string>
 </resources>

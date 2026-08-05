@@ -20,8 +20,13 @@ final class NotificationCenter {
         preferences = context.getSharedPreferences(
                 "ospy_mobile_preferences", Context.MODE_PRIVATE);
         if (Build.VERSION.SDK_INT >= 26) {
-            manager.createNotificationChannel(new NotificationChannel(
-                    CHANNEL, "OSPy events", NotificationManager.IMPORTANCE_HIGH));
+            NotificationChannel channel = new NotificationChannel(
+                    CHANNEL,
+                    context.getString(R.string.notification_channel_name),
+                    NotificationManager.IMPORTANCE_HIGH);
+            channel.setDescription(
+                    context.getString(R.string.notification_channel_description));
+            manager.createNotificationChannel(channel);
         }
     }
 

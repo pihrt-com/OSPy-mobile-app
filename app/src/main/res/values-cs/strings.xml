@@ -26,6 +26,7 @@
     <string name="event_log">Záznam událostí</string>
     <string name="station_log">Záznam stanic</string>
     <string name="today_schedule">Dnešní plán</string>
+    <string name="yesterday">Včera</string>
     <string name="today">Dnes</string>
     <string name="tomorrow">Zítra</string>
     <string name="upcoming">Následuje</string>
@@ -185,4 +186,52 @@
     <string name="station_consumption">Spotřeba stanice</string>
     <string name="current_master_consumption">Průběžná spotřeba hlavní stanice</string>
     <string name="total_master_consumption">Celková spotřeba hlavní stanice</string>
+    <string name="notification_channel_name">Události OSPy</string>
+    <string name="notification_channel_description">Upozornění přijatá ze systémů OSPy</string>
+    <string name="application_language">Jazyk aplikace</string>
+    <string name="application_language_description">Používá jazyk vybraný pro tuto aplikaci v Androidu. Ve starších verzích se řídí jazykem zařízení.</string>
+    <string name="open_language_settings">Otevřít nastavení jazyka</string>
+    <string name="protected_storage_error_detail">Uložené instalace se nepodařilo načíst nebo aktualizovat.</string>
+    <string name="chart_series">Řada</string>
+    <string name="duration_join">%1$s %2$s</string>
+
+    <!-- Localized duration units -->
+    <plurals name="duration_days">
+        <item quantity="one">%1$d den</item>
+        <item quantity="few">%1$d dny</item>
+        <item quantity="many">%1$d dne</item>
+        <item quantity="other">%1$d dní</item>
+    </plurals>
+    <plurals name="duration_hours">
+        <item quantity="one">%1$d hodina</item>
+        <item quantity="few">%1$d hodiny</item>
+        <item quantity="many">%1$d hodiny</item>
+        <item quantity="other">%1$d hodin</item>
+    </plurals>
+    <plurals name="duration_minutes">
+        <item quantity="one">%1$d minuta</item>
+        <item quantity="few">%1$d minuty</item>
+        <item quantity="many">%1$d minuty</item>
+        <item quantity="other">%1$d minut</item>
+    </plurals>
+    <string name="hours_short">h</string>
+    <string name="minutes_short">min</string>
+    <string name="weekday_monday_short">Po</string>
+    <string name="weekday_tuesday_short">Út</string>
+    <string name="weekday_wednesday_short">St</string>
+    <string name="weekday_thursday_short">Čt</string>
+    <string name="weekday_friday_short">Pá</string>
+    <string name="weekday_saturday_short">So</string>
+    <string name="weekday_sunday_short">Ne</string>
+    <string name="history_range">Rozsah historie</string>
+    <string name="history_one_hour">1 hod.</string>
+    <string name="history_seven_days">7 dní</string>
+    <string name="history_month">Měsíc</string>
+    <string name="history_year">Rok</string>
+    <string name="history_custom">Vlastní</string>
+    <string name="no_data_period">V tomto období nejsou data</string>
+    <string name="last_available_data">Poslední dostupná data</string>
+    <string name="invalid_date_range">Koncové datum nesmí předcházet počátečnímu datu.</string>
+    <string name="date_from">Od</string>
+    <string name="date_to">Do</string>
 </resources>

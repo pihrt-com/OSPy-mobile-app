@@ -18,8 +18,12 @@ jobs:
           distribution: temurin
           java-version: "17"
       - uses: gradle/actions/setup-gradle@v6
-      - name: Build debug APK
-        run: ./gradlew --no-daemon assembleDebug
+      - name: Validate translations
+        run: python3 tools/check_translations.py
+      - name: Audit hard-coded UI strings
+        run: python3 tools/audit_hardcoded_strings.py
+      - name: Build and lint debug APK
+        run: ./gradlew --no-daemon lintDebug assembleDebug
       - name: Upload debug APK
         uses: actions/upload-artifact@v7
         with:
