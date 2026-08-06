@@ -1,5 +1,13 @@
-# OSPy Mobile
+# OSPy Project
+Open Sprinkler Python [Git-Hub source](https://github.com/martinpihrt/OSPy)
+
+# OSPy Mobile APP
 Android client for the OSPy `/api/v1`. App on [Google store](https://play.google.com/store/apps/details?id=com.pihrt.ospy.mobile)
+
+## Included in version 0.3.10
+- Added the supplied OpenSprinkler logo before the installation name. The branded toolbar remains visible on every installation tab.
+- Added pull-to-refresh to the Home tab. Pulling down from the top performs the same complete reload as leaving Home and returning to it.
+- Preserved the 0.3.9 fix that keeps a rain-blocked program visible until its planned end while rain delay remains active.
 
 ## Included in version 0.3.8
 - Fixed: Both android:windowLightNavigationBar requires API level 27. The attribute has been moved from values/styles.xml to values-v27/styles.xml. Android 8.0 with API 26 will now use a compatible base theme. Both light and dark themes now use common base styles. Removed all deprecated options from gradle.properties that were listed in the Git-Hub log.

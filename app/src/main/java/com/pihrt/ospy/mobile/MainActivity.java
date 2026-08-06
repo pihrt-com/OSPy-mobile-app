@@ -27,6 +27,7 @@ import android.net.Uri;
 import android.text.InputType;
 import android.util.Base64;
 import android.view.Gravity;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.WindowInsets;
 import android.view.ViewGroup;
@@ -114,6 +115,9 @@ public final class MainActivity extends Activity {
     private boolean requestInFlight = false;
     private boolean unlockStarted = false;
     private byte[] pendingBackupData;
+    private float overviewPullStartY = 0f;
+    private boolean overviewPullTracking = false;
+    private boolean overviewPullArmed = false;
 
     // Notification transition baseline. The first overview response only
     // establishes the state and never creates notifications for old activity.
@@ -170,6 +174,13 @@ public final class MainActivity extends Activity {
     private Button overviewTomorrowButton;
     private final List<TimelineRowBinding> overviewTimelineRows = new ArrayList<>();
     private String overviewTimelineStructure = "";
+    // API v1 intentionally omits predicted intervals as soon as their start
+    // time is in the past. A rain-blocked interval is not an active or finished
+    // run, so it would disappear exactly when it should be shown as blocked.
+    // Keep previously received rain-blocked rows until their scheduled end.
+    private final Map<String, JSONObject> overviewBlockedTimelineCache =
+            new LinkedHashMap<>();
+    private boolean overviewRainBlockActive = false;
     private int overviewTimelineRequestSequence = 0;
     private int activeOverviewTimelineRequest = 0;
     private boolean overviewTimelineRequestInFlight = false;
@@ -464,6 +475,10 @@ public final class MainActivity extends Activity {
     }
 
     private void shell(String heading) {
+        shell(heading, false);
+    }
+
+    private void shell(String heading, boolean showInstallationLogo) {
         page = new LinearLayout(this);
         page.setOrientation(LinearLayout.VERTICAL);
         page.setBackgroundColor(BACKGROUND);
@@ -472,9 +487,29 @@ public final class MainActivity extends Activity {
         toolbar.setGravity(Gravity.CENTER_VERTICAL);
         toolbar.setPadding(dp(16), dp(10), dp(12), dp(10));
         toolbar.setBackgroundColor(GREEN);
+
+        LinearLayout branding = new LinearLayout(this);
+        branding.setOrientation(LinearLayout.HORIZONTAL);
+        branding.setGravity(Gravity.CENTER_VERTICAL);
+        if (showInstallationLogo) {
+            ImageView logo = new ImageView(this);
+            logo.setImageResource(R.drawable.opensprinkler_logo);
+            logo.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
+            logo.setAdjustViewBounds(true);
+            logo.setContentDescription(null);
+            logo.setImportantForAccessibility(
+                    View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+            LinearLayout.LayoutParams logoParams =
+                    new LinearLayout.LayoutParams(dp(111), dp(28));
+            logoParams.setMarginEnd(dp(8));
+            branding.addView(logo, logoParams);
+        }
         title = text(heading, 22, true);
         title.setTextColor(Color.WHITE);
-        toolbar.addView(title, new LinearLayout.LayoutParams(0, -2, 1));
+        title.setSingleLine(true);
+        title.setEllipsize(android.text.TextUtils.TruncateAt.END);
+        branding.addView(title, new LinearLayout.LayoutParams(0, -2, 1));
+        toolbar.addView(branding, new LinearLayout.LayoutParams(0, -2, 1));
         ImageButton settings = new ImageButton(this);
         settings.setImageResource(R.drawable.ic_settings);
         settings.setColorFilter(Color.WHITE);
@@ -503,6 +538,7 @@ public final class MainActivity extends Activity {
         content.setPadding(dp(12), dp(10), dp(12), dp(24));
         contentScroll.addView(content, new ScrollView.LayoutParams(-1, -2));
         page.addView(contentScroll, new LinearLayout.LayoutParams(-1, 0, 1));
+        configureOverviewPullToRefresh();
         setContentView(page);
 
         page.setOnApplyWindowInsetsListener((view, insets) -> {
@@ -515,6 +551,60 @@ public final class MainActivity extends Activity {
             return insets;
         });
         page.requestApplyInsets();
+    }
+
+    private void configureOverviewPullToRefresh() {
+        if (contentScroll == null) return;
+        contentScroll.setOverScrollMode(View.OVER_SCROLL_ALWAYS);
+        contentScroll.setOnTouchListener((view, event) -> {
+            boolean overviewVisible =
+                    "overview".equals(currentRenderer) &&
+                            currentPath != null && !currentPath.isEmpty();
+            switch (event.getActionMasked()) {
+                case MotionEvent.ACTION_DOWN:
+                    overviewPullTracking =
+                            overviewVisible && contentScroll.getScrollY() == 0;
+                    overviewPullStartY = event.getY();
+                    overviewPullArmed = false;
+                    break;
+                case MotionEvent.ACTION_MOVE:
+                    if (!overviewVisible || contentScroll.getScrollY() > 0) {
+                        resetOverviewPullGesture();
+                        break;
+                    }
+                    if (!overviewPullTracking) {
+                        overviewPullTracking = true;
+                        overviewPullStartY = event.getY();
+                    }
+                    overviewPullArmed =
+                            event.getY() - overviewPullStartY >= dp(72);
+                    break;
+                case MotionEvent.ACTION_UP:
+                    view.performClick();
+                    boolean refresh = overviewPullTracking &&
+                            overviewPullArmed && overviewVisible &&
+                            contentScroll.getScrollY() == 0 && !requestInFlight;
+                    resetOverviewPullGesture();
+                    if (refresh) {
+                        // A full reload deliberately mirrors switching to a
+                        // different tab and then returning to Overview.
+                        load(currentPath, currentRenderer);
+                    }
+                    break;
+                case MotionEvent.ACTION_CANCEL:
+                    resetOverviewPullGesture();
+                    break;
+                default:
+                    break;
+            }
+            return false;
+        });
+    }
+
+    private void resetOverviewPullGesture() {
+        overviewPullTracking = false;
+        overviewPullArmed = false;
+        overviewPullStartY = 0f;
     }
 
     private void showInstallations() {
@@ -1004,7 +1094,7 @@ public final class MainActivity extends Activity {
     }
 
     private void showDashboard() {
-        shell(current.name);
+        shell(current.name, true);
         navigationButtons.clear();
         HorizontalScrollView horizontal = new HorizontalScrollView(this);
         horizontal.setHorizontalScrollBarEnabled(false);
@@ -1153,6 +1243,8 @@ public final class MainActivity extends Activity {
         JSONObject irrigation = data.optJSONObject("irrigation");
         if (irrigation == null) {
             overviewIrrigationSection.setVisibility(View.GONE);
+            overviewRainBlockActive = false;
+            overviewBlockedTimelineCache.clear();
         } else {
             overviewIrrigationSection.setVisibility(View.VISIBLE);
             handleOverviewNotificationTransitions(irrigation);
@@ -1160,6 +1252,10 @@ public final class MainActivity extends Activity {
                     irrigation.optBoolean("scheduler_enabled");
             boolean manualMode = irrigation.optBoolean("manual_mode");
             boolean rainBlock = irrigation.optBoolean("rain_block");
+            overviewRainBlockActive = rainBlock;
+            if (!rainBlock) {
+                overviewBlockedTimelineCache.clear();
+            }
 
             updateOverviewToggle(
                     overviewSchedulerControl, schedulerEnabled,
@@ -1223,6 +1319,8 @@ public final class MainActivity extends Activity {
         overviewTomorrowButton = null;
         overviewTimelineRows.clear();
         overviewTimelineStructure = "";
+        overviewBlockedTimelineCache.clear();
+        overviewRainBlockActive = false;
     }
 
     private void ensureOverviewLayout() {
@@ -1796,7 +1894,9 @@ public final class MainActivity extends Activity {
                 }
                 JSONObject data = response.optJSONObject("data");
                 JSONArray items = data == null ? null : data.optJSONArray("items");
-                updateOverviewTimeline(items);
+                String scheduleUpdated = data == null
+                        ? "" : data.optString("updated");
+                updateOverviewTimeline(items, scheduleUpdated);
                 overviewTimelineError.setVisibility(View.GONE);
                 finishOverviewTimelineRequest(generation);
             }
@@ -1837,23 +1937,51 @@ public final class MainActivity extends Activity {
         }
     }
 
-    private void updateOverviewTimeline(JSONArray items) {
-        List<JSONObject> completed = new ArrayList<>();
-        List<JSONObject> currentAndNext = new ArrayList<>();
+    private void updateOverviewTimeline(
+            JSONArray items, String scheduleUpdated) {
+        LocalDateTime scheduleNow = parseScheduleTime(scheduleUpdated);
+        Map<String, JSONObject> received = new LinkedHashMap<>();
+
         if (items != null) {
             for (int i = 0; i < items.length(); i++) {
                 JSONObject item = items.optJSONObject(i);
                 if (item == null || item.optBoolean("is_master")) continue;
-                String itemState = item.optString("state");
-                if ("completed".equals(itemState)) completed.add(item);
-                else currentAndNext.add(item);
+                String key = timelineStableKey(item);
+                received.put(key, item);
+
+                if (selectedScheduleDay == ScheduleDay.TODAY &&
+                        isRainBlockedTimelineItem(item)) {
+                    overviewBlockedTimelineCache.put(key, item);
+                } else {
+                    // A live API item is authoritative. If it changed to
+                    // running/completed or is no longer rain-blocked, discard
+                    // the older cached blocked representation.
+                    overviewBlockedTimelineCache.remove(key);
+                }
             }
+        }
+
+        if (selectedScheduleDay == ScheduleDay.TODAY) {
+            mergeCurrentBlockedTimelineRows(received, scheduleNow);
+        }
+
+        List<JSONObject> normalizedItems = new ArrayList<>(received.values());
+        normalizedItems.sort((left, right) ->
+                left.optString("start").compareTo(right.optString("start")));
+
+        List<JSONObject> completed = new ArrayList<>();
+        List<JSONObject> currentAndNext = new ArrayList<>();
+        for (JSONObject item : normalizedItems) {
+            String itemState = item.optString("state");
+            if ("completed".equals(itemState)) completed.add(item);
+            else currentAndNext.add(item);
         }
 
         List<JSONObject> visible = new ArrayList<>();
         if (selectedScheduleDay == ScheduleDay.TODAY) {
             // Keep Home compact for the live current day: the last two
-            // completed runs, all running rows and the nearest future rows.
+            // completed runs, all running/blocked rows and the nearest future
+            // rows. Cached blocked rows cover the API gap after their start.
             int completedStart = Math.max(0, completed.size() - 2);
             for (int i = completedStart; i < completed.size(); i++) {
                 visible.add(completed.get(i));
@@ -1865,13 +1993,7 @@ public final class MainActivity extends Activity {
         } else {
             // A deliberately selected past or future day is a day view, so do
             // not hide most of its entries behind the compact Home limits.
-            if (items != null) {
-                for (int i = 0; i < items.length(); i++) {
-                    JSONObject item = items.optJSONObject(i);
-                    if (item == null || item.optBoolean("is_master")) continue;
-                    visible.add(item);
-                }
-            }
+            visible.addAll(normalizedItems);
         }
 
         updateOverviewTimelineHeader();
@@ -1906,6 +2028,69 @@ public final class MainActivity extends Activity {
             for (int i = 0;
                     i < visible.size() && i < overviewTimelineRows.size(); i++) {
                 updateTimelineRow(overviewTimelineRows.get(i), visible.get(i));
+            }
+        }
+    }
+
+    private void mergeCurrentBlockedTimelineRows(
+            Map<String, JSONObject> received, LocalDateTime scheduleNow) {
+        if (!overviewRainBlockActive) {
+            overviewBlockedTimelineCache.clear();
+            return;
+        }
+
+        List<String> remove = new ArrayList<>();
+        for (Map.Entry<String, JSONObject> entry :
+                overviewBlockedTimelineCache.entrySet()) {
+            String key = entry.getKey();
+            if (received.containsKey(key)) continue;
+
+            JSONObject cached = entry.getValue();
+            LocalDateTime start = parseScheduleTime(
+                    cached.optString("start"));
+            LocalDateTime end = parseScheduleTime(cached.optString("end"));
+            boolean selectedDate = start.toLocalDate()
+                    .equals(selectedScheduleDate());
+
+            if (selectedDate && !scheduleNow.isBefore(start) &&
+                    scheduleNow.isBefore(end)) {
+                // The server no longer returns this interval because its start
+                // is in the past. It is still within its planned runtime and
+                // rain delay is active, therefore keep it visibly blocked.
+                received.put(key, cached);
+            } else {
+                // Missing future entries were removed/rescheduled, and expired
+                // entries no longer belong in the current timeline.
+                remove.add(key);
+            }
+        }
+        for (String key : remove) {
+            overviewBlockedTimelineCache.remove(key);
+        }
+    }
+
+    private boolean isRainBlockedTimelineItem(JSONObject item) {
+        if (!"blocked".equals(item.optString("state"))) return false;
+        String reason = item.optString("blocked_reason", "")
+                .trim().toLowerCase(Locale.ROOT)
+                .replace('-', '_').replace(' ', '_');
+        return reason.isEmpty() || reason.startsWith("rain_") ||
+                "rain".equals(reason);
+    }
+
+    private LocalDateTime parseScheduleTime(String value) {
+        if (value == null || value.trim().isEmpty()) {
+            return LocalDateTime.now();
+        }
+        String normalized = value.trim();
+        try {
+            return LocalDateTime.parse(normalized);
+        } catch (Exception ignored) {
+            try {
+                return java.time.OffsetDateTime.parse(normalized)
+                        .toLocalDateTime();
+            } catch (Exception ignoredOffset) {
+                return LocalDateTime.now();
             }
         }
     }
