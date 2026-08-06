@@ -1264,6 +1264,7 @@ public final class MainActivity extends Activity {
         for (int i = 0; i < stationItems.length(); i++) {
             JSONObject station = stationItems.optJSONObject(i);
             if (station == null) continue;
+            if (!station.optBoolean("enabled", true)) continue;
             LinearLayout card = card();
             String stationState = station.optBoolean("running")
                     ? getString(R.string.running) : getString(R.string.stopped);
@@ -1319,8 +1320,6 @@ public final class MainActivity extends Activity {
                     () -> load("/programs", "programs")));
             header.addView(toggle);
             Button run = button(getString(R.string.run), GREEN);
-            run.setEnabled(enabled);
-            run.setAlpha(enabled ? 1.0f : 0.45f);
             run.setOnClickListener(v -> confirmAction(
                     getString(
                             R.string.confirm_run, program.optString("name")),
@@ -2062,6 +2061,10 @@ public final class MainActivity extends Activity {
 
     private String mobileMetricLabel(JSONObject metric) {
         String id = metric.optString("id");
+        String serverLabel = metric.optString("label");
+        if (id.startsWith("master_") || "station_current".equals(id)) {
+            return serverLabel.isEmpty() ? id : serverLabel;
+        }
         switch (id) {
             case "rain_state":
                 return getString(R.string.rain_status);
@@ -2077,16 +2080,7 @@ public final class MainActivity extends Activity {
                 return getString(R.string.pulses);
             case "dht_humidity":
                 return getString(R.string.humidity);
-            case "station_current":
-                return metric.optString(
-                        "label", getString(R.string.station_consumption));
             default:
-                if (id.startsWith("master_") && id.endsWith("_current")) {
-                    return getString(R.string.current_master_consumption);
-                }
-                if (id.startsWith("master_") && id.endsWith("_total")) {
-                    return getString(R.string.total_master_consumption);
-                }
                 return metric.optString("label", id);
         }
     }
