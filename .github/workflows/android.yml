@@ -23,11 +23,24 @@ jobs:
       - name: Audit hard-coded UI strings
         run: python3 tools/audit_hardcoded_strings.py
       - name: Build and lint debug APK
-        run: ./gradlew --no-daemon lintDebug assembleDebug
+        run: ./gradlew --no-daemon lintDebug assembleDebug --warning-mode all
+      - name: Upload lint reports
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: OSPy-mobile-lint-${{ github.sha }}
+          path: |
+            app/build/reports/lint-results-debug.html
+            app/build/reports/lint-results-debug.sarif
+            app/build/intermediates/lint_intermediate_text_report/debug/lintReportDebug/lint-results-debug.txt
+            build/reports/problems/problems-report.html
+          if-no-files-found: warn
+          retention-days: 14
       - name: Upload debug APK
+        if: always()
         uses: actions/upload-artifact@v7
         with:
           name: OSPy-mobile-debug-${{ github.sha }}
           path: app/build/outputs/apk/debug/app-debug.apk
-          if-no-files-found: error
+          if-no-files-found: warn
           retention-days: 14

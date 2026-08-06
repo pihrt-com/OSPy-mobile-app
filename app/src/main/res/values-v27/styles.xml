@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- This attribute was introduced in API 27 and must not be in values/. -->
+    <style name="AppTheme" parent="@style/AppThemeBase">
+        <item name="android:windowLightNavigationBar">false</item>
+    </style>
+
+    <style name="AppThemeDark" parent="@style/AppThemeDarkBase">
+        <item name="android:windowLightNavigationBar">false</item>
+    </style>
+</resources>

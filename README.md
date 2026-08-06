@@ -1,6 +1,12 @@
 # OSPy Mobile
 Android client for the OSPy `/api/v1`. App on [Google store](https://play.google.com/store/apps/details?id=com.pihrt.ospy.mobile)
 
+## Included in version 0.3.8
+- Fixed: Both android:windowLightNavigationBar requires API level 27. The attribute has been moved from values/styles.xml to values-v27/styles.xml. Android 8.0 with API 26 will now use a compatible base theme. Both light and dark themes now use common base styles. Removed all deprecated options from gradle.properties that were listed in the Git-Hub log.
+- Added recommended: android.dependency.excludeLibraryComponentsFromConstraints=true. Removed unnecessary Foojay Java toolchain plugin. GitHub Actions now always save: HTML Lint report, text Lint report, SARIF report, Gradle problems report. Debug APK will be uploaded even if it builds and then only Lint fails.
+- Added missing TRANSLATIONS.md.
+- Updated change documentation.
+
 ## Included in version 0.3.7
 - Application authentication is enabled by default and can be disabled in the gear-menu settings. Android 10 and newer offer biometrics or the device credential; Android 8 and 9 use the secure device-credential screen.
 - A light/dark theme switch applies a complete runtime colour palette to the native interface, cards, forms, status panels and plug-in charts.
@@ -76,7 +82,7 @@ The app uses native Android string resources and includes English, Czech, German
 
 ## Build
 
-Install Android Studio with Android SDK 37 and JDK 17. Open this directory, allow Gradle to synchronize and run or build the `app` configuration. GitHub Actions also builds a debug APK on every push and pull request using JDK 17 and the Gradle version pinned by the repository wrapper.
+Install Android Studio with Android SDK 37 and JDK 17. Open this directory, allow Gradle to synchronize and run or build the `app` configuration. GitHub Actions also builds a debug APK on every push and pull request using JDK 17 and the Gradle version pinned by the repository wrapper. The workflow retains the debug APK and complete HTML, text and SARIF Lint reports for diagnosis.
 
 The repository intentionally does not contain `local.properties`, SDK files, signing keys or built APK files.
 
