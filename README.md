@@ -1,6 +1,12 @@
 # OSPy Mobile
 Android client for the OSPy `/api/v1`. App on [Google store](https://play.google.com/store/apps/details?id=com.pihrt.ospy.mobile)
 
+## Included in version 0.3.5
+- The Home screen shows a persistent localized connection warning after polling loses OSPy and includes the time of the last successful response.
+- The duplicate Home refresh row was removed, the OSPy version was moved below the planner and rain-delay blocking reasons are localized.
+- Native plug-in telemetry now localizes the Astro, real-time synchronization, system information, weather-calculation and Shelly metric labels and values.
+- All user-visible Android and Keystore messages were audited against the English, Czech, German, Polish and Slovak XML catalogs.
+
 ## Included in version 0.3.4
 - Rotating the device keeps the already unlocked application session and does not request biometrics or the device credential again.
 - Disabled stations are omitted from the native Stations screen, matching the OSPy web interface.

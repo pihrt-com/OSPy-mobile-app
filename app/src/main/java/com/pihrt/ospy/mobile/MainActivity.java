@@ -108,8 +108,9 @@ public final class MainActivity extends Activity {
     private LinearLayout overviewActiveStationsContainer;
     private final List<PairBinding> overviewActiveStationRows = new ArrayList<>();
     private String overviewActiveStationStructure = "";
-    private TextView overviewUpdatedView;
     private TextView overviewVersionView;
+    private TextView connectionStatusView;
+    private LocalDateTime lastSuccessfulApiUpdate;
     private LinearLayout overviewWarningsSection;
     private String overviewWarningsSignature = "";
     private TextView overviewTimelineNow;
@@ -345,6 +346,16 @@ public final class MainActivity extends Activity {
         toolbar.addView(
                 settings, new LinearLayout.LayoutParams(dp(48), dp(48)));
         page.addView(toolbar);
+
+        connectionStatusView = text("", 14, true);
+        connectionStatusView.setTextColor(RED);
+        connectionStatusView.setBackground(background(LIGHT_RED, RED, 10));
+        connectionStatusView.setPadding(dp(12), dp(8), dp(12), dp(8));
+        LinearLayout.LayoutParams connectionParams =
+                new LinearLayout.LayoutParams(-1, -2);
+        connectionParams.setMargins(dp(12), dp(8), dp(12), 0);
+        connectionStatusView.setVisibility(View.GONE);
+        page.addView(connectionStatusView, connectionParams);
 
         contentScroll = new ScrollView(this);
         contentScroll.setFillViewport(true);
@@ -762,6 +773,7 @@ public final class MainActivity extends Activity {
                 if (generation != loadGeneration ||
                         !path.equals(currentPath) ||
                         !renderer.equals(currentRenderer)) return;
+                updateConnectionStatus(true);
 
                 boolean updateOverviewInPlace =
                         "overview".equals(renderer) && !showFailure &&
@@ -803,6 +815,7 @@ public final class MainActivity extends Activity {
                 if (generation != loadGeneration ||
                         !path.equals(currentPath) ||
                         !renderer.equals(currentRenderer)) return;
+                updateConnectionStatus(false);
                 if (!showFailure) return;
                 content.removeAllViews();
                 resetOverviewViewState();
@@ -812,6 +825,26 @@ public final class MainActivity extends Activity {
                 content.addView(retry);
             }
         });
+    }
+
+    private void updateConnectionStatus(boolean connected) {
+        if (connected) {
+            lastSuccessfulApiUpdate = LocalDateTime.now();
+            if (connectionStatusView != null) {
+                connectionStatusView.setVisibility(View.GONE);
+            }
+            return;
+        }
+        if (connectionStatusView == null) return;
+        String lastUpdate = lastSuccessfulApiUpdate == null
+                ? getString(R.string.not_available)
+                : lastSuccessfulApiUpdate.format(
+                        DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+        connectionStatusView.setText(
+                getString(R.string.connection_lost) + "\n" +
+                        getString(R.string.last_successful_update) + ": " +
+                        lastUpdate);
+        connectionStatusView.setVisibility(View.VISIBLE);
     }
 
     private void renderOverview(JSONObject data) {
@@ -841,9 +874,6 @@ public final class MainActivity extends Activity {
 
         String updated = data.optString("updated");
         updateOverviewServerDate(updated);
-        overviewUpdatedView.setText(
-                getString(R.string.updated) + ": " +
-                        formatTimestamp(updated));
 
         JSONArray warnings = data.optJSONArray("warnings");
         updateOverviewWarnings(warnings);
@@ -882,7 +912,6 @@ public final class MainActivity extends Activity {
         overviewActiveStationsContainer = null;
         overviewActiveStationRows.clear();
         overviewActiveStationStructure = "";
-        overviewUpdatedView = null;
         overviewVersionView = null;
         overviewWarningsSection = null;
         overviewWarningsSignature = "";
@@ -925,9 +954,6 @@ public final class MainActivity extends Activity {
         overviewIrrigationSection.addView(summary);
         overviewRoot.addView(overviewIrrigationSection);
 
-        overviewUpdatedView = text("", 15, false);
-        overviewRoot.addView(overviewUpdatedView);
-
         Button stop = button(getString(R.string.stop_all), RED);
         stop.setOnClickListener(v -> confirmAction(
                 getString(R.string.confirm_stop_all),
@@ -953,13 +979,6 @@ public final class MainActivity extends Activity {
                 new LinearLayout.LayoutParams(-1, -2));
         updateScheduleDayButtons();
 
-        overviewVersionView = text("", 11, false);
-        overviewVersionView.setTextColor(MUTED);
-        overviewVersionView.setGravity(Gravity.END);
-        overviewRoot.addView(
-                overviewVersionView,
-                new LinearLayout.LayoutParams(-1, -2));
-
         LinearLayout timeline = cardColumn();
         overviewTimelineNow = text("", 14, true);
         overviewTimelineNow.setTextColor(NAVY);
@@ -981,6 +1000,13 @@ public final class MainActivity extends Activity {
         overviewWarningsSection.setOrientation(LinearLayout.VERTICAL);
         overviewWarningsSection.setVisibility(View.GONE);
         overviewRoot.addView(overviewWarningsSection);
+
+        overviewVersionView = text("", 11, false);
+        overviewVersionView.setTextColor(MUTED);
+        overviewVersionView.setGravity(Gravity.END);
+        overviewRoot.addView(
+                overviewVersionView,
+                new LinearLayout.LayoutParams(-1, -2));
 
         content.addView(
                 overviewRoot, new LinearLayout.LayoutParams(-1, -2));
@@ -1562,8 +1588,24 @@ public final class MainActivity extends Activity {
             binding.progress.setProgress(percent);
         } else if ("blocked".equals(binding.state) &&
                 binding.detail != null) {
-            binding.detail.setText(item.optString(
-                    "blocked_reason", getString(R.string.rain_delay)));
+            binding.detail.setText(localizedBlockedReason(
+                    item.optString("blocked_reason")));
+        }
+    }
+
+    private String localizedBlockedReason(String reason) {
+        String normalized = reason == null ? "" : reason.trim()
+                .toLowerCase(Locale.ROOT).replace('-', '_').replace(' ', '_');
+        switch (normalized) {
+            case "":
+            case "rain":
+            case "rain_delay":
+            case "rain_sensor":
+            case "rain_sensed":
+            case "rain_block":
+                return getString(R.string.rain_delay);
+            default:
+                return reason;
         }
     }
 
@@ -2053,6 +2095,14 @@ public final class MainActivity extends Activity {
                 return getString(R.string.running_station_consumption);
             case "wind":
                 return getString(R.string.wind_speed);
+            case "sun_today":
+                return getString(R.string.sunrise_sunset_timeline);
+            case "synchronization":
+                return getString(R.string.time_synchronization);
+            case "overview":
+                return getString(R.string.system_information);
+            case "calculation":
+                return getString(R.string.weather_calculation);
             default:
                 return card.optString(
                         "title", getString(R.string.operating_data));
@@ -2080,8 +2130,150 @@ public final class MainActivity extends Activity {
                 return getString(R.string.pulses);
             case "dht_humidity":
                 return getString(R.string.humidity);
+            case "dawn":
+                return getString(R.string.dawn);
+            case "sunrise":
+                return getString(R.string.sunrise);
+            case "noon":
+                return getString(R.string.solar_noon);
+            case "sunset":
+                return getString(R.string.sunset);
+            case "dusk":
+                return getString(R.string.dusk);
+            case "moon_phase":
+                return getString(R.string.moon_phase);
+            case "moon_age":
+                return getString(R.string.moon_age);
+            case "ospy_time":
+                return getString(R.string.ospy_time);
+            case "last_sync":
+                return getString(R.string.last_synchronization);
+            case "ntp_time":
+                return getString(R.string.ntp_time);
+            case "rtc_time":
+                return getString(R.string.rtc_time);
+            case "platform":
+                return getString(R.string.platform);
+            case "python":
+                return getString(R.string.python_version);
+            case "uptime":
+                return getString(R.string.uptime);
+            case "cpu_temperature":
+                return getString(R.string.cpu_temperature);
+            case "cpu_usage":
+                return getString(R.string.cpu_usage);
+            case "memory_total":
+                return getString(R.string.total_memory);
+            case "memory_free":
+                return getString(R.string.free_memory);
+            case "ip_address":
+                return getString(R.string.ip_address);
+            case "mac_address":
+                return getString(R.string.mac_address);
+            case "method":
+                return getString(R.string.calculation_method);
+            case "calculated_at":
+                return getString(R.string.calculated_at);
+            case "days_used":
+                return getString(R.string.used_days);
+            case "rain":
+                return getString(R.string.total_rainfall);
+            case "water_needed":
+                return getString(R.string.irrigation_needed);
+            case "water_left":
+                return getString(R.string.remaining_irrigation_need);
+            case "adjustment":
+                return getString(R.string.weather_adjustment);
+            case "raw_water_adjustment":
+                return getString(R.string.unrestricted_weather_adjustment);
+            case "average_temperature_c":
+                return getString(R.string.average_temperature);
+            case "average_humidity":
+                return getString(R.string.average_humidity);
+            case "rain_yesterday":
+                return getString(R.string.yesterday_rainfall);
+            case "rain_today":
+                return getString(R.string.today_rainfall);
+            case "total_eto":
+                return getString(R.string.total_eto);
+            case "total_etc":
+            case "etc":
+                return getString(R.string.crop_evapotranspiration);
+            case "effective_rain_mm":
+                return getString(R.string.effective_rainfall);
+            case "net_irrigation_mm":
+                return getString(R.string.net_irrigation);
+            case "gross_irrigation_mm":
+                return getString(R.string.gross_irrigation);
+            case "limit":
+                return getString(R.string.limit);
+            case "rain_mm":
+                return getString(R.string.rainfall);
+            case "temp":
+            case "temperature":
+                return getString(R.string.temperature);
+            case "wind_ms":
+                return getString(R.string.wind_speed);
+            case "eto":
+                return getString(R.string.eto);
+            case "temperature_factor":
+                return getString(R.string.temperature_factor);
+            case "humidity_factor":
+                return getString(R.string.humidity_factor);
+            case "rain_factor":
+                return getString(R.string.rain_factor);
+            case "note":
+                return getString(R.string.influence);
+            case "state":
+                return getString(R.string.state);
+            case "model":
+                return getString(R.string.model);
+            case "updated":
+                return getString(R.string.updated);
             default:
+                if (id.startsWith("temperature_")) {
+                    return indexedMetricLabel(
+                            getString(R.string.temperature), id);
+                }
+                if (id.startsWith("humidity_")) {
+                    return indexedMetricLabel(
+                            getString(R.string.humidity), id);
+                }
+                if (id.startsWith("illuminance_")) {
+                    return indexedMetricLabel(
+                            getString(R.string.illuminance), id);
+                }
+                if (id.startsWith("power_")) {
+                    return indexedMetricLabel(getString(R.string.power), id);
+                }
+                if (id.startsWith("retpower_")) {
+                    return indexedMetricLabel(
+                            getString(R.string.returned_power), id);
+                }
+                if (id.startsWith("voltage_")) {
+                    return indexedMetricLabel(getString(R.string.voltage), id);
+                }
+                if (id.startsWith("battery_")) {
+                    return indexedMetricLabel(getString(R.string.battery), id);
+                }
+                if (id.startsWith("rssi_")) {
+                    return indexedMetricLabel(
+                            getString(R.string.wifi_signal), id);
+                }
+                if (id.startsWith("output_")) {
+                    return indexedMetricLabel(getString(R.string.output), id);
+                }
                 return metric.optString("label", id);
+        }
+    }
+
+    private String indexedMetricLabel(String label, String id) {
+        int separator = id.lastIndexOf('_');
+        if (separator < 0 || separator + 1 >= id.length()) return label;
+        try {
+            return label + " " + (Integer.parseInt(id.substring(separator + 1)) + 1);
+        } catch (NumberFormatException ignored) {
+            return label;
         }
     }
 
@@ -2109,6 +2301,37 @@ public final class MainActivity extends Activity {
                     "no_rain".equalsIgnoreCase(value)) {
                 return getString(R.string.no_rain_detected);
             }
+        }
+        if ("state".equals(id)) {
+            if ("online".equalsIgnoreCase(value)) return getString(R.string.online);
+            if ("offline".equalsIgnoreCase(value)) return getString(R.string.offline);
+        }
+        if (id.startsWith("output_")) {
+            if ("on".equalsIgnoreCase(value)) return getString(R.string.on);
+            if ("off".equalsIgnoreCase(value)) return getString(R.string.off);
+        }
+        if ("moon_phase".equals(id)) {
+            switch (value.toLowerCase(Locale.ROOT)) {
+                case "new moon":
+                    return getString(R.string.new_moon);
+                case "waxing moon":
+                    return getString(R.string.waxing_moon);
+                case "full moon":
+                    return getString(R.string.full_moon);
+                case "waning moon":
+                    return getString(R.string.waning_moon);
+            }
+        }
+        if ("limit".equals(id)) {
+            if ("minimum limit applied".equalsIgnoreCase(value)) {
+                return getString(R.string.minimum_limit_applied);
+            }
+            if ("maximum limit applied".equalsIgnoreCase(value)) {
+                return getString(R.string.maximum_limit_applied);
+            }
+        }
+        if ("not available".equalsIgnoreCase(value)) {
+            return getString(R.string.not_available);
         }
         return value;
     }

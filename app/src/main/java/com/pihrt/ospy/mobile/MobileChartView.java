@@ -51,10 +51,16 @@ final class MobileChartView extends View {
             List<Float> values = new ArrayList<>();
             List<Long> times = new ArrayList<>();
             Series line = new Series();
-            line.label = item.optString(
-                    "label",
-                    item.optString(
-                            "id", getContext().getString(R.string.chart_series)));
+            String seriesId = item.optString("id");
+            if ("daylight".equals(seriesId)) {
+                line.label = getContext().getString(R.string.daylight);
+            } else {
+                line.label = item.optString(
+                        "label",
+                        seriesId.isEmpty()
+                                ? getContext().getString(R.string.chart_series)
+                                : seriesId);
+            }
             line.unit = item.optString("unit");
             for (int j = 0; j < points.length(); j++) {
                 Object point = points.opt(j);

@@ -19,9 +19,11 @@ final class KeystoreStore {
     private static final String PREFS = "ospy_secure";
     private static final String VALUE = "installations";
 
+    private final Context context;
     private final SharedPreferences preferences;
 
     KeystoreStore(Context context) {
+        this.context = context.getApplicationContext();
         preferences = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
     }
 
@@ -50,7 +52,7 @@ final class KeystoreStore {
         String packed = Base64.encodeToString(cipher.getIV(), Base64.NO_WRAP) + "." +
                 Base64.encodeToString(encrypted, Base64.NO_WRAP);
         if (!preferences.edit().putString(VALUE, packed).commit()) {
-            throw new IllegalStateException("Protected settings could not be saved.");
+            throw new IllegalStateException(context.getString(R.string.protected_settings_save_failed));
         }
     }
 
@@ -58,7 +60,9 @@ final class KeystoreStore {
         String packed = preferences.getString(VALUE, "");
         if (packed == null || packed.isEmpty()) return "[]";
         String[] parts = packed.split("\\.", 2);
-        if (parts.length != 2) throw new IllegalStateException("Invalid protected data.");
+        if (parts.length != 2) {
+            throw new IllegalStateException(context.getString(R.string.invalid_protected_data));
+        }
         Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
         cipher.init(Cipher.DECRYPT_MODE, key(), new GCMParameterSpec(
                 128, Base64.decode(parts[0], Base64.NO_WRAP)));
@@ -67,4 +71,3 @@ final class KeystoreStore {
                 StandardCharsets.UTF_8);
     }
 }
-
