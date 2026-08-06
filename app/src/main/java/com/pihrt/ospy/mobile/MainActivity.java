@@ -47,9 +47,12 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.text.DateFormatSymbols;
+import java.io.OutputStream;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.format.FormatStyle;
 import java.util.ArrayList;
@@ -61,6 +64,7 @@ import java.util.Map;
 import java.util.UUID;
 
 public final class MainActivity extends Activity {
+    private static final int REQUEST_SAVE_BACKUP = 41;
     private static final int GREEN = Color.rgb(43, 138, 30);
     private static final int LIGHT_GREEN = Color.rgb(232, 244, 230);
     private static final int NAVY = Color.rgb(48, 59, 92);
@@ -95,6 +99,7 @@ public final class MainActivity extends Activity {
     private int activeRequest = 0;
     private boolean requestInFlight = false;
     private boolean unlockStarted = false;
+    private byte[] pendingBackupData;
 
     // The overview is kept attached during background refreshes. Only values
     // that actually changed are updated, preventing the page and timeline from
@@ -224,6 +229,26 @@ public final class MainActivity extends Activity {
         refreshHandler.removeCallbacks(refreshTask);
         if (liveUpdates != null) liveUpdates.stop();
         super.onDestroy();
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode != REQUEST_SAVE_BACKUP || resultCode != RESULT_OK ||
+                data == null || data.getData() == null || pendingBackupData == null) {
+            return;
+        }
+        try (OutputStream output = getContentResolver().openOutputStream(data.getData())) {
+            if (output == null) throw new IllegalStateException("output unavailable");
+            output.write(pendingBackupData);
+            toast(getString(R.string.backup_saved));
+        } catch (Exception error) {
+            message(
+                    getString(R.string.app_name),
+                    getString(R.string.backup_save_failed));
+        } finally {
+            pendingBackupData = null;
+        }
     }
 
     private void unlock() {
@@ -1938,7 +1963,7 @@ public final class MainActivity extends Activity {
                         boolean hasSeries = false;
                         for (int i = 0; i < cards.length(); i++) {
                             JSONObject candidate = cards.optJSONObject(i);
-                            if (candidate != null && candidate.has("series")) {
+                            if (supportsHistory(candidate)) {
                                 hasSeries = true;
                                 break;
                             }
@@ -1976,7 +2001,7 @@ public final class MainActivity extends Activity {
                             if (hasSeriesPoints(series)) {
                                 card.addView(new MobileChartView(
                                         MainActivity.this, series));
-                            } else if (series != null) {
+                            } else if (supportsHistory(mobileCard)) {
                                 TextView empty = text(
                                         getString(R.string.no_data_period),
                                         13, false);
@@ -2013,6 +2038,13 @@ public final class MainActivity extends Activity {
             if (points != null && points.length() > 0) return true;
         }
         return false;
+    }
+
+    private boolean supportsHistory(JSONObject card) {
+        if (card == null) return false;
+        if ("chart".equals(card.optString("kind"))) return true;
+        if (card.optJSONObject("history") != null) return true;
+        return hasSeriesPoints(card.optJSONArray("series"));
     }
 
     private void addHistoryRangeControls(
@@ -2675,6 +2707,11 @@ public final class MainActivity extends Activity {
                 "/updates/actions/check", new JSONObject(),
                 () -> toast(getString(R.string.accepted))));
         actions.addView(check);
+        Button update = button(getString(R.string.install_update), GREEN);
+        update.setOnClickListener(v -> confirmAction(
+                getString(R.string.confirm_update),
+                "/updates/actions/apply"));
+        actions.addView(update);
         Button backup = button(getString(R.string.create_backup), NAVY);
         backup.setOnClickListener(v -> post(
                 "/backups", new JSONObject(),
@@ -2688,6 +2725,96 @@ public final class MainActivity extends Activity {
                 "/system/actions/restart-ospy"));
         systemActions.addView(restart);
         content.addView(systemActions);
+        heading(getString(R.string.available_backups));
+        LinearLayout backupActions = actionRow();
+        LinearLayout backupList = new LinearLayout(this);
+        backupList.setOrientation(LinearLayout.VERTICAL);
+        Button refreshBackups = button(
+                getString(R.string.refresh_backups), NAVY);
+        refreshBackups.setOnClickListener(v -> loadBackups(backupList));
+        backupActions.addView(refreshBackups);
+        content.addView(backupActions);
+        content.addView(backupList);
+        loadBackups(backupList);
+    }
+
+    private void loadBackups(LinearLayout target) {
+        target.removeAllViews();
+        target.addView(text(getString(R.string.loading), 14, false));
+        api.request("GET", "/backups", null, new ApiClient.Callback() {
+            @Override public void success(JSONObject response) {
+                target.removeAllViews();
+                JSONArray backups = response.optJSONArray("data");
+                if (backups == null || backups.length() == 0) {
+                    target.addView(text(getString(R.string.no_backups), 14, false));
+                    return;
+                }
+                for (int i = 0; i < backups.length(); i++) {
+                    JSONObject backup = backups.optJSONObject(i);
+                    if (backup == null) continue;
+                    String name = backup.optString("name");
+                    LinearLayout backupCard = cardColumn();
+                    backupCard.addView(text(name, 15, true));
+                    addPair(
+                            backupCard, getString(R.string.backup_size),
+                            formatFileSize(backup.optLong("size")));
+                    long modified = Math.round(backup.optDouble("modified"));
+                    if (modified > 0) {
+                        String created = DateTimeFormatter.ofLocalizedDateTime(
+                                        FormatStyle.MEDIUM)
+                                .withLocale(Locale.getDefault())
+                                .format(Instant.ofEpochSecond(modified)
+                                        .atZone(ZoneId.systemDefault()));
+                        addPair(
+                                backupCard,
+                                getString(R.string.backup_modified), created);
+                    }
+                    Button download = button(getString(R.string.download), GREEN);
+                    download.setOnClickListener(v -> downloadBackup(name));
+                    backupCard.addView(download);
+                    target.addView(backupCard);
+                }
+            }
+
+            @Override public void failure(String error) {
+                target.removeAllViews();
+                target.addView(text(localizedError(error), 14, true));
+            }
+        });
+    }
+
+    private void downloadBackup(String name) {
+        api.download(
+                "/backups/" + Uri.encode(name) + "/download",
+                new ApiClient.DownloadCallback() {
+                    @Override public void success(byte[] data) {
+                        pendingBackupData = data;
+                        Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
+                        intent.addCategory(Intent.CATEGORY_OPENABLE);
+                        intent.setType("application/zip");
+                        intent.putExtra(Intent.EXTRA_TITLE, name);
+                        startActivityForResult(intent, REQUEST_SAVE_BACKUP);
+                    }
+
+                    @Override public void failure(String error) {
+                        message(
+                                getString(R.string.app_name),
+                                localizedError(error));
+                    }
+                });
+    }
+
+    private String formatFileSize(long bytes) {
+        if (bytes >= 1024L * 1024L) {
+            return String.format(
+                    Locale.getDefault(), "%.1f MB",
+                    bytes / (1024.0 * 1024.0));
+        }
+        if (bytes >= 1024L) {
+            return String.format(
+                    Locale.getDefault(), "%.1f kB", bytes / 1024.0);
+        }
+        return bytes + " B";
     }
 
     private void renderFallback(Object data) {

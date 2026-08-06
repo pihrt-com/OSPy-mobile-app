@@ -1,6 +1,12 @@
 # OSPy Mobile
 Android client for the OSPy `/api/v1`. App on [Google store](https://play.google.com/store/apps/details?id=com.pihrt.ospy.mobile)
 
+## Included in version 0.3.6
+- Plug-in cards show history controls only when the server supplies an actual graph, explicit history metadata or at least one measured series point.
+- The System screen lists retained OSPy backups and downloads the selected ZIP through Android's system file picker.
+- Administrators can confirm and start installation from the update channel already selected in the OSPy System Update plug-in.
+- Binary backup downloads use the same access-token refresh and per-installation HTTPS certificate policy as JSON API requests.
+
 ## Included in version 0.3.5
 - The Home screen shows a persistent localized connection warning after polling loses OSPy and includes the time of the last successful response.
 - The duplicate Home refresh row was removed, the OSPy version was moved below the planner and rain-delay blocking reasons are localized.

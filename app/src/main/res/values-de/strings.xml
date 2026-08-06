@@ -297,4 +297,14 @@
     <string name="offline">Offline</string>
     <string name="protected_settings_save_failed">Die geschützten Einstellungen konnten nicht gespeichert werden.</string>
     <string name="invalid_protected_data">Die Daten der geschützten Einstellungen sind ungültig.</string>
+    <string name="available_backups">Verfügbare Sicherungen</string>
+    <string name="download">Herunterladen</string>
+    <string name="refresh_backups">Sicherungen aktualisieren</string>
+    <string name="no_backups">Es sind keine Sicherungen verfügbar.</string>
+    <string name="backup_saved">Sicherung gespeichert.</string>
+    <string name="backup_save_failed">Die Sicherung konnte nicht gespeichert werden.</string>
+    <string name="install_update">Update installieren</string>
+    <string name="confirm_update">Das verfügbare OSPy-Update installieren?</string>
+    <string name="backup_size">Größe</string>
+    <string name="backup_modified">Erstellt</string>
 </resources>

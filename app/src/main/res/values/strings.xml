@@ -297,4 +297,14 @@
     <string name="offline">Offline</string>
     <string name="protected_settings_save_failed">Protected settings could not be saved.</string>
     <string name="invalid_protected_data">The protected settings data is invalid.</string>
+    <string name="available_backups">Available backups</string>
+    <string name="download">Download</string>
+    <string name="refresh_backups">Refresh backups</string>
+    <string name="no_backups">No backups are available.</string>
+    <string name="backup_saved">Backup saved.</string>
+    <string name="backup_save_failed">The backup could not be saved.</string>
+    <string name="install_update">Install update</string>
+    <string name="confirm_update">Install the available OSPy update?</string>
+    <string name="backup_size">Size</string>
+    <string name="backup_modified">Created</string>
 </resources>

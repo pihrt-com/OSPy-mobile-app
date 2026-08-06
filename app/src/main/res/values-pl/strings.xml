@@ -303,4 +303,14 @@
     <string name="offline">Offline</string>
     <string name="protected_settings_save_failed">Nie udało się zapisać chronionych ustawień.</string>
     <string name="invalid_protected_data">Dane chronionych ustawień są nieprawidłowe.</string>
+    <string name="available_backups">Dostępne kopie zapasowe</string>
+    <string name="download">Pobierz</string>
+    <string name="refresh_backups">Odśwież kopie zapasowe</string>
+    <string name="no_backups">Brak dostępnych kopii zapasowych.</string>
+    <string name="backup_saved">Kopia zapasowa została zapisana.</string>
+    <string name="backup_save_failed">Nie udało się zapisać kopii zapasowej.</string>
+    <string name="install_update">Zainstaluj aktualizację</string>
+    <string name="confirm_update">Zainstalować dostępną aktualizację OSPy?</string>
+    <string name="backup_size">Rozmiar</string>
+    <string name="backup_modified">Utworzono</string>
 </resources>

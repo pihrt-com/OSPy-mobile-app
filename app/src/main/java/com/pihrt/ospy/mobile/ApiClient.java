@@ -29,6 +29,11 @@ final class ApiClient {
         void failure(String message);
     }
 
+    interface DownloadCallback {
+        void success(byte[] data);
+        void failure(String message);
+    }
+
     private final Installation installation;
     private final InstallationStore store;
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
@@ -45,6 +50,17 @@ final class ApiClient {
         executor.execute(() -> {
             try {
                 JSONObject response = execute(method, path, body, true);
+                main.post(() -> callback.success(response));
+            } catch (Exception error) {
+                main.post(() -> callback.failure(message(error)));
+            }
+        });
+    }
+
+    void download(String path, DownloadCallback callback) {
+        executor.execute(() -> {
+            try {
+                byte[] response = executeDownload(path, true);
                 main.post(() -> callback.success(response));
             } catch (Exception error) {
                 main.post(() -> callback.failure(message(error)));
@@ -110,6 +126,50 @@ final class ApiClient {
             }
             throw error;
         }
+    }
+
+    private byte[] executeDownload(String path, boolean retry) throws Exception {
+        if (accessToken.isEmpty()) refresh();
+        try {
+            return executeDownloadRaw(path, accessToken);
+        } catch (ApiException error) {
+            if (retry && error.status == 401) {
+                refresh();
+                return executeDownloadRaw(path, accessToken);
+            }
+            throw error;
+        }
+    }
+
+    private byte[] executeDownloadRaw(String path, String bearer) throws Exception {
+        HttpURLConnection connection = (HttpURLConnection) new URL(
+                installation.baseUrl + "/api/v1" + path).openConnection();
+        if (connection instanceof HttpsURLConnection &&
+                installation.allowUnverifiedCertificate) {
+            configureUnverifiedHttps((HttpsURLConnection) connection);
+        }
+        connection.setRequestMethod("GET");
+        connection.setConnectTimeout(10000);
+        connection.setReadTimeout(30000);
+        connection.setRequestProperty("Accept", "application/zip");
+        connection.setRequestProperty("Authorization", "Bearer " + bearer);
+        int status = connection.getResponseCode();
+        InputStream source = status >= 400
+                ? connection.getErrorStream() : connection.getInputStream();
+        byte[] data = readBytes(source);
+        connection.disconnect();
+        if (status >= 400) {
+            String text = new String(data, StandardCharsets.UTF_8);
+            JSONObject response = text.isEmpty() ? new JSONObject() : new JSONObject(text);
+            JSONObject error = response.optJSONObject("error");
+            throw new ApiException(
+                    status,
+                    error == null ? "" : error.optString("code"),
+                    error == null ? "HTTP " + status
+                            : error.optString("message", "HTTP " + status),
+                    error == null ? null : error.optJSONObject("details"));
+        }
+        return data;
     }
 
     private void refresh() throws Exception {
@@ -184,13 +244,17 @@ final class ApiClient {
     }
 
     private static String read(InputStream source) throws Exception {
-        if (source == null) return "";
+        return new String(readBytes(source), StandardCharsets.UTF_8);
+    }
+
+    private static byte[] readBytes(InputStream source) throws Exception {
+        if (source == null) return new byte[0];
         try (InputStream input = source;
              ByteArrayOutputStream output = new ByteArrayOutputStream()) {
             byte[] buffer = new byte[8192];
             int count;
             while ((count = input.read(buffer)) >= 0) output.write(buffer, 0, count);
-            return output.toString(StandardCharsets.UTF_8.name());
+            return output.toByteArray();
         }
     }
 

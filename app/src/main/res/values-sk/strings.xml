@@ -303,4 +303,14 @@
     <string name="offline">Offline</string>
     <string name="protected_settings_save_failed">Chránené nastavenia sa nepodarilo uložiť.</string>
     <string name="invalid_protected_data">Údaje chránených nastavení sú neplatné.</string>
+    <string name="available_backups">Dostupné zálohy</string>
+    <string name="download">Stiahnuť</string>
+    <string name="refresh_backups">Obnoviť zoznam záloh</string>
+    <string name="no_backups">Nie sú k dispozícii žiadne zálohy.</string>
+    <string name="backup_saved">Záloha bola uložená.</string>
+    <string name="backup_save_failed">Zálohu sa nepodarilo uložiť.</string>
+    <string name="install_update">Nainštalovať aktualizáciu</string>
+    <string name="confirm_update">Nainštalovať dostupnú aktualizáciu OSPy?</string>
+    <string name="backup_size">Veľkosť</string>
+    <string name="backup_modified">Vytvorené</string>
 </resources>
