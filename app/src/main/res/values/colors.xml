@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <color name="ospy_green">#2B8A1E</color>
+    <color name="ospy_green_dark_theme">#349A2B</color>
     <color name="ospy_navy">#303B5C</color>
     <color name="ospy_red">#921B25</color>
     <color name="ospy_background">#F4F6F8</color>
+    <color name="ospy_dark_background">#101419</color>
 </resources>
-

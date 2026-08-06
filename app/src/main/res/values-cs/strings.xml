@@ -195,6 +195,54 @@
     <string name="chart_series">Řada</string>
     <string name="duration_join">%1$s %2$s</string>
 
+
+    <!-- Security, appearance, notification filters and update operations -->
+    <string name="security">Zabezpečení</string>
+    <string name="app_lock">Ověření při otevření</string>
+    <string name="app_lock_description">Při otevření aplikace vyžadovat biometrii nebo zámek zařízení.</string>
+    <string name="no_device_security">V zařízení není nastaven PIN, heslo ani biometrický zámek, proto nelze ověření aplikace vynutit.</string>
+    <string name="open_device_security_settings">Otevřít nastavení zabezpečení zařízení</string>
+    <string name="appearance">Vzhled</string>
+    <string name="dark_theme">Tmavý motiv</string>
+    <string name="dark_theme_description">Použít v celé aplikaci tmavé barevné provedení.</string>
+    <string name="notification_preferences_description">Vyberte, které události OSPy mohou vytvořit upozornění v telefonu.</string>
+    <string name="notify_station_started">Zapnutí stanice</string>
+    <string name="notify_station_stopped">Vypnutí stanice</string>
+    <string name="notify_rain_delay">Dešťové zpoždění a ochrana proti dešti</string>
+    <string name="notify_diagnostics">Problémy diagnostiky</string>
+    <string name="notify_updates">Aktualizace a systémové operace</string>
+    <string name="notify_other">Ostatní události</string>
+    <string name="connection_settings">Nastavení připojení</string>
+    <string name="station_started_notification_title">Stanice spuštěna</string>
+    <string name="station_started_notification_message">Stanice %1$s byla spuštěna.</string>
+    <string name="station_stopped_notification_title">Stanice zastavena</string>
+    <string name="station_stopped_notification_message">Stanice %1$s byla zastavena.</string>
+    <string name="rain_delay_started_notification_title">Ochrana proti dešti je aktivní</string>
+    <string name="rain_delay_started_notification_message">Ochrana proti dešti je aktivní. Zbývá: %1$s</string>
+    <string name="rain_delay_cleared_notification_title">Ochrana proti dešti ukončena</string>
+    <string name="rain_delay_cleared_notification_message">Ochrana proti dešti již není aktivní.</string>
+    <string name="system_actions">Systémové akce</string>
+    <string name="checking_updates">Kontroluji aktualizace…</string>
+    <string name="installing_update">Instaluji aktualizaci…</string>
+    <string name="operation_pending">Operace čeká na zpracování.</string>
+    <string name="operation_running">Operace probíhá.</string>
+    <string name="operation_completed">Operace byla dokončena.</string>
+    <string name="operation_failed">Operace selhala.</string>
+    <string name="waiting_for_ospy_restart">Čekám na restart a opětovné připojení k OSPy…</string>
+    <string name="update_operation_timeout">Aktualizační operace nebyla dokončena v očekávaném čase.</string>
+    <string name="update_reconnect_timeout">Po aktualizaci se aplikaci nepodařilo znovu připojit k OSPy.</string>
+    <string name="update_not_applied">Aktualizace zřejmě nebyla nainstalována. OSPy stále běží na předchozí revizi.</string>
+    <string name="update_check_complete">Kontrola aktualizací dokončena</string>
+    <string name="update_found">Je dostupná aktualizace OSPy.</string>
+    <string name="no_update_available">Používáte aktuální verzi OSPy.</string>
+    <string name="update_operation_completed">Aktualizace dokončena</string>
+    <string name="update_operation_completed_message">Aktualizace byla dokončena a aplikace obnovila data OSPy.</string>
+    <string name="update_operation_failed">Aktualizace selhala</string>
+    <string name="operation_error">Chyba operace</string>
+    <string name="operation_progress">Průběh: %1$d%%</string>
+    <string name="pending_status">Čeká</string>
+    <string name="unknown_status">Neznámý</string>
+
     <!-- Localized duration units -->
     <plurals name="duration_days">
         <item quantity="one">%1$d den</item>

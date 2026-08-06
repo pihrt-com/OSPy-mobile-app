@@ -64,17 +64,31 @@ import java.util.Map;
 import java.util.UUID;
 
 public final class MainActivity extends Activity {
+    private static final int REQUEST_NOTIFICATIONS = 10;
+    private static final int REQUEST_UNLOCK_CREDENTIAL = 11;
     private static final int REQUEST_SAVE_BACKUP = 41;
-    private static final int GREEN = Color.rgb(43, 138, 30);
-    private static final int LIGHT_GREEN = Color.rgb(232, 244, 230);
-    private static final int NAVY = Color.rgb(48, 59, 92);
-    private static final int RED = Color.rgb(146, 27, 37);
-    private static final int LIGHT_RED = Color.rgb(252, 232, 234);
-    private static final int AMBER = Color.rgb(204, 132, 0);
-    private static final int LIGHT_AMBER = Color.rgb(255, 245, 218);
-    private static final int TEXT = Color.rgb(30, 30, 30);
-    private static final int MUTED = Color.rgb(96, 102, 112);
     private static final long LIVE_REFRESH_MS = 10_000L;
+    private static final long UPDATE_OPERATION_POLL_MS = 1_500L;
+    private static final long UPDATE_RECONNECT_POLL_MS = 3_000L;
+    private static final long UPDATE_INITIAL_RESTART_WAIT_MS = 7_000L;
+    private static final long UPDATE_APPLY_VERIFY_WAIT_MS = 45_000L;
+    private static final long UPDATE_RECONNECT_TIMEOUT_MS = 120_000L;
+
+    // The application is drawn programmatically, therefore both themes use a
+    // runtime palette in addition to the Android window theme.
+    private int GREEN;
+    private int LIGHT_GREEN;
+    private int NAVY;
+    private int RED;
+    private int LIGHT_RED;
+    private int AMBER;
+    private int LIGHT_AMBER;
+    private int TEXT;
+    private int MUTED;
+    private int BACKGROUND;
+    private int SURFACE;
+    private int CARD_BORDER;
+    private int HEADING;
 
     private InstallationStore installationStore;
     private AppPreferences appPreferences;
@@ -100,6 +114,36 @@ public final class MainActivity extends Activity {
     private boolean requestInFlight = false;
     private boolean unlockStarted = false;
     private byte[] pendingBackupData;
+
+    // Notification transition baseline. The first overview response only
+    // establishes the state and never creates notifications for old activity.
+    private final Map<String, String> previousActiveStations = new LinkedHashMap<>();
+    private boolean notificationBaselineReady = false;
+    private boolean notificationSnapshotInFlight = false;
+    private Boolean previousRainBlock;
+
+    // System update operations are asynchronous in API v1. Keep their state
+    // separate from normal page requests so progress survives a screen redraw.
+    private final Handler systemOperationHandler = new Handler(Looper.getMainLooper());
+    private String systemOperationId = "";
+    private String systemOperationKind = "";
+    private String systemOperationStatus = "";
+    private String systemOperationError = "";
+    private int systemOperationProgress = 0;
+    private long systemOperationStartedAt = 0;
+    private long systemReconnectStartedAt = 0;
+    private boolean systemOperationPolling = false;
+    private boolean systemWaitingForReconnect = false;
+    private String pendingSystemAnnouncement = "";
+    private boolean systemUpdateAvailable = false;
+    private String systemCurrentCommit = "";
+    private String systemTargetCommit = "";
+    private String systemApplyCommitBefore = "";
+    private String systemApplyTargetCommit = "";
+    private TextView systemOperationStatusView;
+    private ProgressBar systemOperationProgressView;
+    private Button systemCheckButton;
+    private Button systemInstallButton;
 
     // The overview is kept attached during background refreshes. Only values
     // that actually changed are updated, preventing the page and timeline from
@@ -200,17 +244,21 @@ public final class MainActivity extends Activity {
 
     @Override
     protected void onCreate(Bundle state) {
-        super.onCreate(state);
-        getWindow().setStatusBarColor(GREEN);
-        getWindow().setNavigationBarColor(NAVY);
-        installationStore = new InstallationStore(this);
         appPreferences = new AppPreferences(this);
+        setTheme(appPreferences.darkTheme()
+                ? R.style.AppThemeDark : R.style.AppTheme);
+        super.onCreate(state);
+        applyThemePalette();
+        applySystemBarColors();
+        installationStore = new InstallationStore(this);
         notifications = new NotificationCenter(this);
         if (Build.VERSION.SDK_INT >= 33 &&
                 notifications.isEnabled() &&
                 checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)
                         != PackageManager.PERMISSION_GRANTED) {
-            requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS}, 10);
+            requestPermissions(
+                    new String[]{Manifest.permission.POST_NOTIFICATIONS},
+                    REQUEST_NOTIFICATIONS);
         } else {
             unlock();
         }
@@ -221,12 +269,13 @@ public final class MainActivity extends Activity {
     public void onRequestPermissionsResult(
             int requestCode, String[] permissions, int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        if (requestCode == 10) unlock();
+        if (requestCode == REQUEST_NOTIFICATIONS && !unlockStarted) unlock();
     }
 
     @Override
     protected void onDestroy() {
         refreshHandler.removeCallbacks(refreshTask);
+        systemOperationHandler.removeCallbacksAndMessages(null);
         if (liveUpdates != null) liveUpdates.stop();
         super.onDestroy();
     }
@@ -234,6 +283,11 @@ public final class MainActivity extends Activity {
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == REQUEST_UNLOCK_CREDENTIAL) {
+            if (resultCode == RESULT_OK) afterUnlock();
+            else finish();
+            return;
+        }
         if (requestCode != REQUEST_SAVE_BACKUP || resultCode != RESULT_OK ||
                 data == null || data.getData() == null || pendingBackupData == null) {
             return;
@@ -254,7 +308,7 @@ public final class MainActivity extends Activity {
     private void unlock() {
         if (unlockStarted) return;
         unlockStarted = true;
-        if (Build.VERSION.SDK_INT < 28) {
+        if (!appPreferences.appLockEnabled()) {
             afterUnlock();
             return;
         }
@@ -263,32 +317,48 @@ public final class MainActivity extends Activity {
             afterUnlock();
             return;
         }
-        BiometricPrompt.Builder builder = new BiometricPrompt.Builder(this)
-                .setTitle(getString(R.string.unlock))
-                .setSubtitle(getString(R.string.unlock_subtitle));
-        if (Build.VERSION.SDK_INT >= 29) {
-            builder.setDeviceCredentialAllowed(true);
-        } else {
-            builder.setNegativeButton(
-                    getString(android.R.string.cancel), getMainExecutor(),
-                    (dialog, which) -> finish());
+        // Android 10+ can offer biometrics and the device credential in one
+        // system prompt. Older supported releases use the secure device
+        // credential screen, which is reliable even when no biometric sensor
+        // is enrolled.
+        if (Build.VERSION.SDK_INT < 29) {
+            launchDeviceCredentialUnlock(keyguard);
+            return;
         }
-        builder.build().authenticate(
-                new CancellationSignal(), getMainExecutor(),
-                new BiometricPrompt.AuthenticationCallback() {
-                    @Override
-                    public void onAuthenticationSucceeded(
-                            BiometricPrompt.AuthenticationResult result) {
-                        afterUnlock();
-                    }
+        new BiometricPrompt.Builder(this)
+                .setTitle(getString(R.string.unlock))
+                .setSubtitle(getString(R.string.unlock_subtitle))
+                .setDeviceCredentialAllowed(true)
+                .build()
+                .authenticate(
+                        new CancellationSignal(), getMainExecutor(),
+                        new BiometricPrompt.AuthenticationCallback() {
+                            @Override
+                            public void onAuthenticationSucceeded(
+                                    BiometricPrompt.AuthenticationResult result) {
+                                afterUnlock();
+                            }
 
-                    @Override
-                    public void onAuthenticationError(int code, CharSequence message) {
-                        if (code != BiometricPrompt.BIOMETRIC_ERROR_USER_CANCELED) {
-                            toast(message.toString());
-                        }
-                    }
-                });
+                            @Override
+                            public void onAuthenticationError(
+                                    int code, CharSequence message) {
+                                if (code != BiometricPrompt.BIOMETRIC_ERROR_USER_CANCELED) {
+                                    toast(message.toString());
+                                }
+                                finish();
+                            }
+                        });
+    }
+
+    private void launchDeviceCredentialUnlock(KeyguardManager keyguard) {
+        Intent intent = keyguard.createConfirmDeviceCredentialIntent(
+                getString(R.string.unlock),
+                getString(R.string.unlock_subtitle));
+        if (intent == null) {
+            afterUnlock();
+            return;
+        }
+        startActivityForResult(intent, REQUEST_UNLOCK_CREDENTIAL);
     }
 
     private void afterUnlock() {
@@ -349,10 +419,54 @@ public final class MainActivity extends Activity {
                 capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI);
     }
 
+    private void applyThemePalette() {
+        if (appPreferences != null && appPreferences.darkTheme()) {
+            GREEN = Color.rgb(52, 154, 43);
+            LIGHT_GREEN = Color.rgb(24, 58, 27);
+            NAVY = Color.rgb(67, 82, 122);
+            RED = Color.rgb(184, 58, 69);
+            LIGHT_RED = Color.rgb(66, 27, 33);
+            AMBER = Color.rgb(216, 154, 36);
+            LIGHT_AMBER = Color.rgb(61, 50, 24);
+            TEXT = Color.rgb(239, 243, 248);
+            MUTED = Color.rgb(174, 184, 197);
+            BACKGROUND = Color.rgb(16, 20, 25);
+            SURFACE = Color.rgb(28, 35, 44);
+            CARD_BORDER = Color.rgb(82, 97, 119);
+            HEADING = Color.rgb(184, 204, 235);
+        } else {
+            GREEN = Color.rgb(43, 138, 30);
+            LIGHT_GREEN = Color.rgb(232, 244, 230);
+            NAVY = Color.rgb(48, 59, 92);
+            RED = Color.rgb(146, 27, 37);
+            LIGHT_RED = Color.rgb(252, 232, 234);
+            AMBER = Color.rgb(204, 132, 0);
+            LIGHT_AMBER = Color.rgb(255, 245, 218);
+            TEXT = Color.rgb(30, 30, 30);
+            MUTED = Color.rgb(96, 102, 112);
+            BACKGROUND = Color.rgb(244, 246, 248);
+            SURFACE = Color.WHITE;
+            CARD_BORDER = NAVY;
+            HEADING = NAVY;
+        }
+    }
+
+    private void applySystemBarColors() {
+        getWindow().setStatusBarColor(GREEN);
+        getWindow().setNavigationBarColor(
+                appPreferences != null && appPreferences.darkTheme()
+                        ? BACKGROUND : NAVY);
+    }
+
+    private boolean deviceSecurityConfigured() {
+        KeyguardManager keyguard = getSystemService(KeyguardManager.class);
+        return keyguard != null && keyguard.isDeviceSecure();
+    }
+
     private void shell(String heading) {
         page = new LinearLayout(this);
         page.setOrientation(LinearLayout.VERTICAL);
-        page.setBackgroundColor(Color.rgb(244, 246, 248));
+        page.setBackgroundColor(BACKGROUND);
 
         toolbar = new LinearLayout(this);
         toolbar.setGravity(Gravity.CENTER_VERTICAL);
@@ -448,11 +562,60 @@ public final class MainActivity extends Activity {
         requestInFlight = false;
         shell(getString(R.string.app_settings));
 
-        LinearLayout notificationSettings = card();
-        notificationSettings.addView(
+        LinearLayout securitySettings = cardColumn();
+        securitySettings.addView(text(
+                getString(R.string.security), 16, true));
+        TextView lockDescription = text(
+                getString(R.string.app_lock_description), 13, false);
+        lockDescription.setTextColor(MUTED);
+        securitySettings.addView(lockDescription);
+        addPreferenceToggle(
+                securitySettings, getString(R.string.app_lock),
+                appPreferences.appLockEnabled(),
+                enabled -> appPreferences.setAppLockEnabled(enabled));
+        if (appPreferences.appLockEnabled() && !deviceSecurityConfigured()) {
+            TextView warning = text(
+                    getString(R.string.no_device_security), 13, true);
+            warning.setTextColor(RED);
+            securitySettings.addView(warning);
+            Button securityButton = button(
+                    getString(R.string.open_device_security_settings), NAVY);
+            securityButton.setOnClickListener(v -> {
+                try {
+                    startActivity(new Intent(Settings.ACTION_SECURITY_SETTINGS));
+                } catch (Exception error) {
+                    message(
+                            getString(R.string.app_settings),
+                            getString(R.string.cannot_open_link));
+                }
+            });
+            securitySettings.addView(securityButton);
+        }
+        content.addView(securitySettings);
+
+        LinearLayout appearanceSettings = cardColumn();
+        appearanceSettings.addView(text(
+                getString(R.string.appearance), 16, true));
+        TextView appearanceDescription = text(
+                getString(R.string.dark_theme_description), 13, false);
+        appearanceDescription.setTextColor(MUTED);
+        appearanceSettings.addView(appearanceDescription);
+        addPreferenceToggle(
+                appearanceSettings, getString(R.string.dark_theme),
+                appPreferences.darkTheme(), enabled -> {
+                    appPreferences.setDarkTheme(enabled);
+                    setTheme(enabled ? R.style.AppThemeDark : R.style.AppTheme);
+                    applyThemePalette();
+                    applySystemBarColors();
+                });
+        content.addView(appearanceSettings);
+
+        LinearLayout notificationSettings = cardColumn();
+        LinearLayout notificationHeader = actionRow();
+        notificationHeader.addView(
                 text(getString(R.string.notifications), 16, true),
                 new LinearLayout.LayoutParams(0, -2, 1));
-        Button notificationToggle = button(
+        Button notificationToggle = compactButton(
                 getString(notifications.isEnabled()
                         ? R.string.enabled : R.string.disabled),
                 notifications.isEnabled() ? GREEN : NAVY);
@@ -463,14 +626,41 @@ public final class MainActivity extends Activity {
                     checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)
                             != PackageManager.PERMISSION_GRANTED) {
                 requestPermissions(
-                        new String[]{Manifest.permission.POST_NOTIFICATIONS}, 10);
+                        new String[]{Manifest.permission.POST_NOTIFICATIONS},
+                        REQUEST_NOTIFICATIONS);
             }
             showAppSettings();
         });
-        notificationSettings.addView(notificationToggle);
+        notificationHeader.addView(notificationToggle);
+        notificationSettings.addView(notificationHeader);
+        TextView notificationDescription = text(
+                getString(R.string.notification_preferences_description),
+                13, false);
+        notificationDescription.setTextColor(MUTED);
+        notificationSettings.addView(notificationDescription);
+        addNotificationPreference(
+                notificationSettings, R.string.notify_station_started,
+                NotificationCenter.CATEGORY_STATION_STARTED);
+        addNotificationPreference(
+                notificationSettings, R.string.notify_station_stopped,
+                NotificationCenter.CATEGORY_STATION_STOPPED);
+        addNotificationPreference(
+                notificationSettings, R.string.notify_rain_delay,
+                NotificationCenter.CATEGORY_RAIN);
+        addNotificationPreference(
+                notificationSettings, R.string.notify_diagnostics,
+                NotificationCenter.CATEGORY_DIAGNOSTICS);
+        addNotificationPreference(
+                notificationSettings, R.string.notify_updates,
+                NotificationCenter.CATEGORY_UPDATES);
+        addNotificationPreference(
+                notificationSettings, R.string.notify_other,
+                NotificationCenter.CATEGORY_OTHER);
         content.addView(notificationSettings);
 
         LinearLayout networkSettings = cardColumn();
+        networkSettings.addView(text(
+                getString(R.string.connection_settings), 16, true));
         addPreferenceToggle(
                 networkSettings, getString(R.string.watch_network),
                 appPreferences.watchNetwork(),
@@ -566,6 +756,19 @@ public final class MainActivity extends Activity {
         parent.addView(row);
     }
 
+    private void addNotificationPreference(
+            LinearLayout parent, int labelResource, String category) {
+        CheckBox option = new CheckBox(this);
+        option.setText(getString(labelResource));
+        option.setTextColor(TEXT);
+        option.setTextSize(14);
+        option.setChecked(notifications.isCategoryEnabled(category));
+        option.setEnabled(notifications.isEnabled());
+        option.setOnCheckedChangeListener((button, checked) ->
+                notifications.setCategoryEnabled(category, checked));
+        parent.addView(option, new LinearLayout.LayoutParams(-1, -2));
+    }
+
     private Button linkButton(String label, String url) {
         Button link = button(label, NAVY);
         link.setOnClickListener(v -> {
@@ -592,6 +795,7 @@ public final class MainActivity extends Activity {
         CheckBox unverified = new CheckBox(this);
         unverified.setText(getString(R.string.unverified_certificate));
         unverified.setTextSize(15);
+        unverified.setTextColor(TEXT);
         TextView warning = text(
                 getString(R.string.unverified_certificate_warning), 13, false);
         warning.setTextColor(RED);
@@ -663,6 +867,7 @@ public final class MainActivity extends Activity {
         CheckBox unverified = new CheckBox(this);
         unverified.setText(getString(R.string.unverified_certificate));
         unverified.setTextSize(15);
+        unverified.setTextColor(TEXT);
         unverified.setChecked(installation.allowUnverifiedCertificate);
         content.addView(name);
         content.addView(url);
@@ -704,29 +909,98 @@ public final class MainActivity extends Activity {
         appPreferences.setLastInstallationId(installation.id);
         current = installation;
         api = new ApiClient(installation, installationStore);
+        resetNotificationBaseline();
+        resetSystemOperationState();
         showDashboard();
         if (liveUpdates != null) liveUpdates.stop();
-        liveUpdates = new LiveUpdates(api, event -> {
-            if ("notification".equals(event.optString("event"))) {
-                JSONObject data = event.optJSONObject("data");
-                if (data != null) notifications.show(
-                        data.optInt("id", (int) System.currentTimeMillis()),
-                        data.optString("title", getString(R.string.app_name)),
-                        data.optString("message", ""));
-            }
-            String type = event.optString("event");
-            if (type.startsWith("station.") ||
-                    "stations.changed".equals(type) ||
-                    "conditions.changed".equals(type) ||
-                    type.startsWith("program.") ||
-                    "plugin.action".equals(type)) {
-                if (!requestInFlight && currentPath != null &&
-                        !currentPath.isEmpty()) {
-                    fetch(currentPath, currentRenderer, false, loadGeneration);
-                }
-            }
-        });
+        liveUpdates = new LiveUpdates(api, this::handleLiveEvent);
         liveUpdates.start();
+    }
+
+    private void resetNotificationBaseline() {
+        previousActiveStations.clear();
+        previousRainBlock = null;
+        notificationBaselineReady = false;
+        notificationSnapshotInFlight = false;
+    }
+
+    private void handleLiveEvent(JSONObject event) {
+        String type = event.optString("event");
+        JSONObject data = event.optJSONObject("data");
+
+        if ("notification".equals(type) && data != null) {
+            handleServerNotification(data);
+        } else if ("operation.completed".equals(type) ||
+                "operation.failed".equals(type)) {
+            handleOperationEvent(type, data);
+        }
+
+        boolean irrigationStateEvent = type.startsWith("station.") ||
+                "stations.changed".equals(type) ||
+                "conditions.changed".equals(type);
+        if (irrigationStateEvent && !"overview".equals(currentRenderer)) {
+            refreshNotificationSnapshot();
+        }
+        if (irrigationStateEvent ||
+                type.startsWith("program.") ||
+                "plugin.action".equals(type) ||
+                "plugin.configured".equals(type)) {
+            if (!requestInFlight && currentPath != null &&
+                    !currentPath.isEmpty()) {
+                fetch(currentPath, currentRenderer, false, loadGeneration);
+            }
+        }
+    }
+
+    private void handleServerNotification(JSONObject data) {
+        String eventType = data.optString("type");
+        String code = data.optString("code");
+
+        // Station and rain transitions are generated from the authoritative
+        // overview snapshot below. Ignoring their server copies avoids a
+        // duplicate phone notification while remaining compatible with older
+        // servers that do not publish every transition as a notification.
+        if ("station_stopped".equals(code) || "rain".equals(eventType)) return;
+
+        String category;
+        if ("diagnostics".equals(eventType)) {
+            category = NotificationCenter.CATEGORY_DIAGNOSTICS;
+        } else if (eventType.startsWith("update") ||
+                code.startsWith("update_")) {
+            category = NotificationCenter.CATEGORY_UPDATES;
+        } else {
+            category = NotificationCenter.CATEGORY_OTHER;
+        }
+        notifications.show(
+                data.optInt("id", (int) System.currentTimeMillis()),
+                category,
+                data.optString("title", getString(R.string.app_name)),
+                data.optString("message", ""));
+    }
+
+    private void handleOperationEvent(String eventType, JSONObject data) {
+        if (data == null) return;
+        String operationId = data.optString("id");
+        String kind = data.optString("kind");
+        if (!systemOperationId.isEmpty() &&
+                systemOperationId.equals(operationId)) {
+            systemOperationHandler.removeCallbacksAndMessages(null);
+            systemOperationHandler.post(systemWaitingForReconnect
+                    ? this::probeSystemAfterUpdate
+                    : this::pollSystemOperation);
+            return;
+        }
+        if (!kind.startsWith("update.")) return;
+        boolean failed = "operation.failed".equals(eventType);
+        notifications.show(
+                NotificationCenter.CATEGORY_UPDATES,
+                getString(failed
+                        ? R.string.update_operation_failed
+                        : R.string.update_operation_completed),
+                failed
+                        ? data.optString(
+                                "error", getString(R.string.operation_failed))
+                        : getString(R.string.update_operation_completed_message));
     }
 
     private void showDashboard() {
@@ -881,6 +1155,7 @@ public final class MainActivity extends Activity {
             overviewIrrigationSection.setVisibility(View.GONE);
         } else {
             overviewIrrigationSection.setVisibility(View.VISIBLE);
+            handleOverviewNotificationTransitions(irrigation);
             boolean schedulerEnabled =
                     irrigation.optBoolean("scheduler_enabled");
             boolean manualMode = irrigation.optBoolean("manual_mode");
@@ -1006,7 +1281,7 @@ public final class MainActivity extends Activity {
 
         LinearLayout timeline = cardColumn();
         overviewTimelineNow = text("", 14, true);
-        overviewTimelineNow.setTextColor(NAVY);
+        overviewTimelineNow.setTextColor(HEADING);
         timeline.addView(overviewTimelineNow);
         overviewTimelineRowsContainer = new LinearLayout(this);
         overviewTimelineRowsContainer.setOrientation(LinearLayout.VERTICAL);
@@ -1156,7 +1431,7 @@ public final class MainActivity extends Activity {
 
     private TextView overviewHeading(String value) {
         TextView view = text(value, 18, true);
-        view.setTextColor(NAVY);
+        view.setTextColor(HEADING);
         view.setPadding(0, dp(10), 0, dp(5));
         return view;
     }
@@ -1276,8 +1551,93 @@ public final class MainActivity extends Activity {
     }
 
     private String stationStableKey(JSONObject station) {
-        return station.optInt("number", -1) + "|" +
-                station.optString("name");
+        String id = station.optString("id");
+        return id.isEmpty()
+                ? String.valueOf(station.optInt("number", -1))
+                : id;
+    }
+
+    private void handleOverviewNotificationTransitions(JSONObject irrigation) {
+        Map<String, String> activeNow = new LinkedHashMap<>();
+        JSONArray active = irrigation.optJSONArray("active_stations");
+        if (active != null) {
+            for (int index = 0; index < active.length(); index++) {
+                JSONObject station = active.optJSONObject(index);
+                if (station == null) continue;
+                activeNow.put(
+                        stationStableKey(station),
+                        station.optString(
+                                "name",
+                                getString(R.string.station)));
+            }
+        }
+        boolean rainBlock = irrigation.optBoolean("rain_block");
+
+        if (notificationBaselineReady) {
+            for (Map.Entry<String, String> station : activeNow.entrySet()) {
+                if (!previousActiveStations.containsKey(station.getKey())) {
+                    notifications.show(
+                            NotificationCenter.CATEGORY_STATION_STARTED,
+                            getString(R.string.station_started_notification_title),
+                            getString(
+                                    R.string.station_started_notification_message,
+                                    station.getValue()));
+                }
+            }
+            for (Map.Entry<String, String> station :
+                    previousActiveStations.entrySet()) {
+                if (!activeNow.containsKey(station.getKey())) {
+                    notifications.show(
+                            NotificationCenter.CATEGORY_STATION_STOPPED,
+                            getString(R.string.station_stopped_notification_title),
+                            getString(
+                                    R.string.station_stopped_notification_message,
+                                    station.getValue()));
+                }
+            }
+            if (previousRainBlock != null &&
+                    previousRainBlock.booleanValue() != rainBlock) {
+                if (rainBlock) {
+                    notifications.show(
+                            NotificationCenter.CATEGORY_RAIN,
+                            getString(R.string.rain_delay_started_notification_title),
+                            getString(
+                                    R.string.rain_delay_started_notification_message,
+                                    formatDuration(irrigation.optLong(
+                                            "rain_block_seconds", 0))));
+                } else {
+                    notifications.show(
+                            NotificationCenter.CATEGORY_RAIN,
+                            getString(R.string.rain_delay_cleared_notification_title),
+                            getString(R.string.rain_delay_cleared_notification_message));
+                }
+            }
+        }
+
+        previousActiveStations.clear();
+        previousActiveStations.putAll(activeNow);
+        previousRainBlock = rainBlock;
+        notificationBaselineReady = true;
+    }
+
+    private void refreshNotificationSnapshot() {
+        if (api == null || notificationSnapshotInFlight) return;
+        notificationSnapshotInFlight = true;
+        api.request("GET", "/overview", null, new ApiClient.Callback() {
+            @Override public void success(JSONObject response) {
+                notificationSnapshotInFlight = false;
+                JSONObject data = response.optJSONObject("data");
+                JSONObject irrigation = data == null
+                        ? null : data.optJSONObject("irrigation");
+                if (irrigation != null) {
+                    handleOverviewNotificationTransitions(irrigation);
+                }
+            }
+
+            @Override public void failure(String error) {
+                notificationSnapshotInFlight = false;
+            }
+        });
     }
 
     private void updateOverviewWarnings(JSONArray warnings) {
@@ -1707,6 +2067,7 @@ public final class MainActivity extends Activity {
             if (station == null || station.optBoolean("is_master") ||
                     station.optBoolean("is_master_two")) continue;
             CheckBox check = new CheckBox(this);
+            check.setTextColor(TEXT);
             check.setText(
                     station.optInt("number") + ". " +
                             station.optString("name"));
@@ -1748,6 +2109,7 @@ public final class MainActivity extends Activity {
                 JSONArray chosenDays = fields.optJSONArray("days");
                 for (int day = 0; day < 7; day++) {
                     CheckBox check = new CheckBox(this);
+                    check.setTextColor(TEXT);
                     check.setText(weekdayName(day));
                     check.setTag(day);
                     check.setChecked(jsonArrayContains(chosenDays, day));
@@ -2000,7 +2362,8 @@ public final class MainActivity extends Activity {
                             JSONArray series = mobileCard.optJSONArray("series");
                             if (hasSeriesPoints(series)) {
                                 card.addView(new MobileChartView(
-                                        MainActivity.this, series));
+                                        MainActivity.this, series,
+                                        appPreferences.darkTheme()));
                             } else if (supportsHistory(mobileCard)) {
                                 TextView empty = text(
                                         getString(R.string.no_data_period),
@@ -2313,7 +2676,7 @@ public final class MainActivity extends Activity {
         String id = metric.optString("id");
         String value = String.valueOf(metric.opt("value"));
         if ("trend".equals(id)) {
-            switch (value.toLowerCase(Locale.ROOT)) {
+            switch (value.trim().toLowerCase(Locale.ROOT)) {
                 case "rising":
                     return "\u2191 " + getString(R.string.rising);
                 case "falling":
@@ -2343,7 +2706,7 @@ public final class MainActivity extends Activity {
             if ("off".equalsIgnoreCase(value)) return getString(R.string.off);
         }
         if ("moon_phase".equals(id)) {
-            switch (value.toLowerCase(Locale.ROOT)) {
+            switch (value.trim().toLowerCase(Locale.ROOT)) {
                 case "new moon":
                     return getString(R.string.new_moon);
                 case "waxing moon":
@@ -2568,7 +2931,11 @@ public final class MainActivity extends Activity {
                             event.optString("time")).trim();
             addPair(card, getString(R.string.date_time), dateTime);
             addPairIfPresent(card, event, "category", getString(R.string.category));
-            addPairIfPresent(card, event, "status", getString(R.string.status));
+            if (event.has("status") && !event.isNull("status")) {
+                addPair(
+                        card, getString(R.string.status),
+                        localizedStatus(event.optString("status")));
+            }
             content.addView(card);
         }
     }
@@ -2665,66 +3032,106 @@ public final class MainActivity extends Activity {
         JSONObject root = value instanceof JSONObject
                 ? (JSONObject) value : new JSONObject();
         JSONObject ospy = root.optJSONObject("ospy");
+        JSONObject details = ospy == null ? null : ospy.optJSONObject("details");
+        systemUpdateAvailable = details != null &&
+                details.optBoolean("update_available", false);
+        systemCurrentCommit = details == null
+                ? "" : details.optString("current_commit", "");
+        systemTargetCommit = details == null
+                ? "" : details.optString("target_commit", "");
+
+        LinearLayout updateCard = cardColumn();
+        updateCard.addView(text(getString(R.string.app_name), 19, true));
         if (ospy != null) {
-            LinearLayout card = cardColumn();
-            card.addView(text(getString(R.string.app_name), 19, true));
-            addPairIfPresent(card, ospy, "status", getString(R.string.status));
-            addPairIfPresent(card, ospy, "summary", getString(R.string.details));
-            JSONObject details = ospy.optJSONObject("details");
+            String statusCode = ospy.optString("status", "unknown");
+            addPair(
+                    updateCard, getString(R.string.status),
+                    localizedStatus(statusCode));
+            addPairIfPresent(
+                    updateCard, ospy, "summary",
+                    getString(R.string.details));
             if (details != null) {
                 addPairIfPresent(
-                        card, details, "current_version",
+                        updateCard, details, "current_version",
                         getString(R.string.current_version));
                 addPairIfPresent(
-                        card, details, "current_commit",
+                        updateCard, details, "current_commit",
                         getString(R.string.current_commit));
                 addPairIfPresent(
-                        card, details, "target_commit",
+                        updateCard, details, "target_commit",
                         getString(R.string.target_commit));
                 addPairIfPresent(
-                        card, details, "stable_release",
+                        updateCard, details, "stable_release",
                         getString(R.string.stable_release));
-                addPairIfPresent(
-                        card, details, "update_channel",
-                        getString(R.string.update_channel));
+                if (details.has("update_channel")) {
+                    addPairIfPresent(
+                            updateCard, details, "update_channel",
+                            getString(R.string.update_channel));
+                } else {
+                    addPairIfPresent(
+                            updateCard, details, "upstream_branch",
+                            getString(R.string.update_channel));
+                }
                 addBooleanPairIfPresent(
-                        card, details, "automatic_update",
+                        updateCard, details, "automatic_update",
                         getString(R.string.automatic_update));
                 addBooleanPairIfPresent(
-                        card, details, "update_available",
+                        updateCard, details, "update_available",
                         getString(R.string.update_available));
             }
-            content.addView(card);
         } else {
-            content.addView(statusCard(
-                    getString(R.string.app_name),
-                    getString(R.string.no_data), "warning"));
+            addPair(
+                    updateCard, getString(R.string.status),
+                    getString(R.string.warning_status));
+            updateCard.addView(text(getString(R.string.no_data), 14, false));
         }
-        heading(getString(R.string.actions));
-        LinearLayout actions = actionRow();
-        Button check = button(getString(R.string.check_updates), GREEN);
-        check.setOnClickListener(v -> post(
-                "/updates/actions/check", new JSONObject(),
-                () -> toast(getString(R.string.accepted))));
-        actions.addView(check);
-        Button update = button(getString(R.string.install_update), GREEN);
-        update.setOnClickListener(v -> confirmAction(
-                getString(R.string.confirm_update),
-                "/updates/actions/apply"));
-        actions.addView(update);
+
+        LinearLayout updateActions = actionRow();
+        systemCheckButton = button(getString(R.string.check_updates), GREEN);
+        systemCheckButton.setOnClickListener(v ->
+                startSystemUpdateOperation("check"));
+        updateActions.addView(systemCheckButton);
+
+        systemInstallButton = button(
+                getString(R.string.install_update), GREEN);
+        systemInstallButton.setOnClickListener(v ->
+                confirmSystemUpdate());
+        boolean applyActive = "update.apply".equals(systemOperationKind) &&
+                isSystemOperationActive();
+        systemInstallButton.setVisibility(
+                systemUpdateAvailable || applyActive ? View.VISIBLE : View.GONE);
+        updateActions.addView(systemInstallButton);
+        updateCard.addView(updateActions);
+
+        systemOperationStatusView = text("", 13, true);
+        systemOperationStatusView.setTextColor(MUTED);
+        updateCard.addView(systemOperationStatusView);
+        systemOperationProgressView = new ProgressBar(
+                this, null, android.R.attr.progressBarStyleHorizontal);
+        systemOperationProgressView.setMax(100);
+        updateCard.addView(
+                systemOperationProgressView,
+                new LinearLayout.LayoutParams(-1, dp(8)));
+        updateSystemOperationUi();
+        content.addView(updateCard);
+
+        LinearLayout systemActionsCard = cardColumn();
+        systemActionsCard.addView(text(
+                getString(R.string.system_actions), 16, true));
+        LinearLayout systemActions = actionRow();
         Button backup = button(getString(R.string.create_backup), NAVY);
         backup.setOnClickListener(v -> post(
                 "/backups", new JSONObject(),
                 () -> toast(getString(R.string.accepted))));
-        actions.addView(backup);
-        content.addView(actions);
-        LinearLayout systemActions = actionRow();
+        systemActions.addView(backup);
         Button restart = button(getString(R.string.restart_ospy), RED);
         restart.setOnClickListener(v -> confirmAction(
                 getString(R.string.confirm_restart),
                 "/system/actions/restart-ospy"));
         systemActions.addView(restart);
-        content.addView(systemActions);
+        systemActionsCard.addView(systemActions);
+        content.addView(systemActionsCard);
+
         heading(getString(R.string.available_backups));
         LinearLayout backupActions = actionRow();
         LinearLayout backupList = new LinearLayout(this);
@@ -2736,6 +3143,372 @@ public final class MainActivity extends Activity {
         content.addView(backupActions);
         content.addView(backupList);
         loadBackups(backupList);
+
+        if (!pendingSystemAnnouncement.isEmpty()) {
+            String announcement = pendingSystemAnnouncement;
+            pendingSystemAnnouncement = "";
+            content.post(() -> showSystemAnnouncement(announcement));
+        }
+    }
+
+    private void resetSystemOperationState() {
+        systemOperationHandler.removeCallbacksAndMessages(null);
+        systemOperationId = "";
+        systemOperationKind = "";
+        systemOperationStatus = "";
+        systemOperationError = "";
+        systemOperationProgress = 0;
+        systemOperationStartedAt = 0;
+        systemReconnectStartedAt = 0;
+        systemOperationPolling = false;
+        systemWaitingForReconnect = false;
+        pendingSystemAnnouncement = "";
+        systemUpdateAvailable = false;
+        systemCurrentCommit = "";
+        systemTargetCommit = "";
+        systemApplyCommitBefore = "";
+        systemApplyTargetCommit = "";
+        systemOperationStatusView = null;
+        systemOperationProgressView = null;
+        systemCheckButton = null;
+        systemInstallButton = null;
+    }
+
+    private boolean isSystemOperationActive() {
+        return systemWaitingForReconnect ||
+                "pending".equals(systemOperationStatus) ||
+                "running".equals(systemOperationStatus) ||
+                "accepted".equals(systemOperationStatus);
+    }
+
+    private void confirmSystemUpdate() {
+        new AlertDialog.Builder(this)
+                .setMessage(getString(R.string.confirm_update))
+                .setNegativeButton(android.R.string.cancel, null)
+                .setPositiveButton(android.R.string.ok, (dialog, which) ->
+                        startSystemUpdateOperation("apply"))
+                .show();
+    }
+
+    private void startSystemUpdateOperation(String action) {
+        if (api == null || isSystemOperationActive()) return;
+        systemOperationHandler.removeCallbacksAndMessages(null);
+        systemOperationId = "";
+        systemOperationKind = "update." + action;
+        systemOperationStatus = "pending";
+        systemOperationError = "";
+        systemOperationProgress = 0;
+        systemOperationStartedAt = System.currentTimeMillis();
+        if ("apply".equals(action)) {
+            systemApplyCommitBefore = systemCurrentCommit;
+            systemApplyTargetCommit = systemTargetCommit;
+        }
+        systemOperationPolling = true;
+        systemWaitingForReconnect = false;
+        updateSystemOperationUi();
+
+        api.request(
+                "POST", "/updates/actions/" + action, new JSONObject(),
+                new ApiClient.Callback() {
+                    @Override public void success(JSONObject response) {
+                        JSONObject operation = response.optJSONObject("data");
+                        if (operation == null || operation.optString("id").isEmpty()) {
+                            failSystemOperation(getString(R.string.request_failed));
+                            return;
+                        }
+                        applySystemOperationData(operation);
+                        systemOperationHandler.postDelayed(
+                                MainActivity.this::pollSystemOperation,
+                                UPDATE_OPERATION_POLL_MS);
+                    }
+
+                    @Override public void failure(String error) {
+                        failSystemOperation(localizedError(error));
+                    }
+                });
+    }
+
+    private void applySystemOperationData(JSONObject operation) {
+        systemOperationId = operation.optString("id", systemOperationId);
+        systemOperationKind = operation.optString("kind", systemOperationKind);
+        systemOperationStatus = operation.optString(
+                "status", systemOperationStatus);
+        systemOperationProgress = Math.max(
+                0, Math.min(100, operation.optInt(
+                        "progress", systemOperationProgress)));
+        systemOperationError = operation.optString("error", "");
+        updateSystemOperationUi();
+    }
+
+    private void pollSystemOperation() {
+        if (api == null || systemOperationId.isEmpty() ||
+                !systemOperationPolling || systemWaitingForReconnect) return;
+        api.request(
+                "GET", "/operations/" + systemOperationId, null,
+                new ApiClient.Callback() {
+                    @Override public void success(JSONObject response) {
+                        JSONObject operation = response.optJSONObject("data");
+                        if (operation == null) {
+                            retrySystemOperationPoll();
+                            return;
+                        }
+                        applySystemOperationData(operation);
+                        if ("completed".equals(systemOperationStatus)) {
+                            systemOperationPolling = false;
+                            if ("update.apply".equals(systemOperationKind)) {
+                                waitForSystemAfterUpdate();
+                            } else {
+                                refreshSystemAfterOperation("check");
+                            }
+                            return;
+                        }
+                        if ("failed".equals(systemOperationStatus)) {
+                            failSystemOperation(systemOperationError.isEmpty()
+                                    ? getString(R.string.operation_failed)
+                                    : systemOperationError);
+                            return;
+                        }
+                        retrySystemOperationPoll();
+                    }
+
+                    @Override public void failure(String error) {
+                        if ("update.apply".equals(systemOperationKind)) {
+                            // The normal update path may restart OSPy before
+                            // the client can read the completed operation.
+                            waitForSystemAfterUpdate();
+                        } else if (System.currentTimeMillis() -
+                                systemOperationStartedAt <
+                                UPDATE_RECONNECT_TIMEOUT_MS) {
+                            retrySystemOperationPoll();
+                        } else {
+                            failSystemOperation(localizedError(error));
+                        }
+                    }
+                });
+    }
+
+    private void retrySystemOperationPoll() {
+        if (!systemOperationPolling) return;
+        if (System.currentTimeMillis() - systemOperationStartedAt >=
+                UPDATE_RECONNECT_TIMEOUT_MS) {
+            failSystemOperation(getString(R.string.update_operation_timeout));
+            return;
+        }
+        systemOperationHandler.postDelayed(
+                this::pollSystemOperation, UPDATE_OPERATION_POLL_MS);
+    }
+
+    private void waitForSystemAfterUpdate() {
+        systemOperationHandler.removeCallbacksAndMessages(null);
+        systemOperationPolling = false;
+        systemWaitingForReconnect = true;
+        systemReconnectStartedAt = System.currentTimeMillis();
+        systemOperationStatus = "reconnecting";
+        systemOperationProgress = Math.max(95, systemOperationProgress);
+        updateSystemOperationUi();
+        systemOperationHandler.postDelayed(
+                this::probeSystemAfterUpdate, UPDATE_INITIAL_RESTART_WAIT_MS);
+    }
+
+    private void probeSystemAfterUpdate() {
+        if (api == null || !systemWaitingForReconnect) return;
+        api.request("GET", "/updates", null, new ApiClient.Callback() {
+            @Override public void success(JSONObject response) {
+                JSONObject updateData = response.optJSONObject("data");
+                if (!systemUpdateWasApplied(updateData)) {
+                    if (System.currentTimeMillis() - systemReconnectStartedAt <
+                            UPDATE_APPLY_VERIFY_WAIT_MS) {
+                        systemOperationHandler.postDelayed(
+                                MainActivity.this::probeSystemAfterUpdate,
+                                UPDATE_RECONNECT_POLL_MS);
+                        return;
+                    }
+                    failSystemOperation(getString(R.string.update_not_applied));
+                    if ("system".equals(currentRenderer) && updateData != null) {
+                        content.removeAllViews();
+                        renderSystem(updateData);
+                    }
+                    return;
+                }
+                systemWaitingForReconnect = false;
+                systemOperationStatus = "completed";
+                systemOperationProgress = 100;
+                systemOperationError = "";
+                pendingSystemAnnouncement = "apply";
+                notifications.show(
+                        NotificationCenter.CATEGORY_UPDATES,
+                        getString(R.string.update_operation_completed),
+                        getString(R.string.update_operation_completed_message));
+                displayRefreshedSystem(response);
+            }
+
+            @Override public void failure(String error) {
+                if (System.currentTimeMillis() - systemReconnectStartedAt >=
+                        UPDATE_RECONNECT_TIMEOUT_MS) {
+                    failSystemOperation(
+                            getString(R.string.update_reconnect_timeout));
+                    return;
+                }
+                systemOperationHandler.postDelayed(
+                        MainActivity.this::probeSystemAfterUpdate,
+                        UPDATE_RECONNECT_POLL_MS);
+            }
+        });
+    }
+
+
+    private boolean systemUpdateWasApplied(JSONObject updateData) {
+        if (updateData == null || systemApplyCommitBefore.isEmpty()) return true;
+        JSONObject ospy = updateData.optJSONObject("ospy");
+        JSONObject details = ospy == null ? null : ospy.optJSONObject("details");
+        if (details == null) return true;
+        String currentCommit = details.optString("current_commit", "");
+        String targetCommit = details.optString("target_commit", "");
+        boolean updateAvailable = details.optBoolean("update_available", false);
+        if (!currentCommit.isEmpty() &&
+                !currentCommit.equals(systemApplyCommitBefore)) return true;
+        if (!systemApplyTargetCommit.isEmpty() &&
+                systemApplyTargetCommit.equals(currentCommit)) return true;
+        if (!targetCommit.isEmpty() && targetCommit.equals(currentCommit)) return true;
+        return !updateAvailable && systemApplyTargetCommit.isEmpty();
+    }
+
+    private void refreshSystemAfterOperation(String announcement) {
+        if (api == null) return;
+        api.request("GET", "/updates", null, new ApiClient.Callback() {
+            @Override public void success(JSONObject response) {
+                systemOperationStatus = "completed";
+                systemOperationProgress = 100;
+                systemOperationError = "";
+                pendingSystemAnnouncement = announcement;
+                displayRefreshedSystem(response);
+            }
+
+            @Override public void failure(String error) {
+                failSystemOperation(localizedError(error));
+            }
+        });
+    }
+
+    private void displayRefreshedSystem(JSONObject response) {
+        JSONObject data = response.optJSONObject("data");
+        if ("system".equals(currentRenderer) &&
+                data != null && content != null) {
+            content.removeAllViews();
+            renderSystem(data);
+        } else {
+            updateSystemOperationUi();
+        }
+    }
+
+    private void failSystemOperation(String error) {
+        systemOperationHandler.removeCallbacksAndMessages(null);
+        systemOperationPolling = false;
+        systemWaitingForReconnect = false;
+        systemOperationStatus = "failed";
+        systemOperationProgress = 100;
+        systemOperationError = error == null ? "" : error;
+        updateSystemOperationUi();
+        notifications.show(
+                NotificationCenter.CATEGORY_UPDATES,
+                getString(R.string.update_operation_failed),
+                systemOperationError.isEmpty()
+                        ? getString(R.string.operation_failed)
+                        : systemOperationError);
+        if ("system".equals(currentRenderer)) {
+            message(
+                    getString(R.string.operation_error),
+                    systemOperationError.isEmpty()
+                            ? getString(R.string.operation_failed)
+                            : systemOperationError);
+        }
+    }
+
+    private void updateSystemOperationUi() {
+        boolean visible = !systemOperationStatus.isEmpty();
+        if (systemOperationStatusView != null) {
+            systemOperationStatusView.setVisibility(
+                    visible ? View.VISIBLE : View.GONE);
+            systemOperationStatusView.setText(systemOperationDescription());
+            systemOperationStatusView.setTextColor(
+                    "failed".equals(systemOperationStatus) ? RED : MUTED);
+        }
+        if (systemOperationProgressView != null) {
+            systemOperationProgressView.setVisibility(
+                    visible ? View.VISIBLE : View.GONE);
+            systemOperationProgressView.setProgress(systemOperationProgress);
+        }
+        boolean active = isSystemOperationActive();
+        if (systemCheckButton != null) {
+            systemCheckButton.setEnabled(!active);
+            systemCheckButton.setText(getString(
+                    "update.check".equals(systemOperationKind) && active
+                            ? R.string.checking_updates
+                            : R.string.check_updates));
+        }
+        if (systemInstallButton != null) {
+            systemInstallButton.setEnabled(!active && systemUpdateAvailable);
+            systemInstallButton.setText(getString(
+                    "update.apply".equals(systemOperationKind) && active
+                            ? R.string.installing_update
+                            : R.string.install_update));
+            systemInstallButton.setVisibility(
+                    systemUpdateAvailable ||
+                            ("update.apply".equals(systemOperationKind) && active)
+                            ? View.VISIBLE : View.GONE);
+        }
+    }
+
+    private String systemOperationDescription() {
+        if (systemWaitingForReconnect ||
+                "reconnecting".equals(systemOperationStatus)) {
+            return getString(R.string.waiting_for_ospy_restart);
+        }
+        String action = "update.apply".equals(systemOperationKind)
+                ? getString(R.string.installing_update)
+                : getString(R.string.checking_updates);
+        String state;
+        switch (systemOperationStatus) {
+            case "pending":
+            case "accepted":
+                state = getString(R.string.operation_pending);
+                break;
+            case "running":
+                state = getString(R.string.operation_running);
+                break;
+            case "completed":
+                state = getString(R.string.operation_completed);
+                break;
+            case "failed":
+                state = getString(R.string.operation_failed);
+                break;
+            default:
+                state = localizedStatus(systemOperationStatus);
+                break;
+        }
+        String result = action + " · " + state + " · " +
+                getString(R.string.operation_progress, systemOperationProgress);
+        if (!systemOperationError.isEmpty()) {
+            result += "\n" + systemOperationError;
+        }
+        return result;
+    }
+
+    private void showSystemAnnouncement(String announcement) {
+        if (!"system".equals(currentRenderer)) return;
+        if ("check".equals(announcement)) {
+            String result = getString(systemUpdateAvailable
+                    ? R.string.update_found
+                    : R.string.no_update_available);
+            notifications.show(
+                    NotificationCenter.CATEGORY_UPDATES,
+                    getString(R.string.update_check_complete), result);
+            message(getString(R.string.update_check_complete), result);
+        } else if ("apply".equals(announcement)) {
+            message(
+                    getString(R.string.update_operation_completed),
+                    getString(R.string.update_operation_completed_message));
+        }
     }
 
     private void loadBackups(LinearLayout target) {
@@ -2901,7 +3674,7 @@ public final class MainActivity extends Activity {
         value.setOrientation(LinearLayout.HORIZONTAL);
         value.setGravity(Gravity.CENTER_VERTICAL);
         value.setPadding(dp(10), dp(9), dp(10), dp(9));
-        value.setBackground(background(Color.WHITE, NAVY, 10));
+        value.setBackground(background(SURFACE, CARD_BORDER, 10));
         LinearLayout.LayoutParams layout = new LinearLayout.LayoutParams(-1, -2);
         layout.setMargins(0, 0, 0, dp(8));
         value.setLayoutParams(layout);
@@ -2917,11 +3690,18 @@ public final class MainActivity extends Activity {
 
     private LinearLayout statusCardContainer(String status) {
         LinearLayout value = cardColumn();
-        if ("error".equals(status) || "critical".equals(status)) {
+        String code = status == null
+                ? "" : status.trim().toLowerCase(Locale.ROOT);
+        if ("error".equals(code) || "critical".equals(code) ||
+                "failed".equals(code) || "unhealthy".equals(code)) {
             value.setBackground(background(LIGHT_RED, RED, 10));
-        } else if ("warning".equals(status)) {
+        } else if ("warning".equals(code) || "warn".equals(code) ||
+                "degraded".equals(code) || "blocked".equals(code)) {
             value.setBackground(background(LIGHT_AMBER, AMBER, 10));
-        } else {
+        } else if ("ok".equals(code) || "success".equals(code) ||
+                "healthy".equals(code) || "good".equals(code) ||
+                "running".equals(code) || "completed".equals(code) ||
+                "online".equals(code)) {
             value.setBackground(background(LIGHT_GREEN, GREEN, 10));
         }
         return value;
@@ -2951,7 +3731,7 @@ public final class MainActivity extends Activity {
 
     private void heading(String value) {
         TextView view = text(value, 18, true);
-        view.setTextColor(NAVY);
+        view.setTextColor(HEADING);
         view.setPadding(0, dp(10), 0, dp(5));
         content.addView(view);
     }
@@ -3049,6 +3829,8 @@ public final class MainActivity extends Activity {
     private EditText numericInput(String value) {
         EditText input = new EditText(this);
         input.setInputType(InputType.TYPE_CLASS_NUMBER);
+        input.setTextColor(TEXT);
+        input.setHintTextColor(MUTED);
         input.setText(value);
         input.setSingleLine(true);
         return input;
@@ -3258,13 +4040,20 @@ public final class MainActivity extends Activity {
         TextView badge = text(value, 12, true);
         badge.setGravity(Gravity.CENTER);
         badge.setTextColor(Color.WHITE);
+        String code = status == null
+                ? "" : status.trim().toLowerCase(Locale.ROOT);
         int color = NAVY;
-        if ("ok".equals(status) || "success".equals(status) ||
-                "running".equals(status)) {
+        if ("ok".equals(code) || "success".equals(code) ||
+                "healthy".equals(code) || "good".equals(code) ||
+                "running".equals(code) || "completed".equals(code) ||
+                "online".equals(code)) {
             color = GREEN;
-        } else if ("warning".equals(status) || "blocked".equals(status)) {
+        } else if ("warning".equals(code) || "warn".equals(code) ||
+                "degraded".equals(code) || "blocked".equals(code)) {
             color = AMBER;
-        } else if ("error".equals(status) || "critical".equals(status)) {
+        } else if ("error".equals(code) || "critical".equals(code) ||
+                "failed".equals(code) || "unhealthy".equals(code) ||
+                "offline".equals(code)) {
             color = RED;
         }
         badge.setBackground(background(color, color, 14));
@@ -3329,6 +4118,8 @@ public final class MainActivity extends Activity {
         EditText view = new EditText(this);
         view.setHint(hint);
         view.setTextSize(16);
+        view.setTextColor(TEXT);
+        view.setHintTextColor(MUTED);
         view.setSingleLine(true);
         view.setPadding(dp(8), dp(10), dp(8), dp(10));
         if (password) {
@@ -3344,21 +4135,53 @@ public final class MainActivity extends Activity {
     }
 
     private String localizedStatus(String value) {
-        if (value == null) return "";
-        switch (value.toLowerCase(Locale.ROOT)) {
+        if (value == null || value.isEmpty()) {
+            return getString(R.string.unknown_status);
+        }
+        switch (value.trim().toLowerCase(Locale.ROOT)) {
             case "ok":
             case "success":
+            case "healthy":
+            case "good":
                 return getString(R.string.ok_status);
             case "running":
                 return getString(R.string.running);
+            case "active":
+                return getString(R.string.active);
             case "stopped":
             case "not_running":
                 return getString(R.string.stopped);
+            case "inactive":
+                return getString(R.string.inactive);
             case "warning":
+            case "warn":
+            case "degraded":
                 return getString(R.string.warning_status);
             case "error":
             case "critical":
+            case "failed":
+            case "unhealthy":
                 return getString(R.string.error_status);
+            case "pending":
+                return getString(R.string.pending_status);
+            case "accepted":
+                return getString(R.string.accepted);
+            case "completed":
+                return getString(R.string.completed);
+            case "enabled":
+                return getString(R.string.enabled);
+            case "disabled":
+                return getString(R.string.disabled);
+            case "unknown":
+            case "not_reported":
+                return getString(R.string.unknown_status);
+            case "unavailable":
+            case "not_available":
+                return getString(R.string.not_available);
+            case "online":
+                return getString(R.string.online);
+            case "offline":
+                return getString(R.string.offline);
             default:
                 return value;
         }
@@ -3402,7 +4225,7 @@ public final class MainActivity extends Activity {
 
     private String readable(String value) {
         if (value == null || value.isEmpty()) return "";
-        switch (value.toLowerCase(Locale.ROOT)) {
+        switch (value.trim().toLowerCase(Locale.ROOT)) {
             case "days_simple":
                 return getString(R.string.schedule_days);
             case "days_advanced":

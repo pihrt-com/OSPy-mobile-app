@@ -22,8 +22,8 @@ android {
         applicationId "com.pihrt.ospy.mobile"
         minSdk 26
         targetSdk 37
-        versionCode 13
-        versionName "0.3.6"
+        versionCode 14
+        versionName "0.3.7"
     }
 
     signingConfigs {

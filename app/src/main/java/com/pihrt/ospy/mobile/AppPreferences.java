@@ -27,6 +27,22 @@ final class AppPreferences {
         values.edit().putBoolean("open_last_installation", enabled).apply();
     }
 
+    boolean appLockEnabled() {
+        return values.getBoolean("app_lock_enabled", true);
+    }
+
+    void setAppLockEnabled(boolean enabled) {
+        values.edit().putBoolean("app_lock_enabled", enabled).apply();
+    }
+
+    boolean darkTheme() {
+        return values.getBoolean("dark_theme", false);
+    }
+
+    void setDarkTheme(boolean enabled) {
+        values.edit().putBoolean("dark_theme", enabled).apply();
+    }
+
     String lastInstallationId() {
         return values.getString("last_installation_id", "");
     }

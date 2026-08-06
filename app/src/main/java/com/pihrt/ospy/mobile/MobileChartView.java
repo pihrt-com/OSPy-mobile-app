@@ -37,9 +37,17 @@ final class MobileChartView extends View {
 
     private final List<Series> lines = new ArrayList<>();
     private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final int gridColor;
+    private final int labelColor;
 
-    MobileChartView(Context context, JSONArray series) {
+    MobileChartView(Context context, JSONArray series, boolean darkTheme) {
         super(context);
+        gridColor = darkTheme
+                ? Color.rgb(72, 82, 96)
+                : Color.rgb(205, 210, 220);
+        labelColor = darkTheme
+                ? Color.rgb(220, 226, 234)
+                : Color.DKGRAY;
         parse(series);
     }
 
@@ -111,7 +119,7 @@ final class MobileChartView extends View {
         int bottom = getHeight() - dp(42 + Math.max(1, (lines.size() + 1) / 2) * 18);
         paint.setStyle(Paint.Style.STROKE);
         paint.setStrokeWidth(dp(1));
-        paint.setColor(Color.rgb(205, 210, 220));
+        paint.setColor(gridColor);
         for (int i = 0; i <= 4; i++) {
             float y = top + (bottom - top) * i / 4f;
             canvas.drawLine(left, y, right, y, paint);
@@ -162,7 +170,7 @@ final class MobileChartView extends View {
         }
         paint.setStyle(Paint.Style.FILL);
         paint.setTextSize(dp(10));
-        paint.setColor(Color.DKGRAY);
+        paint.setColor(labelColor);
         canvas.drawText(String.format(Locale.getDefault(), "%.1f", maximum),
                 dp(2), top + dp(8), paint);
         canvas.drawText(String.format(Locale.getDefault(), "%.1f", minimum),
@@ -181,7 +189,7 @@ final class MobileChartView extends View {
             float y = legendTop + row * dp(18);
             paint.setColor(COLORS[i % COLORS.length]);
             canvas.drawRect(x, y - dp(8), x + dp(12), y + dp(2), paint);
-            paint.setColor(Color.DKGRAY);
+            paint.setColor(labelColor);
             String label = lines.get(i).label +
                     (lines.get(i).unit.isEmpty() ? "" : " (" + lines.get(i).unit + ")");
             canvas.drawText(ellipsize(label, columnWidth - dp(18)),

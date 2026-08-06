@@ -195,6 +195,54 @@
     <string name="chart_series">Seria</string>
     <string name="duration_join">%1$s %2$s</string>
 
+
+    <!-- Security, appearance, notification filters and update operations -->
+    <string name="security">Zabezpieczenia</string>
+    <string name="app_lock">Weryfikacja przy otwieraniu</string>
+    <string name="app_lock_description">Przy otwieraniu aplikacji wymagaj biometrii lub blokady urządzenia.</string>
+    <string name="no_device_security">Na urządzeniu nie ustawiono kodu PIN, hasła ani blokady biometrycznej, dlatego nie można wymusić weryfikacji aplikacji.</string>
+    <string name="open_device_security_settings">Otwórz ustawienia zabezpieczeń urządzenia</string>
+    <string name="appearance">Wygląd</string>
+    <string name="dark_theme">Ciemny motyw</string>
+    <string name="dark_theme_description">Używaj ciemnej kolorystyki w całej aplikacji.</string>
+    <string name="notification_preferences_description">Wybierz zdarzenia OSPy, które mogą tworzyć powiadomienia w telefonie.</string>
+    <string name="notify_station_started">Włączenie stacji</string>
+    <string name="notify_station_stopped">Wyłączenie stacji</string>
+    <string name="notify_rain_delay">Opóźnienie deszczowe i ochrona przed deszczem</string>
+    <string name="notify_diagnostics">Problemy diagnostyczne</string>
+    <string name="notify_updates">Aktualizacje i operacje systemowe</string>
+    <string name="notify_other">Inne zdarzenia</string>
+    <string name="connection_settings">Ustawienia połączenia</string>
+    <string name="station_started_notification_title">Stacja uruchomiona</string>
+    <string name="station_started_notification_message">Stacja %1$s została uruchomiona.</string>
+    <string name="station_stopped_notification_title">Stacja zatrzymana</string>
+    <string name="station_stopped_notification_message">Stacja %1$s została zatrzymana.</string>
+    <string name="rain_delay_started_notification_title">Ochrona przed deszczem aktywna</string>
+    <string name="rain_delay_started_notification_message">Ochrona przed deszczem jest aktywna. Pozostało: %1$s</string>
+    <string name="rain_delay_cleared_notification_title">Ochrona przed deszczem zakończona</string>
+    <string name="rain_delay_cleared_notification_message">Ochrona przed deszczem nie jest już aktywna.</string>
+    <string name="system_actions">Operacje systemowe</string>
+    <string name="checking_updates">Sprawdzanie aktualizacji…</string>
+    <string name="installing_update">Instalowanie aktualizacji…</string>
+    <string name="operation_pending">Operacja oczekuje na przetworzenie.</string>
+    <string name="operation_running">Operacja jest wykonywana.</string>
+    <string name="operation_completed">Operacja została zakończona.</string>
+    <string name="operation_failed">Operacja nie powiodła się.</string>
+    <string name="waiting_for_ospy_restart">Oczekiwanie na ponowne uruchomienie i połączenie z OSPy…</string>
+    <string name="update_operation_timeout">Operacja aktualizacji nie zakończyła się w oczekiwanym czasie.</string>
+    <string name="update_reconnect_timeout">Po aktualizacji aplikacja nie mogła ponownie połączyć się z OSPy.</string>
+    <string name="update_not_applied">Aktualizacja prawdopodobnie nie została zainstalowana. OSPy nadal działa na poprzedniej wersji.</string>
+    <string name="update_check_complete">Sprawdzanie aktualizacji zakończone</string>
+    <string name="update_found">Dostępna jest aktualizacja OSPy.</string>
+    <string name="no_update_available">Używasz aktualnej wersji OSPy.</string>
+    <string name="update_operation_completed">Aktualizacja zakończona</string>
+    <string name="update_operation_completed_message">Aktualizacja została zakończona, a aplikacja odświeżyła dane OSPy.</string>
+    <string name="update_operation_failed">Aktualizacja nie powiodła się</string>
+    <string name="operation_error">Błąd operacji</string>
+    <string name="operation_progress">Postęp: %1$d%%</string>
+    <string name="pending_status">Oczekuje</string>
+    <string name="unknown_status">Nieznany</string>
+
     <!-- Localized duration units -->
     <plurals name="duration_days">
         <item quantity="one">%1$d dzień</item>

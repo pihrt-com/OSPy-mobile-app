@@ -195,6 +195,54 @@
     <string name="chart_series">Rad</string>
     <string name="duration_join">%1$s %2$s</string>
 
+
+    <!-- Security, appearance, notification filters and update operations -->
+    <string name="security">Zabezpečenie</string>
+    <string name="app_lock">Overenie pri otvorení</string>
+    <string name="app_lock_description">Pri otvorení aplikácie vyžadovať biometriu alebo zámok zariadenia.</string>
+    <string name="no_device_security">V zariadení nie je nastavený PIN, heslo ani biometrický zámok, preto nemožno overenie aplikácie vynútiť.</string>
+    <string name="open_device_security_settings">Otvoriť nastavenia zabezpečenia zariadenia</string>
+    <string name="appearance">Vzhľad</string>
+    <string name="dark_theme">Tmavý motív</string>
+    <string name="dark_theme_description">Používať v celej aplikácii tmavé farebné prevedenie.</string>
+    <string name="notification_preferences_description">Vyberte, ktoré udalosti OSPy môžu vytvoriť upozornenie v telefóne.</string>
+    <string name="notify_station_started">Zapnutie stanice</string>
+    <string name="notify_station_stopped">Vypnutie stanice</string>
+    <string name="notify_rain_delay">Dažďové oneskorenie a ochrana pred dažďom</string>
+    <string name="notify_diagnostics">Problémy diagnostiky</string>
+    <string name="notify_updates">Aktualizácie a systémové operácie</string>
+    <string name="notify_other">Ostatné udalosti</string>
+    <string name="connection_settings">Nastavenia pripojenia</string>
+    <string name="station_started_notification_title">Stanica spustená</string>
+    <string name="station_started_notification_message">Stanica %1$s bola spustená.</string>
+    <string name="station_stopped_notification_title">Stanica zastavená</string>
+    <string name="station_stopped_notification_message">Stanica %1$s bola zastavená.</string>
+    <string name="rain_delay_started_notification_title">Ochrana pred dažďom je aktívna</string>
+    <string name="rain_delay_started_notification_message">Ochrana pred dažďom je aktívna. Zostáva: %1$s</string>
+    <string name="rain_delay_cleared_notification_title">Ochrana pred dažďom ukončená</string>
+    <string name="rain_delay_cleared_notification_message">Ochrana pred dažďom už nie je aktívna.</string>
+    <string name="system_actions">Systémové akcie</string>
+    <string name="checking_updates">Kontrolujem aktualizácie…</string>
+    <string name="installing_update">Inštalujem aktualizáciu…</string>
+    <string name="operation_pending">Operácia čaká na spracovanie.</string>
+    <string name="operation_running">Operácia prebieha.</string>
+    <string name="operation_completed">Operácia bola dokončená.</string>
+    <string name="operation_failed">Operácia zlyhala.</string>
+    <string name="waiting_for_ospy_restart">Čakám na reštart a opätovné pripojenie k OSPy…</string>
+    <string name="update_operation_timeout">Aktualizačná operácia nebola dokončená v očakávanom čase.</string>
+    <string name="update_reconnect_timeout">Po aktualizácii sa aplikácii nepodarilo znovu pripojiť k OSPy.</string>
+    <string name="update_not_applied">Aktualizácia zrejme nebola nainštalovaná. OSPy stále beží na predchádzajúcej revízii.</string>
+    <string name="update_check_complete">Kontrola aktualizácií dokončená</string>
+    <string name="update_found">Je dostupná aktualizácia OSPy.</string>
+    <string name="no_update_available">Používate aktuálnu verziu OSPy.</string>
+    <string name="update_operation_completed">Aktualizácia dokončená</string>
+    <string name="update_operation_completed_message">Aktualizácia bola dokončená a aplikácia obnovila údaje OSPy.</string>
+    <string name="update_operation_failed">Aktualizácia zlyhala</string>
+    <string name="operation_error">Chyba operácie</string>
+    <string name="operation_progress">Priebeh: %1$d%%</string>
+    <string name="pending_status">Čaká</string>
+    <string name="unknown_status">Neznámy</string>
+
     <!-- Localized duration units -->
     <plurals name="duration_days">
         <item quantity="one">%1$d deň</item>

@@ -1,6 +1,14 @@
 # OSPy Mobile
 Android client for the OSPy `/api/v1`. App on [Google store](https://play.google.com/store/apps/details?id=com.pihrt.ospy.mobile)
 
+## Included in version 0.3.7
+- Application authentication is enabled by default and can be disabled in the gear-menu settings. Android 10 and newer offer biometrics or the device credential; Android 8 and 9 use the secure device-credential screen.
+- A light/dark theme switch applies a complete runtime colour palette to the native interface, cards, forms, status panels and plug-in charts.
+- Phone notifications can be enabled separately for station start, station stop, rain protection, diagnostics, updates and other OSPy events.
+- The System screen keeps update controls inside the OSPy information card, hides installation when no update is available and follows the asynchronous API operation until completion or failure.
+- After an OSPy update and restart, the app reconnects, reloads the update state and refreshes the System screen automatically.
+- Stable status codes such as `ok`, `warn`, `degraded`, `failed` and `unknown` are localized and use consistent status colours in every supported language.
+
 ## Included in version 0.3.6
 - Plug-in cards show history controls only when the server supplies an actual graph, explicit history metadata or at least one measured series point.
 - The System screen lists retained OSPy backups and downloads the selected ZIP through Android's system file picker.
@@ -68,7 +76,7 @@ The app uses native Android string resources and includes English, Czech, German
 
 ## Build
 
-Install Android Studio with Android SDK 35 and JDK 17. Open this directory, allow Gradle to synchronize and run or build the `app` configuration. GitHub Actions also builds a debug APK on every push and pull request using JDK 17 and the Gradle version pinned by the repository wrapper.
+Install Android Studio with Android SDK 37 and JDK 17. Open this directory, allow Gradle to synchronize and run or build the `app` configuration. GitHub Actions also builds a debug APK on every push and pull request using JDK 17 and the Gradle version pinned by the repository wrapper.
 
 The repository intentionally does not contain `local.properties`, SDK files, signing keys or built APK files.
 
