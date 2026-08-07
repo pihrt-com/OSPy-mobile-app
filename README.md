@@ -4,6 +4,13 @@ Open Sprinkler Python [Git-Hub source](https://github.com/martinpihrt/OSPy)
 # OSPy Mobile APP
 Android client for the OSPy `/api/v1`. App on [Google store](https://play.google.com/store/apps/details?id=com.pihrt.ospy.mobile)
 
+
+## Included in version 0.3.11
+- Centered the installation name in the free toolbar area between the OpenSprinkler logo and the settings button. The title now uses the same 28 dp visual height as the logo and a smaller 18 sp font.
+- Fixed notification category routing: station start, station stop, rain, diagnostics and update server events now respect their matching settings instead of falling through to Other or being discarded.
+- Added native Android JobScheduler background polling of the persistent API v1 notifications feed. Notifications continue to be collected when the activity is not open; periodic background execution is scheduled every 15 minutes and survives reboot/app replacement. Live in-app polling remains active while the app process is running.
+- Added persistent per-installation notification cursors to prevent duplicate or historical notification floods.
+
 ## Included in version 0.3.10
 - Added the supplied OpenSprinkler logo before the installation name. The branded toolbar remains visible on every installation tab.
 - Added pull-to-refresh to the Home tab. Pulling down from the top performs the same complete reload as leaving Home and returning to it.

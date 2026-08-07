@@ -263,6 +263,7 @@ public final class MainActivity extends Activity {
         applySystemBarColors();
         installationStore = new InstallationStore(this);
         notifications = new NotificationCenter(this);
+        NotificationScheduler.update(this, false);
         if (Build.VERSION.SDK_INT >= 33 &&
                 notifications.isEnabled() &&
                 checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)
@@ -488,9 +489,6 @@ public final class MainActivity extends Activity {
         toolbar.setPadding(dp(16), dp(10), dp(12), dp(10));
         toolbar.setBackgroundColor(GREEN);
 
-        LinearLayout branding = new LinearLayout(this);
-        branding.setOrientation(LinearLayout.HORIZONTAL);
-        branding.setGravity(Gravity.CENTER_VERTICAL);
         if (showInstallationLogo) {
             ImageView logo = new ImageView(this);
             logo.setImageResource(R.drawable.opensprinkler_logo);
@@ -499,17 +497,27 @@ public final class MainActivity extends Activity {
             logo.setContentDescription(null);
             logo.setImportantForAccessibility(
                     View.IMPORTANT_FOR_ACCESSIBILITY_NO);
-            LinearLayout.LayoutParams logoParams =
-                    new LinearLayout.LayoutParams(dp(111), dp(28));
-            logoParams.setMarginEnd(dp(8));
-            branding.addView(logo, logoParams);
+            toolbar.addView(
+                    logo, new LinearLayout.LayoutParams(dp(111), dp(28)));
+
+            title = text(heading, 18, true);
+            title.setTextColor(Color.WHITE);
+            title.setSingleLine(true);
+            title.setEllipsize(android.text.TextUtils.TruncateAt.END);
+            title.setGravity(Gravity.CENTER);
+            LinearLayout.LayoutParams titleParams =
+                    new LinearLayout.LayoutParams(0, dp(28), 1);
+            titleParams.setMargins(dp(8), 0, dp(8), 0);
+            toolbar.addView(title, titleParams);
+        } else {
+            title = text(heading, 22, true);
+            title.setTextColor(Color.WHITE);
+            title.setSingleLine(true);
+            title.setEllipsize(android.text.TextUtils.TruncateAt.END);
+            toolbar.addView(
+                    title, new LinearLayout.LayoutParams(0, -2, 1));
         }
-        title = text(heading, 22, true);
-        title.setTextColor(Color.WHITE);
-        title.setSingleLine(true);
-        title.setEllipsize(android.text.TextUtils.TruncateAt.END);
-        branding.addView(title, new LinearLayout.LayoutParams(0, -2, 1));
-        toolbar.addView(branding, new LinearLayout.LayoutParams(0, -2, 1));
+
         ImageButton settings = new ImageButton(this);
         settings.setImageResource(R.drawable.ic_settings);
         settings.setColorFilter(Color.WHITE);
@@ -712,6 +720,7 @@ public final class MainActivity extends Activity {
         notificationToggle.setOnClickListener(v -> {
             boolean enabled = !notifications.isEnabled();
             notifications.setEnabled(enabled);
+            NotificationScheduler.update(this, false);
             if (enabled && Build.VERSION.SDK_INT >= 33 &&
                     checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)
                             != PackageManager.PERMISSION_GRANTED) {
@@ -1005,6 +1014,7 @@ public final class MainActivity extends Activity {
         if (liveUpdates != null) liveUpdates.stop();
         liveUpdates = new LiveUpdates(api, this::handleLiveEvent);
         liveUpdates.start();
+        NotificationScheduler.update(this, false);
     }
 
     private void resetNotificationBaseline() {
@@ -1043,29 +1053,8 @@ public final class MainActivity extends Activity {
     }
 
     private void handleServerNotification(JSONObject data) {
-        String eventType = data.optString("type");
-        String code = data.optString("code");
-
-        // Station and rain transitions are generated from the authoritative
-        // overview snapshot below. Ignoring their server copies avoids a
-        // duplicate phone notification while remaining compatible with older
-        // servers that do not publish every transition as a notification.
-        if ("station_stopped".equals(code) || "rain".equals(eventType)) return;
-
-        String category;
-        if ("diagnostics".equals(eventType)) {
-            category = NotificationCenter.CATEGORY_DIAGNOSTICS;
-        } else if (eventType.startsWith("update") ||
-                code.startsWith("update_")) {
-            category = NotificationCenter.CATEGORY_UPDATES;
-        } else {
-            category = NotificationCenter.CATEGORY_OTHER;
-        }
-        notifications.show(
-                data.optInt("id", (int) System.currentTimeMillis()),
-                category,
-                data.optString("title", getString(R.string.app_name)),
-                data.optString("message", ""));
+        if (current == null) return;
+        notifications.showServerNotification(current, data);
     }
 
     private void handleOperationEvent(String eventType, JSONObject data) {
@@ -3845,6 +3834,8 @@ public final class MainActivity extends Activity {
                 .setPositiveButton(android.R.string.ok, (dialog, which) -> {
                     try {
                         installationStore.remove(installation.id);
+                        notifications.clearInstallation(installation.id);
+                        NotificationScheduler.update(this, false);
                         showInstallations();
                     } catch (Exception error) {
                         message(

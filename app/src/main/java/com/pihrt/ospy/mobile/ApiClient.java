@@ -24,6 +24,8 @@ import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
 
 final class ApiClient {
+    private static final Object REFRESH_LOCK = new Object();
+
     interface Callback {
         void success(JSONObject response);
         void failure(String message);
@@ -70,6 +72,12 @@ final class ApiClient {
 
     void probe(Callback callback) {
         request("GET", "/server", null, callback);
+    }
+
+    /** Package-private synchronous request for JobService background polling. */
+    JSONObject requestBlocking(String method, String path, JSONObject body)
+            throws Exception {
+        return execute(method, path, body, true);
     }
 
     void pair(String username, String password, String twoFactor, Callback callback) {
@@ -173,13 +181,23 @@ final class ApiClient {
     }
 
     private void refresh() throws Exception {
-        JSONObject body = new JSONObject()
-                .put("refresh_token", installation.refreshToken);
-        JSONObject envelope = executeRaw("POST", "/auth/refresh", body, "");
-        JSONObject data = envelope.getJSONObject("data");
-        accessToken = data.getString("access_token");
-        installation.refreshToken = data.getString("refresh_token");
-        store.upsert(installation);
+        synchronized (REFRESH_LOCK) {
+            // A JobService and the foreground Activity can both need a token.
+            // Refresh tokens rotate, so always re-read the newest persisted
+            // token after obtaining the process-wide refresh lock.
+            Installation latest = store.latest(installation.id);
+            if (latest != null && latest.refreshToken != null &&
+                    !latest.refreshToken.isEmpty()) {
+                installation.refreshToken = latest.refreshToken;
+            }
+            JSONObject body = new JSONObject()
+                    .put("refresh_token", installation.refreshToken);
+            JSONObject envelope = executeRaw("POST", "/auth/refresh", body, "");
+            JSONObject data = envelope.getJSONObject("data");
+            accessToken = data.getString("access_token");
+            installation.refreshToken = data.getString("refresh_token");
+            store.upsert(installation);
+        }
     }
 
     private JSONObject executeRaw(String method, String path, JSONObject body,
