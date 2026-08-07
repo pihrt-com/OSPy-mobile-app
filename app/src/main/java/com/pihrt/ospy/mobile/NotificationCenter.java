@@ -170,7 +170,8 @@ final class NotificationCenter {
 
     static String categoryForServerNotification(JSONObject data) {
         if (data == null) return CATEGORY_OTHER;
-        String type = normalizeToken(data.optString("type", ""));
+        String type = normalizeToken(data.optString(
+                "type", data.optString("event_type", "")));
         String code = normalizeToken(data.optString("code", ""));
         String combined = type + " " + code;
 

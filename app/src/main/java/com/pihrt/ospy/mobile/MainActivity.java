@@ -720,7 +720,7 @@ public final class MainActivity extends Activity {
         notificationToggle.setOnClickListener(v -> {
             boolean enabled = !notifications.isEnabled();
             notifications.setEnabled(enabled);
-            NotificationScheduler.update(this, false);
+            NotificationScheduler.update(this, true);
             if (enabled && Build.VERSION.SDK_INT >= 33 &&
                     checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)
                             != PackageManager.PERMISSION_GRANTED) {
@@ -1759,6 +1759,40 @@ public final class MainActivity extends Activity {
     }
 
     private void renderStations(JSONArray stationItems) {
+        final int generation = loadGeneration;
+        content.addView(text(getString(R.string.loading), 16, false));
+        api.request("GET", "/irrigation", null, new ApiClient.Callback() {
+            @Override public void success(JSONObject response) {
+                if (generation != loadGeneration ||
+                        !"stations".equals(currentRenderer)) return;
+                JSONObject irrigation = response.optJSONObject("data");
+                renderStationCards(
+                        stationItems,
+                        irrigation != null &&
+                                irrigation.optBoolean("manual_mode"),
+                        "");
+            }
+
+            @Override public void failure(String error) {
+                if (generation != loadGeneration ||
+                        !"stations".equals(currentRenderer)) return;
+                renderStationCards(stationItems, false, localizedError(error));
+            }
+        });
+    }
+
+    private void renderStationCards(
+            JSONArray stationItems, boolean manualMode, String stateError) {
+        content.removeAllViews();
+        if (!stateError.isEmpty()) {
+            content.addView(statusCard(
+                    getString(R.string.manual_mode), stateError, "warning"));
+        } else if (!manualMode) {
+            content.addView(statusCard(
+                    getString(R.string.manual_mode),
+                    getString(R.string.manual_mode_required_for_station_start),
+                    "warning"));
+        }
         for (int i = 0; i < stationItems.length(); i++) {
             JSONObject station = stationItems.optJSONObject(i);
             if (station == null) continue;
@@ -1776,7 +1810,8 @@ public final class MainActivity extends Activity {
                     16, true);
             card.addView(label, new LinearLayout.LayoutParams(0, -2, 1));
             if (!station.optBoolean("is_master") &&
-                    !station.optBoolean("is_master_two")) {
+                    !station.optBoolean("is_master_two") &&
+                    !station.optBoolean("is_program_master")) {
                 boolean running = station.optBoolean("running");
                 String action = running ? "stop" : "start";
                 Button toggle = button(
@@ -1787,6 +1822,10 @@ public final class MainActivity extends Activity {
                                 "/actions/" + action,
                         new JSONObject(),
                         () -> load("/stations", "stations")));
+                if (!running && !manualMode) {
+                    toggle.setEnabled(false);
+                    toggle.setAlpha(0.45f);
+                }
                 card.addView(toggle);
             }
             content.addView(card);

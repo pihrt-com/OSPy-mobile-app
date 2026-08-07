@@ -71,6 +71,7 @@
     <string name="irrigation">Bewässerung</string>
     <string name="scheduler">Zeitplaner</string>
     <string name="manual_mode">Manueller Modus</string>
+    <string name="manual_mode_required_for_station_start">Der manuelle Modus ist ausgeschaltet. Aktivieren Sie ihn auf der Startseite, bevor Sie eine Station starten.</string>
     <string name="rain">Regen</string>
     <string name="rain_delay">Regenverzögerung</string>
     <string name="active_stations">Aktive Stationen</string>
