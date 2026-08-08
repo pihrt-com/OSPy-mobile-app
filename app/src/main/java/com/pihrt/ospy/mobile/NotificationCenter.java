@@ -88,9 +88,9 @@ final class NotificationCenter {
 
         String category = categoryForServerNotification(data);
         rememberServerCategory(category);
-        String title = data.optString("title", "").trim();
-        if (title.isEmpty()) title = context.getString(R.string.app_name);
-        String message = data.optString("message", "");
+        String[] localized = localizedServerNotification(data, category);
+        String title = localized[0];
+        String message = localized[1];
         int notificationId = serverId > 0
                 ? stableNotificationId(installation.id, serverId)
                 : NEXT_ID.incrementAndGet();
@@ -98,6 +98,48 @@ final class NotificationCenter {
                 notificationId, category, title, message,
                 installation.name == null ? "" : installation.name);
         if (serverId > 0) setServerCursor(installation.id, serverId);
+    }
+
+    private String[] localizedServerNotification(
+            JSONObject notification, String category) {
+        String code = normalizeToken(notification.optString("code", ""));
+        JSONObject payload = notification.optJSONObject("data");
+        JSONObject station = payload == null ? null : payload.optJSONObject("station");
+        String stationName = station == null
+                ? context.getString(R.string.station)
+                : station.optString("name", context.getString(R.string.station));
+        switch (code) {
+            case "station_started":
+                return new String[]{
+                        context.getString(R.string.station_started_notification_title),
+                        context.getString(
+                                R.string.station_started_notification_message,
+                                stationName)};
+            case "station_stopped":
+                return new String[]{
+                        context.getString(R.string.station_stopped_notification_title),
+                        context.getString(
+                                R.string.station_stopped_notification_message,
+                                stationName)};
+            case "rain_active":
+                return new String[]{
+                        context.getString(R.string.rain_delay_started_notification_title),
+                        context.getString(R.string.rain_active_notification_message)};
+            default:
+                if (CATEGORY_DIAGNOSTICS.equals(category)) {
+                    return new String[]{
+                            context.getString(R.string.diagnostic_notification_title),
+                            context.getString(R.string.diagnostic_notification_message)};
+                }
+                if (CATEGORY_UPDATES.equals(category)) {
+                    return new String[]{
+                            context.getString(R.string.update_notification_title),
+                            context.getString(R.string.update_notification_message)};
+                }
+                return new String[]{
+                        context.getString(R.string.notification_received_title),
+                        context.getString(R.string.notification_received_message)};
+        }
     }
 
     /**

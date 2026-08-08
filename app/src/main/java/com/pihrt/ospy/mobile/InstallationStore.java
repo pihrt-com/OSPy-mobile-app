@@ -51,6 +51,28 @@ final class InstallationStore {
         }
     }
 
+    void updateMetadata(Installation changed) throws Exception {
+        synchronized (STORE_LOCK) {
+            // The foreground editor may hold an object loaded before a
+            // background refresh rotated the one-time refresh token. Merge
+            // editable fields into the newest stored credentials atomically.
+            loadUnlocked();
+            for (int i = 0; i < installations.size(); i++) {
+                Installation latest = installations.get(i);
+                if (latest.id.equals(changed.id)) {
+                    installations.set(i, new Installation(
+                            latest.id, changed.name, changed.baseUrl,
+                            latest.username, latest.refreshToken,
+                            changed.allowUnverifiedCertificate));
+                    persistUnlocked();
+                    return;
+                }
+            }
+            installations.add(changed);
+            persistUnlocked();
+        }
+    }
+
     void remove(String id) throws Exception {
         synchronized (STORE_LOCK) {
             loadUnlocked();

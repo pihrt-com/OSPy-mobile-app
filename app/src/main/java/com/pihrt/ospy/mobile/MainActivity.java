@@ -63,6 +63,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public final class MainActivity extends Activity {
     private static final int REQUEST_NOTIFICATIONS = 10;
@@ -399,25 +401,35 @@ public final class MainActivity extends Activity {
                 else candidates.add(installation);
             }
         }
-        openFirstReachable(candidates, 0);
+        openFirstReachable(candidates);
     }
 
-    private void openFirstReachable(List<Installation> candidates, int index) {
-        if (index >= candidates.size()) {
+    private void openFirstReachable(List<Installation> candidates) {
+        if (candidates.isEmpty()) {
             showInstallations();
             toast(getString(R.string.no_reachable_installation));
             return;
         }
-        Installation candidate = candidates.get(index);
-        new ApiClient(candidate, installationStore).probe(new ApiClient.Callback() {
-            @Override public void success(JSONObject response) {
-                open(candidate);
-            }
+        // Probe saved installations concurrently. One unreachable address now
+        // costs at most one timeout instead of blocking every later candidate
+        // for another full timeout.
+        AtomicBoolean selected = new AtomicBoolean(false);
+        AtomicInteger remaining = new AtomicInteger(candidates.size());
+        for (Installation candidate : candidates) {
+            new ApiClient(candidate, installationStore).probe(new ApiClient.Callback() {
+                @Override public void success(JSONObject response) {
+                    if (selected.compareAndSet(false, true)) open(candidate);
+                }
 
-            @Override public void failure(String error) {
-                openFirstReachable(candidates, index + 1);
-            }
-        });
+                @Override public void failure(String error) {
+                    if (remaining.decrementAndGet() == 0 &&
+                            selected.compareAndSet(false, true)) {
+                        showInstallations();
+                        toast(getString(R.string.no_reachable_installation));
+                    }
+                }
+            });
+        }
     }
 
     private boolean isOnWifi() {
@@ -989,7 +1001,7 @@ public final class MainActivity extends Activity {
                     installation.refreshToken,
                     base.startsWith("https://") && unverified.isChecked());
             try {
-                installationStore.upsert(changed);
+                installationStore.updateMetadata(changed);
                 showInstallations();
             } catch (Exception error) {
                 message(
@@ -1838,6 +1850,9 @@ public final class MainActivity extends Activity {
     }
 
     private void renderPrograms(JSONArray programItems) {
+        Button addProgram = button(getString(R.string.add_program), GREEN);
+        addProgram.setOnClickListener(v -> loadNewProgramEditor());
+        content.addView(addProgram);
         for (int i = 0; i < programItems.length(); i++) {
             JSONObject program = programItems.optJSONObject(i);
             if (program == null) continue;
@@ -2260,6 +2275,32 @@ public final class MainActivity extends Activity {
         });
     }
 
+    private void loadNewProgramEditor() {
+        try {
+            JSONArray days = new JSONArray();
+            for (int day = 0; day < 7; day++) days.put(day);
+            JSONArray typeData = new JSONArray()
+                    .put(360).put(10).put(0).put(0).put(days);
+            JSONObject fields = new JSONObject()
+                    .put("start_minute", 360)
+                    .put("duration_minutes", 10)
+                    .put("pause_minutes", 0)
+                    .put("repeat_count", 0)
+                    .put("days", days);
+            JSONObject draft = new JSONObject()
+                    .put("id", "")
+                    .put("name", "")
+                    .put("enabled", false)
+                    .put("stations", new JSONArray())
+                    .put("type", 0)
+                    .put("type_data", typeData)
+                    .put("editor", new JSONObject().put("fields", fields));
+            loadProgramEditor(draft);
+        } catch (Exception error) {
+            toast(getString(R.string.invalid_program_data));
+        }
+    }
+
     private void showProgramEditor(
             JSONObject program, JSONArray allStations) {
         ScrollView scroll = new ScrollView(this);
@@ -2269,6 +2310,11 @@ public final class MainActivity extends Activity {
         EditText name = input(getString(R.string.program), false);
         name.setText(program.optString("name"));
         form.addView(name);
+        CheckBox programEnabled = new CheckBox(this);
+        programEnabled.setText(getString(R.string.program_enabled));
+        programEnabled.setTextColor(TEXT);
+        programEnabled.setChecked(program.optBoolean("enabled", true));
+        form.addView(programEnabled);
 
         TextView stationHeading = text(
                 getString(R.string.program_stations), 15, true);
@@ -2353,7 +2399,9 @@ public final class MainActivity extends Activity {
         final EditText repeatsField = repeats;
         final EditText advancedField = advanced;
         AlertDialog dialog = new AlertDialog.Builder(this)
-                .setTitle(program.optString("name"))
+                .setTitle(program.optString("id").isEmpty()
+                        ? getString(R.string.new_program)
+                        : program.optString("name"))
                 .setView(scroll)
                 .setNegativeButton(android.R.string.cancel, null)
                 .setPositiveButton(R.string.save, null)
@@ -2365,6 +2413,15 @@ public final class MainActivity extends Activity {
                                 JSONArray stations = new JSONArray();
                                 for (CheckBox check : stationChecks) {
                                     if (check.isChecked()) stations.put(check.getTag());
+                                }
+                                boolean creating = program.optString("id").isEmpty();
+                                if (name.getText().toString().trim().isEmpty()) {
+                                    toast(getString(R.string.program_name_required));
+                                    return;
+                                }
+                                if (creating && stations.length() == 0) {
+                                    toast(getString(R.string.program_station_required));
+                                    return;
                                 }
                                 JSONArray typeData;
                                 if (startField != null) {
@@ -2398,14 +2455,17 @@ public final class MainActivity extends Activity {
                                 JSONObject payload = new JSONObject();
                                 payload.put("name", name.getText().toString().trim());
                                 payload.put("stations", stations);
+                                payload.put("enabled", programEnabled.isChecked());
                                 payload.put("type", type);
                                 payload.put("type_data", typeData);
-                                put(
+                                Runnable saved = () -> {
+                                    dialog.dismiss();
+                                    load("/programs", "programs");
+                                };
+                                if (creating) post("/programs", payload, saved);
+                                else put(
                                         "/programs/" + program.optString("id"),
-                                        payload, () -> {
-                                            dialog.dismiss();
-                                            load("/programs", "programs");
-                                        });
+                                        payload, saved);
                             } catch (Exception error) {
                                 toast(getString(R.string.invalid_program_data));
                             }
@@ -2514,16 +2574,27 @@ public final class MainActivity extends Activity {
                         }
                         JSONObject status = data.optJSONObject("status");
                         if (status != null) {
+                            boolean systemUpdatePlugin =
+                                    "system_update".equals(plugin.optString("id"));
                             LinearLayout statusCard = statusCardContainer(
                                     status.optString("status", "ok"));
                             statusCard.addView(text(
-                                    status.optString(
-                                            "title",
-                                            getString(R.string.operating_data)),
+                                    systemUpdatePlugin
+                                            ? getString(R.string.system_update)
+                                            : status.optString(
+                                                    "title",
+                                                    getString(R.string.operating_data)),
                                     15, true));
-                            addPairIfPresent(
-                                    statusCard, status, "summary",
-                                    getString(R.string.status));
+                            if (systemUpdatePlugin) {
+                                addPair(
+                                        statusCard, getString(R.string.status),
+                                        localizedStatus(status.optString(
+                                                "status", "unknown")));
+                            } else {
+                                addPairIfPresent(
+                                        statusCard, status, "summary",
+                                        getString(R.string.status));
+                            }
                             addPairIfPresent(
                                     statusCard, status, "updated",
                                     getString(R.string.updated));
@@ -2711,6 +2782,8 @@ public final class MainActivity extends Activity {
                 return getString(R.string.system_information);
             case "calculation":
                 return getString(R.string.weather_calculation);
+            case "system_update":
+                return getString(R.string.system_update);
             default:
                 return card.optString(
                         "title", getString(R.string.operating_data));
@@ -2720,6 +2793,9 @@ public final class MainActivity extends Activity {
     private String mobileMetricLabel(JSONObject metric) {
         String id = metric.optString("id");
         String serverLabel = metric.optString("label");
+        if (id.startsWith("update_") && !serverLabel.isEmpty()) {
+            return readable(serverLabel);
+        }
         if (id.startsWith("master_") || "station_current".equals(id)) {
             return serverLabel.isEmpty() ? id : serverLabel;
         }
@@ -2887,7 +2963,34 @@ public final class MainActivity extends Activity {
 
     private String mobileMetricValue(JSONObject metric) {
         String id = metric.optString("id");
-        String value = String.valueOf(metric.opt("value"));
+        Object rawValue = metric.opt("value");
+        if (rawValue instanceof Boolean) {
+            return getString((Boolean) rawValue ? R.string.on : R.string.off);
+        }
+        String value = String.valueOf(rawValue);
+        if (id.startsWith("update_")) {
+            String normalized = value.trim().toLowerCase(Locale.ROOT);
+            switch (normalized) {
+                case "success":
+                    return getString(R.string.success_status);
+                case "none":
+                    return getString(R.string.none_value);
+                case "inactive":
+                    return getString(R.string.inactive);
+                case "running":
+                    return getString(R.string.running);
+                case "stopped":
+                    return getString(R.string.stopped);
+                case "waiting for healthy start":
+                    return getString(R.string.waiting_healthy_start);
+            }
+            if (normalized.startsWith("stable (")) {
+                return getString(R.string.stable_channel) + value.substring(6);
+            }
+            if (normalized.startsWith("test (")) {
+                return getString(R.string.test_channel) + value.substring(4);
+            }
+        }
         if ("trend".equals(id)) {
             switch (value.trim().toLowerCase(Locale.ROOT)) {
                 case "rising":
@@ -4406,7 +4509,27 @@ public final class MainActivity extends Activity {
         if (value == null || value.isEmpty()) {
             return getString(R.string.request_failed);
         }
-        String lower = value.toLowerCase(Locale.ROOT);
+        String code = ApiClient.errorCode(value);
+        String message = ApiClient.errorMessage(value);
+        switch (code) {
+            case "invalid_refresh_token":
+            case "invalid_token":
+            case "expired_token":
+            case "token_expired":
+                return getString(R.string.session_expired);
+            case "insufficient_scope":
+                return getString(R.string.permission_denied);
+            case "not_found":
+                return getString(R.string.item_not_found);
+            default:
+                if (code.startsWith("invalid_") || code.startsWith("missing_") ||
+                        code.startsWith("unknown_") ||
+                        code.startsWith("read_only_")) {
+                    return getString(R.string.invalid_request);
+                }
+                if (!code.isEmpty()) return getString(R.string.request_failed);
+        }
+        String lower = message.toLowerCase(Locale.ROOT);
         if (lower.contains("certpathvalidatorexception") ||
                 lower.contains("trust anchor") ||
                 lower.contains("certificate_unknown")) {
@@ -4417,11 +4540,21 @@ public final class MainActivity extends Activity {
                 lower.contains("no address associated with hostname")) {
             return getString(R.string.unknown_host_error);
         }
+        if (lower.contains("failed to connect") ||
+                lower.contains("connectexception") ||
+                lower.contains("connection refused") ||
+                lower.contains("econnrefused")) {
+            return getString(R.string.cannot_connect);
+        }
+        if (lower.contains("timed out") || lower.contains("timeout") ||
+                lower.matches(".*after\\s+\\d+ms.*")) {
+            return getString(R.string.connection_timeout);
+        }
         if (lower.contains("internal server error") ||
                 lower.equals("internal_error")) {
             return getString(R.string.request_failed);
         }
-        return value;
+        return getString(R.string.request_failed);
     }
 
     private static String weatherIcon(String value) {
@@ -4440,7 +4573,9 @@ public final class MainActivity extends Activity {
 
     private String readable(String value) {
         if (value == null || value.isEmpty()) return "";
-        switch (value.trim().toLowerCase(Locale.ROOT)) {
+        String normalized = value.trim().toLowerCase(Locale.ROOT)
+                .replace('-', '_').replace(' ', '_');
+        switch (normalized) {
             case "days_simple":
                 return getString(R.string.schedule_days);
             case "days_advanced":
@@ -4463,6 +4598,18 @@ public final class MainActivity extends Activity {
                 return getString(R.string.automatic_update);
             case "update_available":
                 return getString(R.string.update_available);
+            case "checking":
+                return getString(R.string.checking_updates);
+            case "stable_release":
+                return getString(R.string.stable_release);
+            case "upstream_branch":
+                return getString(R.string.upstream_branch);
+            case "update_channel":
+                return getString(R.string.update_channel);
+            case "update_watchdog":
+                return getString(R.string.update_watchdog);
+            case "last_watchdog_result":
+                return getString(R.string.last_watchdog_result);
             case "current_version":
                 return getString(R.string.current_version);
             case "current_commit":

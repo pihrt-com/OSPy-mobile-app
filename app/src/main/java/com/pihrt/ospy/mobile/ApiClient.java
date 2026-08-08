@@ -278,8 +278,28 @@ final class ApiClient {
 
     private static String message(Exception error) {
         String value = error.getMessage();
-        return value == null || value.isEmpty()
+        value = value == null || value.isEmpty()
                 ? error.getClass().getSimpleName() : value;
+        if (error instanceof ApiException) {
+            String code = ((ApiException) error).code;
+            if (code != null && !code.isEmpty()) {
+                return "@api:" + code + ":" + value;
+            }
+        }
+        return value;
+    }
+
+    static String errorCode(String value) {
+        if (value == null || !value.startsWith("@api:")) return "";
+        int separator = value.indexOf(':', 5);
+        return separator < 0 ? "" : value.substring(5, separator);
+    }
+
+    static String errorMessage(String value) {
+        if (value == null) return "";
+        if (!value.startsWith("@api:")) return value;
+        int separator = value.indexOf(':', 5);
+        return separator < 0 ? value : value.substring(separator + 1);
     }
 
     static final class ApiException extends Exception {
