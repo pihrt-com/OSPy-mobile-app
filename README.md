@@ -4,6 +4,26 @@ Open Sprinkler Python [Git-Hub source](https://github.com/martinpihrt/OSPy)
 # OSPy Mobile APP
 Android client for the OSPy `/api/v1`. App on [Google store](https://play.google.com/store/apps/details?id=com.pihrt.ospy.mobile)
 
+Current source version: **0.3.14** (`versionCode 21`).
+
+## Included in version 0.3.14
+- Added creation of native OSPy programs. The app first asks for the scheduling type and then opens the matching form instead of silently creating a custom schedule.
+- Added type-aware editing for all seven supported OSPy scheduling models: selected days (simple/advanced), repeating (simple/advanced), weekly advanced, custom and weekly weather based.
+- Editing preserves the existing program type and its matching `type_data` shape. Unknown future types remain unsupported instead of being converted to custom.
+- Program forms validate required stations, weekdays, dates, times, positive values, intervals and weather priority moments before sending the request.
+- A failed save leaves the editor open and displays a localized, actionable reason returned through the stable API error code and details.
+- Weekly weather pause ratio is displayed as a percentage while the API value remains the native OSPy decimal ratio (`0.5` means 50%).
+- Increased the Android package version to `0.3.14` (`versionCode 21`).
+
+The matching OSPy server update validates and builds a complete program on a detached instance before committing it. This prevents a rejected create or edit request from partially renaming a program, changing its enabled state or converting its scheduling type. Use the current OSPy `/api/v1` implementation with this app version.
+
+## Included in version 0.3.13
+- Editing a saved installation preserves the newest rotating refresh token, so changing its display name, address or certificate setting no longer invalidates the connection.
+- Structured authentication, API and network failures are localized instead of exposing raw English exception text or connection details.
+- Server notifications are rendered from stable notification codes and structured data. Known station, rain, diagnostics and update events no longer depend on the server's English title or message.
+- Saved installations are probed concurrently at startup, reducing the delay when one or more configured OSPy addresses are unavailable.
+- System Update plug-in cards localize their title, metric names, Boolean values, update channels and operation states.
+- Audited the English, Czech, German, Polish and Slovak resources for missing keys, placeholder compatibility and malformed XML.
 
 ## Included in version 0.3.11
 - Centered the installation name in the free toolbar area between the OpenSprinkler logo and the settings button. The title now uses the same 28 dp visual height as the logo and a smaller 18 sp font.
@@ -82,7 +102,7 @@ Android client for the OSPy `/api/v1`. App on [Google store](https://play.google
 - Sensor cards use the typed API display contract, showing only the relevant measured value and unit plus connection, firmware, communication and address information instead of legacy arrays and numeric type codes.
 - Installation cards keep the name and address on separate rows with their actions below, so long local HTTPS addresses remain readable.
 - Home replaces the duplicate weather cards with a live, normalized watering timeline showing scheduled, running, blocked and completed station work.
-- Programs show their stations and schedule details, support enable/disable and run actions, and provide a native editor for the stable Mobile API scheduling fields.
+- Programs show their stations and schedule details, support enable/disable and run actions, and provide native creation and type-specific editing for every scheduling model currently supported by Mobile API v1.
 - Logs can switch between the OSPy event log and station-run history.
 - Official plug-ins can expose optional read-only native metric and chart cards through the documented JSON-only plug-in adapter contract.
 - Home uses the current local OSPy day, keeps only a compact recent/running/upcoming timeline and shows running progress and remaining time.
@@ -115,6 +135,7 @@ Removing an installation deletes its locally protected refresh token. Use the OS
 - `KeystoreStore` encrypts the saved installation list.
 - `InstallationStore` supports multiple OSPy systems.
 - `LiveUpdates` uses `/changes` as the reconnect-safe fallback to `/stream`.
+- `NotificationCenter` maps stable server notification codes to native localized Android notifications.
 - `MainActivity` renders native Android views and sends explicit API actions.
 
 The complete server-side contract is documented in the [OSPy Mobile API v1 reference](https://github.com/martinpihrt/OSPy/blob/master/api/docs/Mobile_API_v1.md) and exposed by every installation at `/api/v1/openapi.json`.
