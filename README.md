@@ -4,7 +4,14 @@ Open Sprinkler Python [Git-Hub source](https://github.com/martinpihrt/OSPy)
 # OSPy Mobile APP
 Android client for the OSPy `/api/v1`. App on [Google store](https://play.google.com/store/apps/details?id=com.pihrt.ospy.mobile)
 
-Current source version: **0.3.14** (`versionCode 21`).
+Current source version: **0.3.15** (`versionCode 22`).
+
+## Included in version 0.3.15
+- Added confirmed deletion for every irrigation program.
+- Replaced raw JSON/minute-pair schedule fields with localized interval, weekday, time, priority, cycle-day, date and date/time controls.
+- Made notification startup polling immediate, preserved recent events during first synchronization, and visibly reports when Android blocks permission.
+- Installation addresses accept DNS host names or IP addresses, with an optional port; HTTPS is assumed when the scheme is omitted.
+- Increased the Android package version to `0.3.15` (`versionCode 22`).
 
 ## Included in version 0.3.14
 - Added creation of native OSPy programs. The app first asks for the scheduling type and then opens the matching form instead of silently creating a custom schedule.

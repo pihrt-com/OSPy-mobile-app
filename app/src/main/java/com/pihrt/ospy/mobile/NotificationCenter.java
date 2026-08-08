@@ -18,6 +18,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.time.OffsetDateTime;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -33,6 +34,7 @@ final class NotificationCenter {
     private static final String FILE = "ospy_mobile_preferences";
     private static final String CURSOR_PREFIX = "notification_cursor_";
     private static final long SERVER_FALLBACK_SUPPRESSION_MS = 30_000L;
+    private static final long INITIAL_RECENT_WINDOW_MS = 5L * 60L * 1000L;
     private static final AtomicInteger NEXT_ID = new AtomicInteger(1000);
     private static final Object SERVER_LOCK = new Object();
     private static final Map<String, Long> RECENT_SERVER_CATEGORY =
@@ -169,14 +171,26 @@ final class NotificationCenter {
         if (ordered.isEmpty()) return;
 
         long cursor = serverCursor(installation.id);
-        if (cursor == 0L || newest < cursor) {
-            // New installation/background feature, or a server notification
-            // database that has been reset. Establish a fresh baseline.
+        if (newest < cursor) {
+            // The server notification database was reset.
             replaceServerCursor(installation.id, newest);
             return;
         }
 
         ordered.sort(Comparator.comparingLong(value -> value.optLong("id", 0L)));
+        if (cursor == 0L) {
+            // A periodic job may first run several minutes after pairing. Do
+            // not silently discard notifications that were created during
+            // that gap, but still avoid flooding a newly paired phone with
+            // old server history.
+            for (JSONObject item : ordered) {
+                if (isRecentlyCreated(item)) {
+                    showServerNotificationLocked(installation, item);
+                }
+            }
+            setServerCursor(installation.id, newest);
+            return;
+        }
         long processed = cursor;
         for (JSONObject item : ordered) {
             long id = item.optLong("id", 0L);
@@ -185,6 +199,17 @@ final class NotificationCenter {
             processed = Math.max(processed, id);
         }
         if (processed > cursor) setServerCursor(installation.id, processed);
+    }
+
+    private static boolean isRecentlyCreated(JSONObject item) {
+        try {
+            long created = OffsetDateTime.parse(item.optString("created"))
+                    .toInstant().toEpochMilli();
+            long age = System.currentTimeMillis() - created;
+            return age >= -60_000L && age <= INITIAL_RECENT_WINDOW_MS;
+        } catch (Exception ignored) {
+            return false;
+        }
     }
 
     boolean isEnabled() {

@@ -25,9 +25,24 @@ final class Installation {
 
     static String normalize(String value) {
         String result = value == null ? "" : value.trim();
+        if (!result.contains("://") && !result.isEmpty()) {
+            result = "https://" + result;
+        }
         while (result.endsWith("/")) result = result.substring(0, result.length() - 1);
         if (result.endsWith("/api/v1")) result = result.substring(0, result.length() - 7);
         return result;
+    }
+
+    static boolean isValidBaseUrl(String value) {
+        try {
+            URI uri = URI.create(normalize(value));
+            String scheme = uri.getScheme();
+            return ("http".equalsIgnoreCase(scheme) ||
+                    "https".equalsIgnoreCase(scheme)) &&
+                    uri.getHost() != null && !uri.getHost().trim().isEmpty();
+        } catch (Exception ignored) {
+            return false;
+        }
     }
 
     boolean isPrivateAddress() {

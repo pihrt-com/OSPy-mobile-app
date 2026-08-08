@@ -4,6 +4,7 @@ import android.Manifest;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.DatePickerDialog;
+import android.app.TimePickerDialog;
 import android.app.KeyguardManager;
 import android.content.Context;
 import android.content.Intent;
@@ -265,7 +266,7 @@ public final class MainActivity extends Activity {
         applySystemBarColors();
         installationStore = new InstallationStore(this);
         notifications = new NotificationCenter(this);
-        NotificationScheduler.update(this, false);
+        NotificationScheduler.update(this, true);
         if (Build.VERSION.SDK_INT >= 33 &&
                 notifications.isEnabled() &&
                 checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)
@@ -749,6 +750,29 @@ public final class MainActivity extends Activity {
                 13, false);
         notificationDescription.setTextColor(MUTED);
         notificationSettings.addView(notificationDescription);
+        if (Build.VERSION.SDK_INT >= 33 && notifications.isEnabled() &&
+                checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)
+                        != PackageManager.PERMISSION_GRANTED) {
+            TextView blocked = text(
+                    getString(R.string.notifications_blocked_by_android),
+                    13, true);
+            blocked.setTextColor(RED);
+            notificationSettings.addView(blocked);
+            Button openNotificationSettings = compactButton(
+                    getString(R.string.open_notification_settings), NAVY);
+            openNotificationSettings.setOnClickListener(v -> {
+                try {
+                    Intent intent = new Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+                            .putExtra(Settings.EXTRA_APP_PACKAGE, getPackageName());
+                    startActivity(intent);
+                } catch (Exception error) {
+                    message(
+                            getString(R.string.app_settings),
+                            getString(R.string.cannot_open_link));
+                }
+            });
+            notificationSettings.addView(openNotificationSettings);
+        }
         addNotificationPreference(
                 notificationSettings, R.string.notify_station_started,
                 NotificationCenter.CATEGORY_STATION_STARTED);
@@ -899,7 +923,7 @@ public final class MainActivity extends Activity {
         currentRenderer = "";
         shell(getString(R.string.add_installation));
         EditText url = input(getString(R.string.server_url), false);
-        url.setText("https://");
+        url.setHint(R.string.server_url_hint);
         EditText user = input(getString(R.string.username), false);
         EditText password = input(getString(R.string.password), true);
         EditText secondFactor = input(getString(R.string.two_factor), false);
@@ -925,7 +949,7 @@ public final class MainActivity extends Activity {
         Button connect = button(getString(R.string.connect), GREEN);
         connect.setOnClickListener(v -> {
             String base = Installation.normalize(url.getText().toString());
-            if (!(base.startsWith("https://") || base.startsWith("http://"))) {
+            if (!Installation.isValidBaseUrl(base)) {
                 toast(getString(R.string.complete_address));
                 return;
             }
@@ -988,7 +1012,7 @@ public final class MainActivity extends Activity {
         Button save = button(getString(R.string.save), GREEN);
         save.setOnClickListener(v -> {
             String base = Installation.normalize(url.getText().toString());
-            if (!(base.startsWith("https://") || base.startsWith("http://"))) {
+            if (!Installation.isValidBaseUrl(base)) {
                 toast(getString(R.string.complete_address));
                 return;
             }
@@ -1892,7 +1916,32 @@ public final class MainActivity extends Activity {
             Button edit = compactButton(getString(R.string.edit), NAVY);
             edit.setOnClickListener(v -> loadProgramEditor(program));
             actions.addView(edit);
+            Button delete = compactButton(getString(R.string.delete_program), RED);
+            delete.setOnClickListener(v -> new AlertDialog.Builder(this)
+                    .setTitle(R.string.delete_program)
+                    .setMessage(getString(
+                            R.string.confirm_delete_program,
+                            program.optString("name")))
+                    .setNegativeButton(android.R.string.cancel, null)
+                    .setPositiveButton(R.string.delete, (dialog, which) ->
+                            api.request(
+                                    "DELETE",
+                                    "/programs/" + program.optString("id"),
+                                    null,
+                                    new ApiClient.Callback() {
+                                        @Override public void success(JSONObject response) {
+                                            load("/programs", "programs");
+                                        }
+
+                                        @Override public void failure(String error) {
+                                            message(
+                                                    getString(R.string.delete_program_failed),
+                                                    localizedError(error));
+                                        }
+                                    }))
+                    .show());
             card.addView(actions);
+            card.addView(delete);
             card.addView(details);
             content.addView(card);
         }
@@ -2254,7 +2303,9 @@ public final class MainActivity extends Activity {
                     String key = keys.next();
                     addPair(
                             details, readable(key),
-                            programFieldValue(key, fields.opt(key)));
+                            programFieldValue(
+                                    editor.optString("kind"), key,
+                                    fields.opt(key)));
                 }
             }
         }
@@ -2382,40 +2433,239 @@ public final class MainActivity extends Activity {
         return result;
     }
 
-    private EditText scheduleInput(String value) {
-        EditText input = new EditText(this);
-        input.setText(value);
-        input.setTextColor(TEXT);
-        input.setHintTextColor(MUTED);
-        input.setMinLines(3);
-        input.setGravity(Gravity.TOP);
-        input.setInputType(InputType.TYPE_CLASS_TEXT |
-                InputType.TYPE_TEXT_FLAG_MULTI_LINE);
-        return input;
+    private static final int SCHEDULE_DAILY = 0;
+    private static final int SCHEDULE_WEEKLY = 1;
+    private static final int SCHEDULE_CUSTOM = 2;
+    private static final int SCHEDULE_PRIORITY = 3;
+
+    private final class ScheduleEditor {
+        final int mode;
+        final LinearLayout view;
+        final LinearLayout rowsView;
+        final List<ScheduleRow> rows = new ArrayList<>();
+
+        ScheduleEditor(int mode, JSONArray values) {
+            this.mode = mode;
+            view = new LinearLayout(MainActivity.this);
+            view.setOrientation(LinearLayout.VERTICAL);
+            rowsView = new LinearLayout(MainActivity.this);
+            rowsView.setOrientation(LinearLayout.VERTICAL);
+            view.addView(text(getString(mode == SCHEDULE_PRIORITY
+                    ? R.string.priority_times : R.string.program_intervals), 13, true));
+            view.addView(rowsView);
+            if (values != null) {
+                for (int index = 0; index < values.length(); index++) {
+                    JSONArray pair = values.optJSONArray(index);
+                    if (pair != null && pair.length() == 2) {
+                        add(pair.optInt(0, 360), pair.optInt(1,
+                                mode == SCHEDULE_PRIORITY ? 1 : 370));
+                    }
+                }
+            }
+            if (rows.isEmpty()) add(360, mode == SCHEDULE_PRIORITY ? 1 : 370);
+            Button add = compactButton(getString(mode == SCHEDULE_PRIORITY
+                    ? R.string.add_priority_time : R.string.add_interval), GREEN);
+            add.setOnClickListener(v -> add(
+                    mode == SCHEDULE_WEEKLY || mode == SCHEDULE_PRIORITY
+                            ? 360 : rows.size() * 60 + 360,
+                    mode == SCHEDULE_PRIORITY ? 1 : rows.size() * 60 + 370));
+            view.addView(add);
+        }
+
+        void add(int first, int second) {
+            ScheduleRow row = new ScheduleRow(this, first, second);
+            rows.add(row);
+            rowsView.addView(row.view);
+        }
+
+        void remove(ScheduleRow row) {
+            if (rows.size() == 1) {
+                toast(getString(R.string.program_intervals_required));
+                return;
+            }
+            rows.remove(row);
+            rowsView.removeView(row.view);
+        }
+
+        JSONArray value() {
+            JSONArray result = new JSONArray();
+            for (ScheduleRow row : rows) result.put(row.value());
+            return result;
+        }
     }
 
-    private JSONArray parsedPairs(EditText input, boolean priorityPairs)
-            throws Exception {
-        JSONArray result = new JSONArray(input.getText().toString().trim());
-        if (result.length() == 0) {
-            throw new IllegalArgumentException(
-                    getString(R.string.program_intervals_required));
-        }
-        for (int i = 0; i < result.length(); i++) {
-            JSONArray pair = result.optJSONArray(i);
-            if (pair == null || pair.length() != 2) {
-                throw new IllegalArgumentException(
-                        getString(R.string.program_intervals_format));
+    private final class ScheduleRow {
+        final ScheduleEditor owner;
+        final LinearLayout view;
+        final Button firstTime;
+        final Button secondTime;
+        final Button firstDay;
+        final Button secondDay;
+        final EditText firstCycleDay;
+        final EditText secondCycleDay;
+        final EditText priority;
+        int firstMinute;
+        int secondMinute;
+
+        ScheduleRow(ScheduleEditor owner, int first, int second) {
+            this.owner = owner;
+            firstMinute = Math.max(0, first);
+            secondMinute = Math.max(0, second);
+            view = cardColumn();
+            firstTime = compactButton("", NAVY);
+            secondTime = owner.mode == SCHEDULE_PRIORITY
+                    ? null : compactButton("", NAVY);
+            firstDay = owner.mode == SCHEDULE_WEEKLY || owner.mode == SCHEDULE_PRIORITY
+                    ? compactButton("", NAVY) : null;
+            secondDay = owner.mode == SCHEDULE_WEEKLY
+                    ? compactButton("", NAVY) : null;
+            firstCycleDay = owner.mode == SCHEDULE_CUSTOM
+                    ? numericInput(String.valueOf(firstMinute / 1440 + 1)) : null;
+            secondCycleDay = owner.mode == SCHEDULE_CUSTOM
+                    ? numericInput(String.valueOf(secondMinute / 1440 + 1)) : null;
+            priority = owner.mode == SCHEDULE_PRIORITY
+                    ? numericInput(String.valueOf(secondMinute)) : null;
+
+            if (owner.mode == SCHEDULE_PRIORITY) {
+                view.addView(text(getString(R.string.priority_time), 13, true));
+                view.addView(scheduleEndpoint(true));
+                view.addView(labelledInput(getString(R.string.priority), priority));
+            } else {
+                view.addView(text(getString(R.string.interval_start), 13, true));
+                view.addView(scheduleEndpoint(true));
+                view.addView(text(getString(R.string.interval_end), 13, true));
+                view.addView(scheduleEndpoint(false));
             }
-            int first = pair.getInt(0);
-            int second = pair.getInt(1);
-            if (first < 0 || (!priorityPairs && second <= first) ||
-                    (priorityPairs && second < 0)) {
-                throw new IllegalArgumentException(
-                        getString(R.string.program_intervals_format));
-            }
+            Button remove = compactButton(getString(R.string.remove), RED);
+            remove.setOnClickListener(v -> owner.remove(this));
+            view.addView(remove);
+            updateLabels();
         }
-        return result;
+
+        private LinearLayout scheduleEndpoint(boolean first) {
+            LinearLayout row = actionRow();
+            Button day = first ? firstDay : secondDay;
+            EditText cycleDay = first ? firstCycleDay : secondCycleDay;
+            Button time = first ? firstTime : secondTime;
+            if (day != null) {
+                day.setOnClickListener(v -> pickWeekday(first));
+                row.addView(day, new LinearLayout.LayoutParams(0, -2, 0.45f));
+            } else if (cycleDay != null) {
+                row.addView(labelledInput(getString(R.string.cycle_day), cycleDay),
+                        new LinearLayout.LayoutParams(0, -2, 0.45f));
+            }
+            time.setOnClickListener(v -> pickTime(first));
+            row.addView(time, new LinearLayout.LayoutParams(0, -2, 0.55f));
+            return row;
+        }
+
+        private void pickWeekday(boolean first) {
+            String[] names = new String[7];
+            for (int day = 0; day < 7; day++) names[day] = weekdayName(day);
+            int minute = first ? firstMinute : secondMinute;
+            new AlertDialog.Builder(MainActivity.this)
+                    .setTitle(R.string.select_day)
+                    .setSingleChoiceItems(names, (minute / 1440) % 7,
+                            (dialog, selected) -> {
+                                int changed = selected * 1440 + minute % 1440;
+                                if (first) firstMinute = changed;
+                                else secondMinute = changed;
+                                dialog.dismiss();
+                                updateLabels();
+                            })
+                    .show();
+        }
+
+        private void pickTime(boolean first) {
+            int minute = first ? firstMinute : secondMinute;
+            new TimePickerDialog(
+                    MainActivity.this,
+                    (picker, hour, selectedMinute) -> {
+                        int changed = (minute / 1440) * 1440 + hour * 60 + selectedMinute;
+                        if (first) firstMinute = changed;
+                        else secondMinute = changed;
+                        updateLabels();
+                    },
+                    (minute % 1440) / 60,
+                    minute % 60,
+                    true).show();
+        }
+
+        private void updateLabels() {
+            firstTime.setText(minutesToTime(firstMinute));
+            if (secondTime != null) secondTime.setText(minutesToTime(secondMinute));
+            if (firstDay != null) firstDay.setText(weekdayName((firstMinute / 1440) % 7));
+            if (secondDay != null) secondDay.setText(weekdayName((secondMinute / 1440) % 7));
+        }
+
+        JSONArray value() {
+            int first = firstMinute;
+            int second = secondMinute;
+            if (owner.mode == SCHEDULE_CUSTOM) {
+                first = (positiveInteger(firstCycleDay) - 1) * 1440 + firstMinute % 1440;
+                second = (positiveInteger(secondCycleDay) - 1) * 1440 + secondMinute % 1440;
+            }
+            if (owner.mode == SCHEDULE_PRIORITY) {
+                second = nonNegativeInteger(priority);
+                if (first < 0 || first >= 7 * 1440) {
+                    throw new IllegalArgumentException(
+                            getString(R.string.program_intervals_format));
+                }
+            } else if (first < 0 || second <= first) {
+                throw new IllegalArgumentException(
+                        getString(R.string.program_interval_order));
+            }
+            return new JSONArray().put(first).put(second);
+        }
+    }
+
+    private Button dateButton(String value) {
+        LocalDate date;
+        try { date = LocalDate.parse(value); }
+        catch (Exception ignored) { date = LocalDate.now(); }
+        Button button = compactButton(date.toString(), NAVY);
+        button.setTag(date);
+        button.setText(date.format(DateTimeFormatter.ofLocalizedDate(
+                FormatStyle.MEDIUM)));
+        button.setOnClickListener(v -> {
+            LocalDate selected = (LocalDate) button.getTag();
+            new DatePickerDialog(this, (picker, year, month, day) -> {
+                LocalDate changed = LocalDate.of(year, month + 1, day);
+                button.setTag(changed);
+                button.setText(changed.format(DateTimeFormatter.ofLocalizedDate(
+                        FormatStyle.MEDIUM)));
+            }, selected.getYear(), selected.getMonthValue() - 1,
+                    selected.getDayOfMonth()).show();
+        });
+        return button;
+    }
+
+    private Button dateTimeButton(String value) {
+        LocalDateTime dateTime;
+        try { dateTime = LocalDateTime.parse(value); }
+        catch (Exception ignored) { dateTime = LocalDate.now().atStartOfDay(); }
+        Button button = compactButton("", NAVY);
+        button.setTag(dateTime);
+        updateDateTimeButton(button);
+        button.setOnClickListener(v -> {
+            LocalDateTime selected = (LocalDateTime) button.getTag();
+            new DatePickerDialog(this, (picker, year, month, day) ->
+                    new TimePickerDialog(this, (timePicker, hour, minute) -> {
+                        LocalDateTime changed = LocalDateTime.of(
+                                year, month + 1, day, hour, minute);
+                        button.setTag(changed);
+                        updateDateTimeButton(button);
+                    }, selected.getHour(), selected.getMinute(), true).show(),
+                    selected.getYear(), selected.getMonthValue() - 1,
+                    selected.getDayOfMonth()).show();
+        });
+        return button;
+    }
+
+    private void updateDateTimeButton(Button button) {
+        LocalDateTime value = (LocalDateTime) button.getTag();
+        button.setText(value.format(DateTimeFormatter.ofLocalizedDateTime(
+                FormatStyle.MEDIUM, FormatStyle.SHORT)));
     }
 
     private JSONArray selectedProgramDays(List<CheckBox> checks) {
@@ -2508,10 +2758,10 @@ public final class MainActivity extends Activity {
         EditText pause = null;
         EditText repeats = null;
         EditText repeatDays = null;
-        EditText startDate = null;
-        EditText intervals = null;
+        Button startDate = null;
+        ScheduleEditor intervals = null;
         EditText modulo = null;
-        EditText customStart = null;
+        Button customStart = null;
         CheckBox manual = null;
         EditText irrigationMin = null;
         EditText irrigationMax = null;
@@ -2538,38 +2788,40 @@ public final class MainActivity extends Activity {
                         originalTypeData.optInt(4, 1)));
                 form.addView(labelledInput(
                         getString(R.string.repeat_days), repeatDays));
-                startDate = input(getString(R.string.start_date), false);
-                startDate.setText(originalTypeData.optString(
+                startDate = dateButton(originalTypeData.optString(
                         5, LocalDate.now().toString()));
-                form.addView(labelledInput(
+                form.addView(labelledView(
                         getString(R.string.start_date), startDate));
             }
         } else if (type == 1) {
-            intervals = scheduleInput(String.valueOf(originalTypeData.optJSONArray(0)));
-            form.addView(labelledInput(getString(R.string.program_intervals), intervals));
+            intervals = new ScheduleEditor(
+                    SCHEDULE_DAILY, originalTypeData.optJSONArray(0));
+            form.addView(intervals.view);
             dayChecks = addProgramDays(form, originalTypeData.optJSONArray(1));
         } else if (type == 3) {
-            intervals = scheduleInput(String.valueOf(originalTypeData.optJSONArray(0)));
-            form.addView(labelledInput(getString(R.string.program_intervals), intervals));
+            intervals = new ScheduleEditor(
+                    SCHEDULE_DAILY, originalTypeData.optJSONArray(0));
+            form.addView(intervals.view);
             repeatDays = numericInput(String.valueOf(originalTypeData.optInt(1, 1)));
             form.addView(labelledInput(getString(R.string.repeat_days), repeatDays));
-            startDate = input(getString(R.string.start_date), false);
-            startDate.setText(originalTypeData.optString(2, LocalDate.now().toString()));
-            form.addView(labelledInput(getString(R.string.start_date), startDate));
+            startDate = dateButton(originalTypeData.optString(
+                    2, LocalDate.now().toString()));
+            form.addView(labelledView(getString(R.string.start_date), startDate));
         } else if (type == 4) {
-            intervals = scheduleInput(String.valueOf(originalTypeData.optJSONArray(0)));
-            form.addView(labelledInput(getString(R.string.program_intervals), intervals));
+            intervals = new ScheduleEditor(
+                    SCHEDULE_WEEKLY, originalTypeData.optJSONArray(0));
+            form.addView(intervals.view);
         } else if (type == 5) {
             JSONArray schedule = program.optJSONArray("schedule");
-            intervals = scheduleInput(String.valueOf(
-                    schedule == null ? originalTypeData.optJSONArray(0) : schedule));
-            form.addView(labelledInput(getString(R.string.program_intervals), intervals));
+            intervals = new ScheduleEditor(
+                    SCHEDULE_CUSTOM,
+                    schedule == null ? originalTypeData.optJSONArray(0) : schedule);
+            form.addView(intervals.view);
             modulo = numericInput(String.valueOf(program.optInt("modulo", 1440)));
             form.addView(labelledInput(getString(R.string.program_modulo), modulo));
-            customStart = input(getString(R.string.start_date_time), false);
-            customStart.setText(program.optString(
+            customStart = dateTimeButton(program.optString(
                     "start", LocalDate.now() + "T00:00:00"));
-            form.addView(labelledInput(
+            form.addView(labelledView(
                     getString(R.string.start_date_time), customStart));
             manual = new CheckBox(this);
             manual.setText(R.string.run_once_schedule);
@@ -2582,12 +2834,13 @@ public final class MainActivity extends Activity {
             runMax = numericInput(String.valueOf(originalTypeData.optInt(2, 5)));
             pause = numericInput(String.valueOf((int) Math.round(
                     originalTypeData.optDouble(3, 0.0) * 100.0)));
-            intervals = scheduleInput(String.valueOf(originalTypeData.optJSONArray(4)));
+            intervals = new ScheduleEditor(
+                    SCHEDULE_PRIORITY, originalTypeData.optJSONArray(4));
             form.addView(labelledInput(getString(R.string.irrigation_minimum), irrigationMin));
             form.addView(labelledInput(getString(R.string.irrigation_maximum), irrigationMax));
             form.addView(labelledInput(getString(R.string.maximum_run), runMax));
             form.addView(labelledInput(getString(R.string.pause_ratio_percent), pause));
-            form.addView(labelledInput(getString(R.string.priority_intervals), intervals));
+            form.addView(intervals.view);
         } else {
             form.addView(text(getString(R.string.unsupported_program_type), 14, true));
         }
@@ -2598,10 +2851,10 @@ public final class MainActivity extends Activity {
         final EditText pauseField = pause;
         final EditText repeatsField = repeats;
         final EditText repeatDaysField = repeatDays;
-        final EditText startDateField = startDate;
-        final EditText intervalsField = intervals;
+        final Button startDateField = startDate;
+        final ScheduleEditor intervalsField = intervals;
         final EditText moduloField = modulo;
-        final EditText customStartField = customStart;
+        final Button customStartField = customStart;
         final CheckBox manualField = manual;
         final EditText irrigationMinField = irrigationMin;
         final EditText irrigationMaxField = irrigationMax;
@@ -2640,18 +2893,18 @@ public final class MainActivity extends Activity {
                                             .put(nonNegativeInteger(repeatsField));
                                     if (type == 0) typeData.put(selectedProgramDays(dayCheckFields));
                                     else typeData.put(positiveInteger(repeatDaysField))
-                                            .put(programDate(startDateField));
+                                            .put(((LocalDate) startDateField.getTag()).toString());
                                 } else if (type == 1) {
-                                    typeData.put(parsedPairs(intervalsField, false))
+                                    typeData.put(intervalsField.value())
                                             .put(selectedProgramDays(dayCheckFields));
                                 } else if (type == 3) {
-                                    typeData.put(parsedPairs(intervalsField, false))
+                                    typeData.put(intervalsField.value())
                                             .put(positiveInteger(repeatDaysField))
-                                            .put(programDate(startDateField));
+                                            .put(((LocalDate) startDateField.getTag()).toString());
                                 } else if (type == 4) {
-                                    typeData.put(parsedPairs(intervalsField, false));
+                                    typeData.put(intervalsField.value());
                                 } else if (type == 5) {
-                                    typeData.put(parsedPairs(intervalsField, false));
+                                    typeData.put(intervalsField.value());
                                 } else if (type == 6) {
                                     int pausePercent = nonNegativeInteger(pauseField);
                                     if (pausePercent > 100) {
@@ -2662,7 +2915,7 @@ public final class MainActivity extends Activity {
                                             .put(positiveInteger(irrigationMaxField))
                                             .put(positiveInteger(runMaxField))
                                             .put(pausePercent / 100.0)
-                                            .put(parsedPairs(intervalsField, true));
+                                            .put(intervalsField.value());
                                 } else {
                                     throw new IllegalArgumentException(
                                             getString(R.string.unsupported_program_type));
@@ -2674,7 +2927,8 @@ public final class MainActivity extends Activity {
                                 payload.put("type", type);
                                 payload.put("type_data", typeData);
                                 if (type == 5) {
-                                    String startValue = programDateTime(customStartField);
+                                    String startValue = ((LocalDateTime)
+                                            customStartField.getTag()).toString();
                                     payload.put("schedule", typeData.getJSONArray(0));
                                     payload.put("modulo", positiveInteger(moduloField));
                                     payload.put("manual", manualField.isChecked());
@@ -4371,6 +4625,10 @@ public final class MainActivity extends Activity {
     }
 
     private LinearLayout labelledInput(String label, EditText input) {
+        return labelledView(label, input);
+    }
+
+    private LinearLayout labelledView(String label, View input) {
         LinearLayout wrapper = new LinearLayout(this);
         wrapper.setOrientation(LinearLayout.VERTICAL);
         wrapper.addView(text(label, 13, true));
@@ -4503,7 +4761,7 @@ public final class MainActivity extends Activity {
         return android.text.TextUtils.join(" ", parts);
     }
 
-    private String programFieldValue(String key, Object value) {
+    private String programFieldValue(String kind, String key, Object value) {
         if ("start_minute".equals(key)) {
             return minutesToTime(value instanceof Number
                     ? ((Number) value).intValue() : 0);
@@ -4519,7 +4777,49 @@ public final class MainActivity extends Activity {
             }
             return android.text.TextUtils.join(", ", labels);
         }
+        if (("intervals".equals(key) || "priority_intervals".equals(key)) &&
+                value instanceof JSONArray) {
+            JSONArray pairs = (JSONArray) value;
+            List<String> labels = new ArrayList<>();
+            boolean priority = "priority_intervals".equals(key);
+            for (int index = 0; index < pairs.length(); index++) {
+                JSONArray pair = pairs.optJSONArray(index);
+                if (pair == null || pair.length() != 2) continue;
+                String first = scheduleMinuteLabel(kind, pair.optInt(0));
+                if (priority) {
+                    labels.add(getString(
+                            R.string.priority_time_value,
+                            first, pair.optInt(1)));
+                } else {
+                    labels.add(getString(
+                            R.string.interval_value,
+                            first, scheduleMinuteLabel(kind, pair.optInt(1))));
+                }
+            }
+            return labels.isEmpty()
+                    ? getString(R.string.no_data)
+                    : android.text.TextUtils.join("; ", labels);
+        }
+        if ("manual".equals(key) && value instanceof Boolean) {
+            return state((Boolean) value);
+        }
+        if ("start".equals(key) || "start_date".equals(key)) {
+            return formatTimestamp(String.valueOf(value));
+        }
         return String.valueOf(value);
+    }
+
+    private String scheduleMinuteLabel(String kind, int minute) {
+        int value = Math.max(0, minute);
+        String time = minutesToTime(value);
+        int day = value / 1440;
+        if ("weekly_advanced".equals(kind) || "weekly_weather".equals(kind)) {
+            return weekdayName(day % 7) + " " + time;
+        }
+        if (day > 0 || "custom".equals(kind)) {
+            return getString(R.string.cycle_day_time, day + 1, time);
+        }
+        return time;
     }
 
     private String weekdayName(int day) {
