@@ -281,9 +281,13 @@ final class ApiClient {
         value = value == null || value.isEmpty()
                 ? error.getClass().getSimpleName() : value;
         if (error instanceof ApiException) {
-            String code = ((ApiException) error).code;
+            ApiException apiError = (ApiException) error;
+            String code = apiError.code;
             if (code != null && !code.isEmpty()) {
-                return "@api:" + code + ":" + value;
+                String reason = apiError.details == null
+                        ? "" : apiError.details.optString("reason", "");
+                return "@api:" + code + ":" + value +
+                        (reason.isEmpty() ? "" : "\n@reason:" + reason);
             }
         }
         return value;
@@ -299,7 +303,15 @@ final class ApiClient {
         if (value == null) return "";
         if (!value.startsWith("@api:")) return value;
         int separator = value.indexOf(':', 5);
-        return separator < 0 ? value : value.substring(separator + 1);
+        String message = separator < 0 ? value : value.substring(separator + 1);
+        int reason = message.indexOf("\n@reason:");
+        return reason < 0 ? message : message.substring(0, reason);
+    }
+
+    static String errorReason(String value) {
+        if (value == null) return "";
+        int reason = value.indexOf("\n@reason:");
+        return reason < 0 ? "" : value.substring(reason + 9);
     }
 
     static final class ApiException extends Exception {

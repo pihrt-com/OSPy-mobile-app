@@ -2276,28 +2276,188 @@ public final class MainActivity extends Activity {
     }
 
     private void loadNewProgramEditor() {
+        String[] types = new String[7];
+        for (int type = 0; type < types.length; type++) {
+            types[type] = programTypeName(type);
+        }
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.select_program_type)
+                .setItems(types, (dialog, type) -> {
+                    try {
+                        loadProgramEditor(newProgramDraft(type));
+                    } catch (Exception error) {
+                        message(
+                                getString(R.string.program_save_failed),
+                                getString(R.string.invalid_program_data));
+                    }
+                })
+                .setNegativeButton(android.R.string.cancel, null)
+                .show();
+    }
+
+    private JSONObject newProgramDraft(int type) throws Exception {
+        JSONArray days = new JSONArray();
+        for (int day = 0; day < 7; day++) days.put(day);
+        String today = LocalDate.now().toString();
+        JSONArray interval = new JSONArray().put(360).put(370);
+        JSONArray intervals = new JSONArray().put(interval);
+        JSONArray typeData;
+        switch (type) {
+            case 0:
+                typeData = new JSONArray().put(360).put(10).put(0).put(0).put(days);
+                break;
+            case 1:
+                typeData = new JSONArray().put(intervals).put(days);
+                break;
+            case 2:
+                typeData = new JSONArray().put(360).put(10).put(0).put(0)
+                        .put(1).put(today);
+                break;
+            case 3:
+                typeData = new JSONArray().put(intervals).put(1).put(today);
+                break;
+            case 4:
+                typeData = new JSONArray().put(intervals);
+                break;
+            case 5:
+                typeData = new JSONArray().put(intervals);
+                break;
+            case 6:
+                typeData = new JSONArray().put(5).put(10).put(5).put(0.0)
+                        .put(new JSONArray().put(new JSONArray().put(360).put(1)));
+                break;
+            default:
+                throw new IllegalArgumentException();
+        }
+        JSONObject draft = new JSONObject()
+                .put("id", "")
+                .put("name", "")
+                .put("enabled", false)
+                .put("stations", new JSONArray())
+                .put("type", type)
+                .put("type_data", typeData);
+        if (type == 5) {
+            draft.put("start", today + "T00:00:00")
+                    .put("modulo", 1440)
+                    .put("manual", false)
+                    .put("schedule", intervals);
+        }
+        return draft;
+    }
+
+    private String programTypeName(int type) {
+        switch (type) {
+            case 0: return getString(R.string.program_type_days_simple);
+            case 1: return getString(R.string.program_type_days_advanced);
+            case 2: return getString(R.string.program_type_repeat_simple);
+            case 3: return getString(R.string.program_type_repeat_advanced);
+            case 4: return getString(R.string.program_type_weekly_advanced);
+            case 5: return getString(R.string.program_type_custom);
+            case 6: return getString(R.string.program_type_weekly_weather);
+            default: return getString(R.string.unknown_status);
+        }
+    }
+
+    private List<CheckBox> addProgramDays(
+            LinearLayout form, JSONArray selectedDays) {
+        List<CheckBox> result = new ArrayList<>();
+        GridLayout days = new GridLayout(this);
+        days.setColumnCount(4);
+        days.setRowCount(2);
+        for (int day = 0; day < 7; day++) {
+            CheckBox check = new CheckBox(this);
+            check.setTextColor(TEXT);
+            check.setText(weekdayName(day));
+            check.setTag(day);
+            check.setChecked(jsonArrayContains(selectedDays, day));
+            result.add(check);
+            GridLayout.LayoutParams params = new GridLayout.LayoutParams();
+            params.width = 0;
+            params.columnSpec = GridLayout.spec(day % 4, 1, 1f);
+            params.rowSpec = GridLayout.spec(day / 4);
+            days.addView(check, params);
+        }
+        form.addView(text(getString(R.string.days), 14, true));
+        form.addView(days);
+        return result;
+    }
+
+    private EditText scheduleInput(String value) {
+        EditText input = new EditText(this);
+        input.setText(value);
+        input.setTextColor(TEXT);
+        input.setHintTextColor(MUTED);
+        input.setMinLines(3);
+        input.setGravity(Gravity.TOP);
+        input.setInputType(InputType.TYPE_CLASS_TEXT |
+                InputType.TYPE_TEXT_FLAG_MULTI_LINE);
+        return input;
+    }
+
+    private JSONArray parsedPairs(EditText input, boolean priorityPairs)
+            throws Exception {
+        JSONArray result = new JSONArray(input.getText().toString().trim());
+        if (result.length() == 0) {
+            throw new IllegalArgumentException(
+                    getString(R.string.program_intervals_required));
+        }
+        for (int i = 0; i < result.length(); i++) {
+            JSONArray pair = result.optJSONArray(i);
+            if (pair == null || pair.length() != 2) {
+                throw new IllegalArgumentException(
+                        getString(R.string.program_intervals_format));
+            }
+            int first = pair.getInt(0);
+            int second = pair.getInt(1);
+            if (first < 0 || (!priorityPairs && second <= first) ||
+                    (priorityPairs && second < 0)) {
+                throw new IllegalArgumentException(
+                        getString(R.string.program_intervals_format));
+            }
+        }
+        return result;
+    }
+
+    private JSONArray selectedProgramDays(List<CheckBox> checks) {
+        JSONArray selected = new JSONArray();
+        for (CheckBox check : checks) {
+            if (check.isChecked()) selected.put(check.getTag());
+        }
+        if (selected.length() == 0) {
+            throw new IllegalArgumentException(
+                    getString(R.string.program_day_required));
+        }
+        return selected;
+    }
+
+    private String programDate(EditText input) {
+        String value = input.getText().toString().trim();
         try {
-            JSONArray days = new JSONArray();
-            for (int day = 0; day < 7; day++) days.put(day);
-            JSONArray typeData = new JSONArray()
-                    .put(360).put(10).put(0).put(0).put(days);
-            JSONObject fields = new JSONObject()
-                    .put("start_minute", 360)
-                    .put("duration_minutes", 10)
-                    .put("pause_minutes", 0)
-                    .put("repeat_count", 0)
-                    .put("days", days);
-            JSONObject draft = new JSONObject()
-                    .put("id", "")
-                    .put("name", "")
-                    .put("enabled", false)
-                    .put("stations", new JSONArray())
-                    .put("type", 0)
-                    .put("type_data", typeData)
-                    .put("editor", new JSONObject().put("fields", fields));
-            loadProgramEditor(draft);
+            LocalDate.parse(value);
+            return value;
         } catch (Exception error) {
-            toast(getString(R.string.invalid_program_data));
+            throw new IllegalArgumentException(
+                    getString(R.string.program_date_format));
+        }
+    }
+
+    private String programDateTime(EditText input) {
+        String value = input.getText().toString().trim();
+        try {
+            LocalDateTime.parse(value);
+            return value;
+        } catch (Exception error) {
+            throw new IllegalArgumentException(
+                    getString(R.string.program_date_time_format));
+        }
+    }
+
+    private int programTime(EditText input) {
+        try {
+            return timeToMinutes(input.getText().toString());
+        } catch (Exception error) {
+            throw new IllegalArgumentException(
+                    getString(R.string.program_time_format));
         }
     }
 
@@ -2307,6 +2467,10 @@ public final class MainActivity extends Activity {
         LinearLayout form = new LinearLayout(this);
         form.setOrientation(LinearLayout.VERTICAL);
         form.setPadding(dp(18), dp(4), dp(18), dp(4));
+        int type = program.optInt("type", -1);
+        form.addView(text(
+                getString(R.string.program_type) + ": " + programTypeName(type),
+                14, true));
         EditText name = input(getString(R.string.program), false);
         name.setText(program.optString("name"));
         form.addView(name);
@@ -2338,58 +2502,94 @@ public final class MainActivity extends Activity {
         }
 
         JSONArray originalTypeData = program.optJSONArray("type_data");
-        JSONObject fields = program.optJSONObject("editor") == null
-                ? null : program.optJSONObject("editor").optJSONObject("fields");
-        int type = program.optInt("type", -1);
+        if (originalTypeData == null) originalTypeData = new JSONArray();
         EditText start = null;
         EditText duration = null;
         EditText pause = null;
         EditText repeats = null;
+        EditText repeatDays = null;
+        EditText startDate = null;
+        EditText intervals = null;
+        EditText modulo = null;
+        EditText customStart = null;
+        CheckBox manual = null;
+        EditText irrigationMin = null;
+        EditText irrigationMax = null;
+        EditText runMax = null;
         List<CheckBox> dayChecks = new ArrayList<>();
-        EditText advanced = null;
-        if ((type == 0 || type == 2) && fields != null) {
+        if (type == 0 || type == 2) {
             start = input(getString(R.string.start_time), false);
             start.setInputType(InputType.TYPE_CLASS_DATETIME);
-            start.setText(minutesToTime(fields.optInt("start_minute")));
+            start.setText(minutesToTime(originalTypeData.optInt(0, 360)));
             form.addView(labelledInput(getString(R.string.start_time), start));
             duration = numericInput(String.valueOf(
-                    fields.optInt("duration_minutes", 1)));
+                    originalTypeData.optInt(1, 10)));
             form.addView(labelledInput(getString(R.string.duration), duration));
             pause = numericInput(String.valueOf(
-                    fields.optInt("pause_minutes", 0)));
+                    originalTypeData.optInt(2, 0)));
             form.addView(labelledInput(getString(R.string.pause), pause));
             repeats = numericInput(String.valueOf(
-                    fields.optInt("repeat_count", 0)));
+                    originalTypeData.optInt(3, 0)));
             form.addView(labelledInput(getString(R.string.repeat_count), repeats));
             if (type == 0) {
-                GridLayout days = new GridLayout(this);
-                days.setColumnCount(4);
-                days.setRowCount(2);
-                JSONArray chosenDays = fields.optJSONArray("days");
-                for (int day = 0; day < 7; day++) {
-                    CheckBox check = new CheckBox(this);
-                    check.setTextColor(TEXT);
-                    check.setText(weekdayName(day));
-                    check.setTag(day);
-                    check.setChecked(jsonArrayContains(chosenDays, day));
-                    dayChecks.add(check);
-                    GridLayout.LayoutParams dayParams = new GridLayout.LayoutParams();
-                    dayParams.width = 0;
-                    dayParams.columnSpec = GridLayout.spec(day % 4, 1, 1f);
-                    dayParams.rowSpec = GridLayout.spec(day / 4);
-                    days.addView(check, dayParams);
-                }
-                form.addView(text(getString(R.string.days), 14, true));
-                form.addView(days);
+                dayChecks = addProgramDays(form, originalTypeData.optJSONArray(4));
+            } else {
+                repeatDays = numericInput(String.valueOf(
+                        originalTypeData.optInt(4, 1)));
+                form.addView(labelledInput(
+                        getString(R.string.repeat_days), repeatDays));
+                startDate = input(getString(R.string.start_date), false);
+                startDate.setText(originalTypeData.optString(
+                        5, LocalDate.now().toString()));
+                form.addView(labelledInput(
+                        getString(R.string.start_date), startDate));
             }
-        } else {
-            advanced = new EditText(this);
-            advanced.setText(
-                    originalTypeData == null ? "[]" : originalTypeData.toString());
-            advanced.setMinLines(3);
-            advanced.setGravity(Gravity.TOP);
+        } else if (type == 1) {
+            intervals = scheduleInput(String.valueOf(originalTypeData.optJSONArray(0)));
+            form.addView(labelledInput(getString(R.string.program_intervals), intervals));
+            dayChecks = addProgramDays(form, originalTypeData.optJSONArray(1));
+        } else if (type == 3) {
+            intervals = scheduleInput(String.valueOf(originalTypeData.optJSONArray(0)));
+            form.addView(labelledInput(getString(R.string.program_intervals), intervals));
+            repeatDays = numericInput(String.valueOf(originalTypeData.optInt(1, 1)));
+            form.addView(labelledInput(getString(R.string.repeat_days), repeatDays));
+            startDate = input(getString(R.string.start_date), false);
+            startDate.setText(originalTypeData.optString(2, LocalDate.now().toString()));
+            form.addView(labelledInput(getString(R.string.start_date), startDate));
+        } else if (type == 4) {
+            intervals = scheduleInput(String.valueOf(originalTypeData.optJSONArray(0)));
+            form.addView(labelledInput(getString(R.string.program_intervals), intervals));
+        } else if (type == 5) {
+            JSONArray schedule = program.optJSONArray("schedule");
+            intervals = scheduleInput(String.valueOf(
+                    schedule == null ? originalTypeData.optJSONArray(0) : schedule));
+            form.addView(labelledInput(getString(R.string.program_intervals), intervals));
+            modulo = numericInput(String.valueOf(program.optInt("modulo", 1440)));
+            form.addView(labelledInput(getString(R.string.program_modulo), modulo));
+            customStart = input(getString(R.string.start_date_time), false);
+            customStart.setText(program.optString(
+                    "start", LocalDate.now() + "T00:00:00"));
             form.addView(labelledInput(
-                    getString(R.string.advanced_schedule_data), advanced));
+                    getString(R.string.start_date_time), customStart));
+            manual = new CheckBox(this);
+            manual.setText(R.string.run_once_schedule);
+            manual.setTextColor(TEXT);
+            manual.setChecked(program.optBoolean("manual"));
+            form.addView(manual);
+        } else if (type == 6) {
+            irrigationMin = numericInput(String.valueOf(originalTypeData.optInt(0, 5)));
+            irrigationMax = numericInput(String.valueOf(originalTypeData.optInt(1, 10)));
+            runMax = numericInput(String.valueOf(originalTypeData.optInt(2, 5)));
+            pause = numericInput(String.valueOf((int) Math.round(
+                    originalTypeData.optDouble(3, 0.0) * 100.0)));
+            intervals = scheduleInput(String.valueOf(originalTypeData.optJSONArray(4)));
+            form.addView(labelledInput(getString(R.string.irrigation_minimum), irrigationMin));
+            form.addView(labelledInput(getString(R.string.irrigation_maximum), irrigationMax));
+            form.addView(labelledInput(getString(R.string.maximum_run), runMax));
+            form.addView(labelledInput(getString(R.string.pause_ratio_percent), pause));
+            form.addView(labelledInput(getString(R.string.priority_intervals), intervals));
+        } else {
+            form.addView(text(getString(R.string.unsupported_program_type), 14, true));
         }
         scroll.addView(form);
 
@@ -2397,7 +2597,16 @@ public final class MainActivity extends Activity {
         final EditText durationField = duration;
         final EditText pauseField = pause;
         final EditText repeatsField = repeats;
-        final EditText advancedField = advanced;
+        final EditText repeatDaysField = repeatDays;
+        final EditText startDateField = startDate;
+        final EditText intervalsField = intervals;
+        final EditText moduloField = modulo;
+        final EditText customStartField = customStart;
+        final CheckBox manualField = manual;
+        final EditText irrigationMinField = irrigationMin;
+        final EditText irrigationMaxField = irrigationMax;
+        final EditText runMaxField = runMax;
+        final List<CheckBox> dayCheckFields = dayChecks;
         AlertDialog dialog = new AlertDialog.Builder(this)
                 .setTitle(program.optString("id").isEmpty()
                         ? getString(R.string.new_program)
@@ -2423,34 +2632,40 @@ public final class MainActivity extends Activity {
                                     toast(getString(R.string.program_station_required));
                                     return;
                                 }
-                                JSONArray typeData;
-                                if (startField != null) {
-                                    typeData = new JSONArray(
-                                            originalTypeData == null
-                                                    ? "[]" : originalTypeData.toString());
-                                    while (typeData.length() < (type == 0 ? 5 : 6)) {
-                                        typeData.put(0);
+                                JSONArray typeData = new JSONArray();
+                                if (type == 0 || type == 2) {
+                                    typeData.put(programTime(startField))
+                                            .put(positiveInteger(durationField))
+                                            .put(nonNegativeInteger(pauseField))
+                                            .put(nonNegativeInteger(repeatsField));
+                                    if (type == 0) typeData.put(selectedProgramDays(dayCheckFields));
+                                    else typeData.put(positiveInteger(repeatDaysField))
+                                            .put(programDate(startDateField));
+                                } else if (type == 1) {
+                                    typeData.put(parsedPairs(intervalsField, false))
+                                            .put(selectedProgramDays(dayCheckFields));
+                                } else if (type == 3) {
+                                    typeData.put(parsedPairs(intervalsField, false))
+                                            .put(positiveInteger(repeatDaysField))
+                                            .put(programDate(startDateField));
+                                } else if (type == 4) {
+                                    typeData.put(parsedPairs(intervalsField, false));
+                                } else if (type == 5) {
+                                    typeData.put(parsedPairs(intervalsField, false));
+                                } else if (type == 6) {
+                                    int pausePercent = nonNegativeInteger(pauseField);
+                                    if (pausePercent > 100) {
+                                        throw new IllegalArgumentException(
+                                                getString(R.string.program_weather_values_invalid));
                                     }
-                                    typeData.put(0, timeToMinutes(
-                                            startField.getText().toString()));
-                                    typeData.put(1, positiveInteger(durationField));
-                                    typeData.put(2, nonNegativeInteger(pauseField));
-                                    typeData.put(3, nonNegativeInteger(repeatsField));
-                                    if (type == 0) {
-                                        JSONArray chosen = new JSONArray();
-                                        for (CheckBox check : dayChecks) {
-                                            if (check.isChecked()) {
-                                                chosen.put(check.getTag());
-                                            }
-                                        }
-                                        if (chosen.length() == 0) {
-                                            throw new IllegalArgumentException();
-                                        }
-                                        typeData.put(4, chosen);
-                                    }
+                                    typeData.put(nonNegativeInteger(irrigationMinField))
+                                            .put(positiveInteger(irrigationMaxField))
+                                            .put(positiveInteger(runMaxField))
+                                            .put(pausePercent / 100.0)
+                                            .put(parsedPairs(intervalsField, true));
                                 } else {
-                                    typeData = new JSONArray(
-                                            advancedField.getText().toString());
+                                    throw new IllegalArgumentException(
+                                            getString(R.string.unsupported_program_type));
                                 }
                                 JSONObject payload = new JSONObject();
                                 payload.put("name", name.getText().toString().trim());
@@ -2458,16 +2673,35 @@ public final class MainActivity extends Activity {
                                 payload.put("enabled", programEnabled.isChecked());
                                 payload.put("type", type);
                                 payload.put("type_data", typeData);
-                                Runnable saved = () -> {
-                                    dialog.dismiss();
-                                    load("/programs", "programs");
-                                };
-                                if (creating) post("/programs", payload, saved);
-                                else put(
-                                        "/programs/" + program.optString("id"),
-                                        payload, saved);
+                                if (type == 5) {
+                                    String startValue = programDateTime(customStartField);
+                                    payload.put("schedule", typeData.getJSONArray(0));
+                                    payload.put("modulo", positiveInteger(moduloField));
+                                    payload.put("manual", manualField.isChecked());
+                                    payload.put("start", startValue);
+                                }
+                                String method = creating ? "POST" : "PUT";
+                                String path = creating ? "/programs" :
+                                        "/programs/" + program.optString("id");
+                                api.request(method, path, payload, new ApiClient.Callback() {
+                                    @Override public void success(JSONObject response) {
+                                        dialog.dismiss();
+                                        load("/programs", "programs");
+                                    }
+
+                                    @Override public void failure(String error) {
+                                        message(
+                                                getString(R.string.program_save_failed),
+                                                localizedProgramSaveError(error));
+                                    }
+                                });
                             } catch (Exception error) {
-                                toast(getString(R.string.invalid_program_data));
+                                String reason = error.getMessage();
+                                message(
+                                        getString(R.string.program_save_failed),
+                                        reason == null || reason.trim().isEmpty()
+                                                ? getString(R.string.invalid_program_data)
+                                                : reason);
                             }
                         }));
         dialog.show();
@@ -4155,15 +4389,25 @@ public final class MainActivity extends Activity {
     }
 
     private int positiveInteger(EditText input) {
-        int value = Integer.parseInt(input.getText().toString().trim());
-        if (value <= 0) throw new IllegalArgumentException();
-        return value;
+        try {
+            int value = Integer.parseInt(input.getText().toString().trim());
+            if (value <= 0) throw new NumberFormatException();
+            return value;
+        } catch (NumberFormatException error) {
+            throw new IllegalArgumentException(
+                    getString(R.string.program_positive_number_required));
+        }
     }
 
     private int nonNegativeInteger(EditText input) {
-        int value = Integer.parseInt(input.getText().toString().trim());
-        if (value < 0) throw new IllegalArgumentException();
-        return value;
+        try {
+            int value = Integer.parseInt(input.getText().toString().trim());
+            if (value < 0) throw new NumberFormatException();
+            return value;
+        } catch (NumberFormatException error) {
+            throw new IllegalArgumentException(
+                    getString(R.string.program_non_negative_number_required));
+        }
     }
 
     private static boolean jsonArrayContains(JSONArray values, int needle) {
@@ -4555,6 +4799,52 @@ public final class MainActivity extends Activity {
             return getString(R.string.request_failed);
         }
         return getString(R.string.request_failed);
+    }
+
+    private String localizedProgramSaveError(String value) {
+        String code = ApiClient.errorCode(value);
+        String reason = ApiClient.errorReason(value).toLowerCase(Locale.ROOT);
+        if ("missing_program_fields".equals(code)) {
+            return getString(R.string.program_definition_incomplete);
+        }
+        if ("invalid_program".equals(code)) {
+            if (reason.contains("name")) {
+                return getString(R.string.program_name_required);
+            }
+            if (reason.contains("station")) {
+                return getString(R.string.program_station_invalid);
+            }
+            if (reason.contains("day")) {
+                return getString(R.string.program_day_required);
+            }
+            if (reason.contains("time or duration") ||
+                    reason.contains("repeating simple")) {
+                return getString(R.string.program_time_values_invalid);
+            }
+            if (reason.contains("weather") || reason.contains("irrigation_")) {
+                return getString(R.string.program_weather_values_invalid);
+            }
+            if (reason.contains("interval") || reason.contains("schedule")) {
+                return getString(R.string.program_intervals_format);
+            }
+            if (reason.contains("start_date")) {
+                return getString(R.string.program_date_format);
+            }
+            if (reason.contains("start")) {
+                return getString(R.string.program_date_time_format);
+            }
+            if (reason.contains("modulo") || reason.contains("greater than zero")) {
+                return getString(R.string.program_positive_number_required);
+            }
+            if (reason.contains("enabled") || reason.contains("manual")) {
+                return getString(R.string.program_boolean_invalid);
+            }
+            if (reason.contains("program type")) {
+                return getString(R.string.unsupported_program_type);
+            }
+            return getString(R.string.program_definition_rejected);
+        }
+        return localizedError(value);
     }
 
     private static String weatherIcon(String value) {
