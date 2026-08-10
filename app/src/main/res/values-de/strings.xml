@@ -57,6 +57,9 @@
     <string name="plugins">Plug-ins</string>
     <string name="system">System</string>
     <string name="loading">Wird geladen…</string>
+    <string name="connecting_last_installation">Verbindung mit der letzten Installation wird hergestellt…</string>
+    <string name="connecting_please_wait">Bitte warten Sie, während OSPy die gespeicherte Verbindung prüft.</string>
+    <string name="choose_another_installation">Andere Installation auswählen</string>
     <string name="unlock">OSPy entsperren</string>
     <string name="unlock_subtitle">Biometrie oder Geräteanmeldedaten</string>
     <string name="protected_storage_error">Fehler des geschützten Speichers</string>

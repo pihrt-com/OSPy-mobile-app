@@ -57,6 +57,9 @@
     <string name="plugins">Pluginy</string>
     <string name="system">Systém</string>
     <string name="loading">Načítám…</string>
+    <string name="connecting_last_installation">Připojuji se k poslední instalaci…</string>
+    <string name="connecting_please_wait">Počkejte prosím, OSPy ověřuje uložené připojení.</string>
+    <string name="choose_another_installation">Vybrat jinou instalaci</string>
     <string name="unlock">Odemknout OSPy</string>
     <string name="unlock_subtitle">Biometrie nebo zámek zařízení</string>
     <string name="protected_storage_error">Chyba chráněného úložiště</string>

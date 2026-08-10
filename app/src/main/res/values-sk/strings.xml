@@ -57,6 +57,9 @@
     <string name="plugins">Doplnky</string>
     <string name="system">Systém</string>
     <string name="loading">Načítava sa…</string>
+    <string name="connecting_last_installation">Pripájam sa k poslednej inštalácii…</string>
+    <string name="connecting_please_wait">Počkajte, kým OSPy overí uložené pripojenie.</string>
+    <string name="choose_another_installation">Vybrať inú inštaláciu</string>
     <string name="unlock">Odomknúť OSPy</string>
     <string name="unlock_subtitle">Biometria alebo zámok zariadenia</string>
     <string name="protected_storage_error">Chyba chráneného úložiska</string>

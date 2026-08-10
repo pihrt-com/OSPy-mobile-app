@@ -57,6 +57,9 @@
     <string name="plugins">Wtyczki</string>
     <string name="system">System</string>
     <string name="loading">Wczytywanie…</string>
+    <string name="connecting_last_installation">Łączenie z ostatnią instalacją…</string>
+    <string name="connecting_please_wait">Poczekaj, aż OSPy sprawdzi zapisane połączenie.</string>
+    <string name="choose_another_installation">Wybierz inną instalację</string>
     <string name="unlock">Odblokuj OSPy</string>
     <string name="unlock_subtitle">Biometria lub dane logowania urządzenia</string>
     <string name="protected_storage_error">Błąd chronionej pamięci</string>

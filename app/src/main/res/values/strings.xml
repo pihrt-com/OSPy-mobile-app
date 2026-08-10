@@ -57,6 +57,9 @@
     <string name="plugins">Plug-ins</string>
     <string name="system">System</string>
     <string name="loading">Loading…</string>
+    <string name="connecting_last_installation">Connecting to the last installation…</string>
+    <string name="connecting_please_wait">Please wait while OSPy checks the saved connection.</string>
+    <string name="choose_another_installation">Choose another installation</string>
     <string name="unlock">Unlock OSPy</string>
     <string name="unlock_subtitle">Biometrics or device credential</string>
     <string name="protected_storage_error">Protected storage error</string>

@@ -116,6 +116,7 @@ public final class MainActivity extends Activity {
     private int requestSequence = 0;
     private int activeRequest = 0;
     private boolean requestInFlight = false;
+    private int connectionAttemptGeneration = 0;
     private boolean unlockStarted = false;
     private byte[] pendingBackupData;
     private float overviewPullStartY = 0f;
@@ -411,18 +412,25 @@ public final class MainActivity extends Activity {
             toast(getString(R.string.no_reachable_installation));
             return;
         }
+        int attemptGeneration = ++connectionAttemptGeneration;
+        showConnecting();
         // Probe saved installations concurrently. One unreachable address now
         // costs at most one timeout instead of blocking every later candidate
         // for another full timeout.
         AtomicBoolean selected = new AtomicBoolean(false);
         AtomicInteger remaining = new AtomicInteger(candidates.size());
         for (Installation candidate : candidates) {
-            new ApiClient(candidate, installationStore).probe(new ApiClient.Callback() {
+            ApiClient candidateApi = new ApiClient(candidate, installationStore);
+            candidateApi.probe(new ApiClient.Callback() {
                 @Override public void success(JSONObject response) {
-                    if (selected.compareAndSet(false, true)) open(candidate);
+                    if (attemptGeneration != connectionAttemptGeneration) return;
+                    if (selected.compareAndSet(false, true)) {
+                        open(candidate, candidateApi);
+                    }
                 }
 
                 @Override public void failure(String error) {
+                    if (attemptGeneration != connectionAttemptGeneration) return;
                     if (remaining.decrementAndGet() == 0 &&
                             selected.compareAndSet(false, true)) {
                         showInstallations();
@@ -431,6 +439,49 @@ public final class MainActivity extends Activity {
                 }
             });
         }
+    }
+
+    private void showConnecting() {
+        currentPath = "";
+        currentRenderer = "";
+        shell(getString(R.string.app_name));
+
+        LinearLayout panel = new LinearLayout(this);
+        panel.setOrientation(LinearLayout.VERTICAL);
+        panel.setGravity(Gravity.CENTER_HORIZONTAL);
+        panel.setPadding(dp(24), dp(48), dp(24), dp(24));
+
+        ImageView logo = new ImageView(this);
+        logo.setImageResource(R.drawable.opensprinkler_logo);
+        logo.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
+        logo.setAdjustViewBounds(true);
+        logo.setContentDescription(null);
+        logo.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+        panel.addView(logo, new LinearLayout.LayoutParams(-1, dp(72)));
+
+        ProgressBar progress = new ProgressBar(this);
+        LinearLayout.LayoutParams progressParams =
+                new LinearLayout.LayoutParams(dp(48), dp(48));
+        progressParams.setMargins(0, dp(28), 0, dp(18));
+        panel.addView(progress, progressParams);
+
+        TextView status = text(
+                getString(R.string.connecting_last_installation), 18, true);
+        status.setGravity(Gravity.CENTER);
+        panel.addView(status, new LinearLayout.LayoutParams(-1, -2));
+
+        TextView detail = text(getString(R.string.connecting_please_wait), 14, false);
+        detail.setTextColor(MUTED);
+        detail.setGravity(Gravity.CENTER);
+        LinearLayout.LayoutParams detailParams =
+                new LinearLayout.LayoutParams(-1, -2);
+        detailParams.setMargins(0, dp(8), 0, dp(24));
+        panel.addView(detail, detailParams);
+
+        Button choose = button(getString(R.string.choose_another_installation), NAVY);
+        choose.setOnClickListener(v -> showInstallations());
+        panel.addView(choose);
+        content.addView(panel, new LinearLayout.LayoutParams(-1, -1));
     }
 
     private boolean isOnWifi() {
@@ -629,6 +680,7 @@ public final class MainActivity extends Activity {
     }
 
     private void showInstallations() {
+        connectionAttemptGeneration++;
         currentPath = "";
         currentRenderer = "";
         shell(getString(R.string.app_name));
@@ -971,7 +1023,7 @@ public final class MainActivity extends Activity {
                     new ApiClient.Callback() {
                         @Override public void success(JSONObject response) {
                             installations.add(pairingInstallation);
-                            open(pairingInstallation);
+                            open(pairingInstallation, pairingApi);
                             pairingApi = null;
                             pairingInstallation = null;
                         }
@@ -1041,9 +1093,14 @@ public final class MainActivity extends Activity {
     }
 
     private void open(Installation installation) {
+        open(installation, new ApiClient(installation, installationStore));
+    }
+
+    private void open(Installation installation, ApiClient connectedApi) {
+        connectionAttemptGeneration++;
         appPreferences.setLastInstallationId(installation.id);
         current = installation;
-        api = new ApiClient(installation, installationStore);
+        api = connectedApi;
         resetNotificationBaseline();
         resetSystemOperationState();
         showDashboard();
