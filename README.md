@@ -4,7 +4,19 @@ Open Sprinkler Python [Git-Hub source](https://github.com/martinpihrt/OSPy)
 # OSPy Mobile APP
 Android client for the OSPy `/api/v1`. App on [Google store](https://play.google.com/store/apps/details?id=com.pihrt.ospy.mobile)
 
-Current source version: **0.3.15** (`versionCode 22`).
+Current source version: **0.3.17** (`versionCode 24`).
+
+## Included in version 0.3.17
+- Added immediate background delivery through Firebase Cloud Messaging with high-priority data messages. The existing 15-minute JobScheduler polling remains available as a fallback.
+- Added Firebase App Check with the Play Integrity provider. A phone registers with the configured HTTPS relay only after it has authenticated to its own OSPy installation, and the relay registration never exposes the OSPy password or refresh token.
+- Every saved OSPy installation discovers the relay through its authenticated `/api/v1/push` endpoint. FCM token refresh, device reboot, application replacement, pairing and notification-preference changes automatically synchronize the subscription.
+- Push messages are matched to the persistent OSPy installation ID, deduplicated against the existing notification cursor and rendered through the same localized notification-code mapping as live and polled events.
+- Increased the Android package version to `0.3.17` (`versionCode 24`).
+
+## Included in version 0.3.16
+- Replaced the blank reconnect screen with the OpenSprinkler logo, a progress indicator and localized connection status while the last installation is being checked.
+- Kept saved installation selection available when automatic reconnection fails or takes too long.
+- Increased the Android package version to `0.3.16` (`versionCode 23`).
 
 ## Included in version 0.3.15
 - Added confirmed deletion for every irrigation program.
@@ -116,7 +128,7 @@ The matching OSPy server update validates and builds a complete program on a det
 - Native plug-in cards can be collapsed again, localize their known metric names in the app, show chart legends and time bounds, and render a bounded current radar image.
 - Optional network-aware installation selection prefers a saved private address on Wi-Fi and a public address outside Wi-Fi. The last reachable installation can be opened automatically after application unlock.
 
-The app uses only Android platform APIs and `org.json`; it has no analytics, advertising, cloud relay or third-party runtime library.
+The app uses Android platform APIs, `org.json`, Firebase Cloud Messaging and Firebase App Check. It contains no analytics or advertising SDK. Immediate notifications use the separately deployed OSPy push relay; normal control and monitoring continue to communicate directly with the user's OSPy installation.
 
 ## Localization
 
@@ -126,7 +138,7 @@ The app uses native Android string resources and includes English, Czech, German
 
 Install Android Studio with Android SDK 37 and JDK 17. Open this directory, allow Gradle to synchronize and run or build the `app` configuration. GitHub Actions also builds a debug APK on every push and pull request using JDK 17 and the Gradle version pinned by the repository wrapper. The workflow retains the debug APK and complete HTML, text and SARIF Lint reports for diagnosis.
 
-The repository intentionally does not contain `local.properties`, SDK files, signing keys or built APK files.
+The repository intentionally does not contain `local.properties`, SDK files, signing keys or built APK files. The checked-in `app/google-services.json` contains the public Firebase project and application identifiers required by the Android build; it is not a service-account credential and cannot authorize server-side FCM sending.
 
 ## Connection and security
 
@@ -136,6 +148,8 @@ OSPy commonly uses a locally generated HTTPS certificate that Android cannot ver
 
 Removing an installation deletes its locally protected refresh token. Use the OSPy paired-device endpoint or OSPy web administration to revoke a lost device. Android backup is disabled so tokens cannot leave the device through application backup.
 
+Production push registration uses Play Integrity and therefore must be tested with a build installed through Google Play testing or production. A directly installed debug APK can still use the application and fallback polling, but it cannot obtain a production App Check assertion. Google Play updates preserve saved installations. Direct APK and Google Play builds use different signing identities and Android cannot migrate protected application data through an uninstall or a switch between those identities.
+
 ## Architecture
 
 - `ApiClient` implements JSON requests, automatic token refresh and rotation.
@@ -143,6 +157,8 @@ Removing an installation deletes its locally protected refresh token. Use the OS
 - `InstallationStore` supports multiple OSPy systems.
 - `LiveUpdates` uses `/changes` as the reconnect-safe fallback to `/stream`.
 - `NotificationCenter` maps stable server notification codes to native localized Android notifications.
+- `PushRegistrationManager` binds each authenticated OSPy installation to its FCM token through the configured relay and keeps notification preferences synchronized.
+- `OSPyFirebaseMessagingService` receives, validates, associates and deduplicates immediate data notifications while the application UI is closed.
 - `MainActivity` renders native Android views and sends explicit API actions.
 
 The complete server-side contract is documented in the [OSPy Mobile API v1 reference](https://github.com/martinpihrt/OSPy/blob/master/api/docs/Mobile_API_v1.md) and exposed by every installation at `/api/v1/openapi.json`.

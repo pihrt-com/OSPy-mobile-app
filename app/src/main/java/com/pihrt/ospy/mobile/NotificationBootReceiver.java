@@ -8,5 +8,6 @@ public final class NotificationBootReceiver extends BroadcastReceiver {
     @Override
     public void onReceive(Context context, Intent intent) {
         NotificationScheduler.update(context, true);
+        PushRegistrationManager.syncAll(context);
     }
 }

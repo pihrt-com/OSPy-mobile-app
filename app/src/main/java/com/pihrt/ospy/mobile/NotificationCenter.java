@@ -219,6 +219,7 @@ final class NotificationCenter {
     void setEnabled(boolean enabled) {
         preferences.edit().putBoolean("notifications_enabled", enabled).apply();
         if (!enabled) manager.cancelAll();
+        PushRegistrationManager.syncAll(context);
     }
 
     boolean isCategoryEnabled(String category) {
@@ -229,6 +230,7 @@ final class NotificationCenter {
         preferences.edit()
                 .putBoolean("notification_" + normalize(category), enabled)
                 .apply();
+        PushRegistrationManager.syncAll(context);
     }
 
     void clearInstallation(String installationId) {

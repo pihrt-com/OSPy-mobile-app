@@ -1024,6 +1024,7 @@ public final class MainActivity extends Activity {
                         @Override public void success(JSONObject response) {
                             installations.add(pairingInstallation);
                             open(pairingInstallation, pairingApi);
+                            PushRegistrationManager.syncAll(MainActivity.this);
                             pairingApi = null;
                             pairingInstallation = null;
                         }
@@ -4522,6 +4523,8 @@ public final class MainActivity extends Activity {
                     try {
                         installationStore.remove(installation.id);
                         notifications.clearInstallation(installation.id);
+                        PushRegistrationManager.clearLocalState(
+                                this, installation.id);
                         NotificationScheduler.update(this, false);
                         showInstallations();
                     } catch (Exception error) {

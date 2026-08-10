@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "668635864569",
+    "project_id": "ospy-push",
+    "storage_bucket": "ospy-push.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:668635864569:android:2a7d4f01b836a0495c7128",
+        "android_client_info": {
+          "package_name": "com.pihrt.ospy.mobile"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCt468_rrhn4v9OKYG16Rfri8tg8-7AOGY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
