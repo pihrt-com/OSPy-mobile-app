@@ -4,7 +4,13 @@ Open Sprinkler Python [Git-Hub source](https://github.com/martinpihrt/OSPy)
 # OSPy Mobile APP
 Android client for the OSPy `/api/v1`. App on [Google store](https://play.google.com/store/apps/details?id=com.pihrt.ospy.mobile)
 
-Current source version: **0.3.17** (`versionCode 24`).
+Current source version: **0.3.18** (`versionCode 25`).
+
+## Included in version 0.3.18
+- Re-authenticating an existing saved installation sends its persistent `device_id`, replaces the rotating login session in place and no longer creates another paired-device row in OSPy.
+- Adding the same normalized OSPy address and user again also reuses the existing local identity. A genuinely new profile, application reinstall or different phone still receives a new identity.
+- Added a localized **Sign in again** action to every saved installation.
+- Increased the Android package version to `0.3.18` (`versionCode 25`).
 
 ## Included in version 0.3.17
 - Added immediate background delivery through Firebase Cloud Messaging with high-priority data messages. The existing 15-minute JobScheduler polling remains available as a fallback.

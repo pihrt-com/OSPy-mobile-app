@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">OSPy</string>
+    <string name="reconnect">Prihlásiť znova</string>
+    <string name="reconnect_installation">Znova prihlásiť inštaláciu</string>
     <string name="installations">Inštalácie</string>
     <string name="add_installation">Pridať inštaláciu</string>
     <string name="server_url">Adresa OSPy</string>

@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">OSPy</string>
+    <string name="reconnect">Zaloguj ponownie</string>
+    <string name="reconnect_installation">Zaloguj ponownie do instalacji</string>
     <string name="installations">Instalacje</string>
     <string name="add_installation">Dodaj instalację</string>
     <string name="server_url">Adres OSPy</string>

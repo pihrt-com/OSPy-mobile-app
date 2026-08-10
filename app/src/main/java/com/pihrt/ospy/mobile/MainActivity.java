@@ -706,6 +706,9 @@ public final class MainActivity extends Activity {
             Button edit = button(getString(R.string.edit), NAVY);
             edit.setOnClickListener(v -> showEditInstallation(installation));
             actions.addView(edit);
+            Button reconnect = button(getString(R.string.reconnect), NAVY);
+            reconnect.setOnClickListener(v -> showPairing(installation));
+            actions.addView(reconnect);
             Button remove = button("×", RED);
             remove.setContentDescription(getString(R.string.remove));
             remove.setOnClickListener(v -> confirmRemove(installation));
@@ -971,9 +974,16 @@ public final class MainActivity extends Activity {
     }
 
     private void showPairing() {
+        showPairing(null);
+    }
+
+    private void showPairing(Installation reconnectTarget) {
         currentPath = "";
         currentRenderer = "";
-        shell(getString(R.string.add_installation));
+        pairingApi = null;
+        pairingInstallation = null;
+        shell(getString(reconnectTarget == null
+                ? R.string.add_installation : R.string.reconnect_installation));
         EditText url = input(getString(R.string.server_url), false);
         url.setHint(R.string.server_url_hint);
         EditText user = input(getString(R.string.username), false);
@@ -996,6 +1006,11 @@ public final class MainActivity extends Activity {
         content.addView(secondFactor);
         content.addView(unverified);
         content.addView(warning);
+        if (reconnectTarget != null) {
+            url.setText(reconnectTarget.baseUrl);
+            user.setText(reconnectTarget.username);
+            unverified.setChecked(reconnectTarget.allowUnverifiedCertificate);
+        }
 
         LinearLayout actions = actionRow();
         Button connect = button(getString(R.string.connect), GREEN);
@@ -1008,20 +1023,41 @@ public final class MainActivity extends Activity {
             connect.setEnabled(false);
             boolean allowUnverified = base.startsWith("https://") &&
                     unverified.isChecked();
+            String username = user.getText().toString().trim();
+            Installation savedIdentity = reconnectTarget;
+            if (savedIdentity == null) {
+                for (Installation saved : installations) {
+                    if (saved.baseUrl.equals(base) &&
+                            saved.username.equals(username)) {
+                        savedIdentity = saved;
+                        break;
+                    }
+                }
+            }
             if (pairingInstallation == null ||
                     !pairingInstallation.baseUrl.equals(base) ||
+                    !pairingInstallation.username.equals(username) ||
+                    (savedIdentity != null &&
+                            !pairingInstallation.id.equals(savedIdentity.id)) ||
                     pairingInstallation.allowUnverifiedCertificate != allowUnverified) {
-                pairingInstallation = new Installation(
-                        UUID.randomUUID().toString(), base, base,
-                        user.getText().toString().trim(), "", allowUnverified);
+                pairingInstallation = savedIdentity == null
+                        ? new Installation(
+                                UUID.randomUUID().toString(), base, base,
+                                username, "", allowUnverified)
+                        : new Installation(
+                                savedIdentity.id, savedIdentity.name, base,
+                                username, savedIdentity.refreshToken,
+                                allowUnverified);
                 pairingApi = new ApiClient(pairingInstallation, installationStore);
             }
             pairingApi.pair(
-                    user.getText().toString().trim(),
+                    username,
                     password.getText().toString(),
                     secondFactor.getText().toString(),
                     new ApiClient.Callback() {
                         @Override public void success(JSONObject response) {
+                            installations.removeIf(item ->
+                                    item.id.equals(pairingInstallation.id));
                             installations.add(pairingInstallation);
                             open(pairingInstallation, pairingApi);
                             PushRegistrationManager.syncAll(MainActivity.this);

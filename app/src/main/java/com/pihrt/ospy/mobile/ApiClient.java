@@ -84,6 +84,7 @@ final class ApiClient {
         executor.execute(() -> {
             try {
                 JSONObject device = new JSONObject()
+                        .put("id", installation.id)
                         .put("name", android.os.Build.MODEL)
                         .put("app_version", BuildConfig.VERSION_NAME);
                 JSONObject body = new JSONObject()
