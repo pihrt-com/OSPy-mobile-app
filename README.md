@@ -6,7 +6,20 @@ Android client for the OSPy `/api/v1`. App on [Google store](https://play.google
 
 Current source version: **0.3.19** (`versionCode 26`).
 
+## Screenshots
+
+### English
+
+<p><a href="docs/screenshots/en/overview.png"><img src="docs/screenshots/en/overview.png" width="23%" alt="English overview"></a> <a href="docs/screenshots/en/stations.png"><img src="docs/screenshots/en/stations.png" width="23%" alt="English stations"></a> <a href="docs/screenshots/en/programs.png"><img src="docs/screenshots/en/programs.png" width="23%" alt="English programs"></a> <a href="docs/screenshots/en/sensors.png"><img src="docs/screenshots/en/sensors.png" width="23%" alt="English sensors"></a></p>
+
+### Čeština
+
+<p><a href="docs/screenshots/cs/overview.png"><img src="docs/screenshots/cs/overview.png" width="23%" alt="Český přehled"></a> <a href="docs/screenshots/cs/stations.png"><img src="docs/screenshots/cs/stations.png" width="23%" alt="České stanice"></a> <a href="docs/screenshots/cs/programs.png"><img src="docs/screenshots/cs/programs.png" width="23%" alt="České programy"></a> <a href="docs/screenshots/cs/sensors.png"><img src="docs/screenshots/cs/sensors.png" width="23%" alt="České snímače"></a></p>
+
 ## Included in version 0.3.19
+- Updated AndroidX Activity and Fragment to current stable releases instead of inheriting obsolete minimum versions from Google Play services.
+- Migrated system-bar handling to AndroidX edge-to-edge APIs and current window insets so the interface remains correctly padded on recent Android versions.
+- Migrated the release build to the Android Gradle Plugin 9.3 optimization DSL, enabling R8 code optimization and optimized resource shrinking together.
 - Added a localized push-registration diagnostic panel to application settings. It shows the last safe registration stage, attempt time, HTTP status and stable error code without displaying FCM tokens, App Check tokens, passwords or subscription secrets.
 - Added a manual **Retry push registration** action and automatic retry after every confirmed foreground OSPy connection and periodic background notification job.
 - Registration failures are written to Android logcat under the `OSPyPush` tag instead of being silently discarded.

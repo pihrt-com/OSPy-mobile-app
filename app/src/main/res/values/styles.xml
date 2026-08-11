@@ -7,8 +7,6 @@
     <style name="AppThemeBase" parent="android:style/Theme.Material.Light.NoActionBar">
         <item name="android:fontFamily">sans</item>
         <item name="android:colorAccent">@color/ospy_green</item>
-        <item name="android:navigationBarColor">@color/ospy_navy</item>
-        <item name="android:statusBarColor">@color/ospy_green</item>
         <item name="android:windowLightStatusBar">false</item>
         <item name="android:windowBackground">@color/ospy_background</item>
     </style>
@@ -18,8 +16,6 @@
     <style name="AppThemeDarkBase" parent="android:style/Theme.Material.NoActionBar">
         <item name="android:fontFamily">sans</item>
         <item name="android:colorAccent">@color/ospy_green_dark_theme</item>
-        <item name="android:navigationBarColor">@color/ospy_dark_background</item>
-        <item name="android:statusBarColor">@color/ospy_green_dark_theme</item>
         <item name="android:windowLightStatusBar">false</item>
         <item name="android:windowBackground">@color/ospy_dark_background</item>
     </style>

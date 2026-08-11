@@ -1,7 +1,6 @@
 package com.pihrt.ospy.mobile;
 
 import android.Manifest;
-import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.DatePickerDialog;
 import android.app.TimePickerDialog;
@@ -30,7 +29,6 @@ import android.util.Base64;
 import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.View;
-import android.view.WindowInsets;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.CheckBox;
@@ -44,6 +42,14 @@ import android.widget.ProgressBar;
 import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import androidx.activity.ComponentActivity;
+import androidx.activity.EdgeToEdge;
+import androidx.core.graphics.Insets;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowCompat;
+import androidx.core.view.WindowInsetsCompat;
+import androidx.core.view.WindowInsetsControllerCompat;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -69,7 +75,7 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public final class MainActivity extends Activity {
+public final class MainActivity extends ComponentActivity {
     private static final int REQUEST_NOTIFICATIONS = 10;
     private static final int REQUEST_UNLOCK_CREDENTIAL = 11;
     private static final int REQUEST_SAVE_BACKUP = 41;
@@ -265,8 +271,9 @@ public final class MainActivity extends Activity {
         setTheme(appPreferences.darkTheme()
                 ? R.style.AppThemeDark : R.style.AppTheme);
         super.onCreate(state);
+        EdgeToEdge.enable(this);
         applyThemePalette();
-        applySystemBarColors();
+        applySystemBarAppearance();
         installationStore = new InstallationStore(this);
         notifications = new NotificationCenter(this);
         NotificationScheduler.update(this, true);
@@ -529,11 +536,13 @@ public final class MainActivity extends Activity {
         }
     }
 
-    private void applySystemBarColors() {
-        getWindow().setStatusBarColor(GREEN);
-        getWindow().setNavigationBarColor(
-                appPreferences != null && appPreferences.darkTheme()
-                        ? BACKGROUND : NAVY);
+    private void applySystemBarAppearance() {
+        WindowInsetsControllerCompat controller =
+                WindowCompat.getInsetsController(
+                        getWindow(), getWindow().getDecorView());
+        controller.setAppearanceLightStatusBars(false);
+        controller.setAppearanceLightNavigationBars(
+                appPreferences == null || !appPreferences.darkTheme());
     }
 
     private boolean deviceSecurityConfigured() {
@@ -615,16 +624,18 @@ public final class MainActivity extends Activity {
         configureOverviewPullToRefresh();
         setContentView(page);
 
-        page.setOnApplyWindowInsetsListener((view, insets) -> {
+        ViewCompat.setOnApplyWindowInsetsListener(page, (view, windowInsets) -> {
+            Insets systemBars = windowInsets.getInsets(
+                    WindowInsetsCompat.Type.systemBars());
             toolbar.setPadding(
-                    dp(16), dp(10) + insets.getSystemWindowInsetTop(),
+                    dp(16), dp(10) + systemBars.top,
                     dp(12), dp(10));
             content.setPadding(
                     dp(12), dp(10), dp(12),
-                    dp(24) + insets.getSystemWindowInsetBottom());
-            return insets;
+                    dp(24) + systemBars.bottom);
+            return windowInsets;
         });
-        page.requestApplyInsets();
+        ViewCompat.requestApplyInsets(page);
     }
 
     private void configureOverviewPullToRefresh() {
@@ -774,7 +785,7 @@ public final class MainActivity extends Activity {
                     appPreferences.setDarkTheme(enabled);
                     setTheme(enabled ? R.style.AppThemeDark : R.style.AppTheme);
                     applyThemePalette();
-                    applySystemBarColors();
+                    applySystemBarAppearance();
                 });
         content.addView(appearanceSettings);
 

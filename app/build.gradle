@@ -40,9 +40,9 @@ android {
 
     buildTypes {
         release {
-            minifyEnabled true
-            proguardFiles getDefaultProguardFile("proguard-android-optimize.txt"),
-                    "proguard-rules.pro"
+            optimization {
+                enable = true
+            }
             if (releaseSigningAvailable) {
                 signingConfig signingConfigs.release
             }
@@ -60,6 +60,10 @@ android {
 }
 
 dependencies {
+    // Google Play services declares very old minimum AndroidX versions.
+    // Pin current releases so the generated bundle does not inherit them.
+    implementation "androidx.activity:activity:1.13.0"
+    implementation "androidx.fragment:fragment:1.8.9"
     implementation platform("com.google.firebase:firebase-bom:34.16.0")
     implementation "com.google.firebase:firebase-messaging"
     releaseImplementation "com.google.firebase:firebase-appcheck-playintegrity"
