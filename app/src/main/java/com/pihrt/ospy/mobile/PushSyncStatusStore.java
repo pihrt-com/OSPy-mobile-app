@@ -13,6 +13,13 @@ final class PushSyncStatusStore {
     static final String READY = "ready";
     static final String DISABLED = "disabled";
     static final String ERROR = "error";
+    static final String DETAIL_APP_CHECK_ATTESTATION_FAILED =
+            "app_check_attestation_failed";
+    static final String DETAIL_APP_CHECK_RATE_LIMITED =
+            "app_check_rate_limited";
+    static final String DETAIL_TIMEOUT = "timeout";
+    static final String DETAIL_NETWORK = "network";
+    static final String DETAIL_UNEXPECTED = "unexpected";
 
     private static final String FILE = "ospy_push_sync_status";
     private final SharedPreferences preferences;

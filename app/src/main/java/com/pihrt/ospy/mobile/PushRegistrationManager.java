@@ -14,13 +14,18 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
+import java.net.ConnectException;
 import java.net.HttpURLConnection;
+import java.net.SocketTimeoutException;
 import java.net.URI;
+import java.net.UnknownHostException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.ArrayList;
+import java.util.Locale;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -236,7 +241,7 @@ final class PushRegistrationManager {
         Log.w(TAG, "Push registration failed at " + stage, error);
     }
 
-    private static String technicalDetail(Exception error) {
+    static String technicalDetail(Exception error) {
         Throwable value = error;
         while (value.getCause() != null && value.getCause() != value) {
             value = value.getCause();
@@ -252,7 +257,28 @@ final class PushRegistrationManager {
             return "HTTP " + relay.status +
                     (relay.code.isEmpty() ? "" : " · " + relay.code);
         }
-        return value.getClass().getSimpleName();
+        String message = value.getMessage();
+        String normalized = message == null
+                ? "" : message.toLowerCase(Locale.ROOT);
+        if (normalized.contains("app attestation failed")) {
+            return PushSyncStatusStore.DETAIL_APP_CHECK_ATTESTATION_FAILED;
+        }
+        if (normalized.contains("too many attempts")) {
+            return PushSyncStatusStore.DETAIL_APP_CHECK_RATE_LIMITED;
+        }
+        if (value instanceof java.util.concurrent.TimeoutException ||
+                value instanceof SocketTimeoutException) {
+            return PushSyncStatusStore.DETAIL_TIMEOUT;
+        }
+        if (value instanceof UnknownHostException ||
+                value instanceof ConnectException ||
+                value instanceof IOException) {
+            return PushSyncStatusStore.DETAIL_NETWORK;
+        }
+        // R8 may rename third-party exception classes to values such as
+        // "ed". Persist a stable code instead of an obfuscated name or an
+        // exception message that could contain credentials or tokens.
+        return PushSyncStatusStore.DETAIL_UNEXPECTED;
     }
 
     private static void dispatchCompletions() {

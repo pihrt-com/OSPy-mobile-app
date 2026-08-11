@@ -459,6 +459,11 @@
     <string name="push_status_error">Registration failed during: %1$s</string>
     <string name="push_status_last_attempt">Last attempt: %1$s</string>
     <string name="push_status_technical_detail">Technical detail: %1$s</string>
+    <string name="push_detail_app_check_attestation_failed">App verification was rejected (HTTP 403). Add every Google Play app-signing SHA-256 fingerprint to Firebase App Check.</string>
+    <string name="push_detail_app_check_rate_limited">App verification is temporarily rate-limited after too many attempts. Wait a few minutes before trying again.</string>
+    <string name="push_detail_timeout">The registration request timed out. Check the connection and try again.</string>
+    <string name="push_detail_network">The registration service could not be reached. Check the internet connection.</string>
+    <string name="push_detail_unexpected">An unexpected registration error occurred. Try again and check the OSPyPush log if the problem continues.</string>
     <string name="retry_push_registration">Retry push registration</string>
     <string name="push_retry_started">Registering…</string>
 </resources>

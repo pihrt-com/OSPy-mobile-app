@@ -465,6 +465,11 @@
     <string name="push_status_error">Registrácia zlyhala v kroku: %1$s</string>
     <string name="push_status_last_attempt">Posledný pokus: %1$s</string>
     <string name="push_status_technical_detail">Technické podrobnosti: %1$s</string>
+    <string name="push_detail_app_check_attestation_failed">Overenie aplikácie bolo odmietnuté (HTTP 403). Pridajte do Firebase App Check všetky odtlačky SHA-256 podpisových certifikátov aplikácie z Google Play.</string>
+    <string name="push_detail_app_check_rate_limited">Overenie aplikácie je po príliš mnohých pokusoch dočasne obmedzené. Pred ďalším pokusom niekoľko minút počkajte.</string>
+    <string name="push_detail_timeout">Vypršal časový limit registrácie. Skontrolujte pripojenie a skúste to znova.</string>
+    <string name="push_detail_network">Registračná služba nie je dostupná. Skontrolujte internetové pripojenie.</string>
+    <string name="push_detail_unexpected">Pri registrácii nastala neočakávaná chyba. Skúste to znova a ak problém pretrváva, skontrolujte protokol OSPyPush.</string>
     <string name="retry_push_registration">Zopakovať registráciu push</string>
     <string name="push_retry_started">Registrujem…</string>
 </resources>

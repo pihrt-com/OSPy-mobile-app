@@ -23,8 +23,8 @@ android {
         applicationId "com.pihrt.ospy.mobile"
         minSdk 26
         targetSdk 37
-        versionCode 26
-        versionName "0.3.19"
+        versionCode 27
+        versionName "0.3.20"
     }
 
     signingConfigs {
@@ -68,4 +68,5 @@ dependencies {
     implementation "com.google.firebase:firebase-messaging"
     releaseImplementation "com.google.firebase:firebase-appcheck-playintegrity"
     debugImplementation "com.google.firebase:firebase-appcheck-debug"
+    testImplementation "junit:junit:4.13.2"
 }

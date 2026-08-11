@@ -465,6 +465,11 @@
     <string name="push_status_error">Rejestracja nie powiodła się podczas: %1$s</string>
     <string name="push_status_last_attempt">Ostatnia próba: %1$s</string>
     <string name="push_status_technical_detail">Szczegóły techniczne: %1$s</string>
+    <string name="push_detail_app_check_attestation_failed">Weryfikacja aplikacji została odrzucona (HTTP 403). Dodaj do Firebase App Check wszystkie odciski SHA-256 kluczy podpisywania aplikacji w Google Play.</string>
+    <string name="push_detail_app_check_rate_limited">Weryfikacja aplikacji została tymczasowo ograniczona po zbyt wielu próbach. Odczekaj kilka minut przed ponowieniem.</string>
+    <string name="push_detail_timeout">Przekroczono limit czasu rejestracji. Sprawdź połączenie i spróbuj ponownie.</string>
+    <string name="push_detail_network">Usługa rejestracji jest nieosiągalna. Sprawdź połączenie z internetem.</string>
+    <string name="push_detail_unexpected">Podczas rejestracji wystąpił nieoczekiwany błąd. Spróbuj ponownie, a jeśli problem nie ustąpi, sprawdź dziennik OSPyPush.</string>
     <string name="retry_push_registration">Ponów rejestrację push</string>
     <string name="push_retry_started">Rejestrowanie…</string>
 </resources>

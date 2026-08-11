@@ -4,7 +4,7 @@ Open Sprinkler Python [Git-Hub source](https://github.com/martinpihrt/OSPy)
 # OSPy Mobile APP
 Android client for the OSPy `/api/v1`. App on [Google store](https://play.google.com/store/apps/details?id=com.pihrt.ospy.mobile)
 
-Current source version: **0.3.19** (`versionCode 26`).
+Current source version: **0.3.20** (`versionCode 27`).
 
 ## Screenshots
 
@@ -15,6 +15,12 @@ Current source version: **0.3.19** (`versionCode 26`).
 ### Čeština
 
 <p><a href="docs/screenshots/cs/overview.png"><img src="docs/screenshots/cs/overview.png" width="23%" alt="Český přehled"></a> <a href="docs/screenshots/cs/stations.png"><img src="docs/screenshots/cs/stations.png" width="23%" alt="České stanice"></a> <a href="docs/screenshots/cs/programs.png"><img src="docs/screenshots/cs/programs.png" width="23%" alt="České programy"></a> <a href="docs/screenshots/cs/sensors.png"><img src="docs/screenshots/cs/sensors.png" width="23%" alt="České snímače"></a></p>
+
+## Included in version 0.3.20
+- Replaced R8-obfuscated Firebase exception names such as `ed` with stable push-registration diagnostic codes.
+- Added localized and actionable diagnostics for rejected App Check attestation, temporary rate limiting, request timeout, network failure and unexpected errors without exposing tokens or credentials.
+- Added regression tests for push-registration error classification.
+- Increased the Android package version to `0.3.20` (`versionCode 27`).
 
 ## Included in version 0.3.19
 - Updated AndroidX Activity and Fragment to current stable releases instead of inheriting obsolete minimum versions from Google Play services.

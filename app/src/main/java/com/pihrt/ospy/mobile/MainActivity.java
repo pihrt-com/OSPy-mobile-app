@@ -898,7 +898,7 @@ public final class MainActivity extends ComponentActivity {
                 if (!snapshot.detail.isEmpty()) {
                     TextView detail = text(getString(
                             R.string.push_status_technical_detail,
-                            snapshot.detail), 12, false);
+                            pushTechnicalDetail(snapshot.detail)), 12, false);
                     detail.setTextColor(MUTED);
                     pushRegistration.addView(detail);
                 }
@@ -1023,6 +1023,29 @@ public final class MainActivity extends ComponentActivity {
                 return getString(R.string.push_status_disabled);
             default:
                 return getString(R.string.push_status_never);
+        }
+    }
+
+    private String pushTechnicalDetail(String detail) {
+        switch (detail) {
+            case PushSyncStatusStore.DETAIL_APP_CHECK_ATTESTATION_FAILED:
+                return getString(
+                        R.string.push_detail_app_check_attestation_failed);
+            case PushSyncStatusStore.DETAIL_APP_CHECK_RATE_LIMITED:
+                return getString(R.string.push_detail_app_check_rate_limited);
+            case PushSyncStatusStore.DETAIL_TIMEOUT:
+                return getString(R.string.push_detail_timeout);
+            case PushSyncStatusStore.DETAIL_NETWORK:
+                return getString(R.string.push_detail_network);
+            case PushSyncStatusStore.DETAIL_UNEXPECTED:
+                return getString(R.string.push_detail_unexpected);
+            default:
+                // Preserve structured HTTP details produced by OSPy and the
+                // relay, but hide legacy R8-only names such as "ed".
+                if (detail.matches("[a-z]{1,3}")) {
+                    return getString(R.string.push_detail_unexpected);
+                }
+                return detail;
         }
     }
 

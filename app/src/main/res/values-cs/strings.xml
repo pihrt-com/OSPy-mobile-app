@@ -465,6 +465,11 @@
     <string name="push_status_error">Registrace selhala v kroku: %1$s</string>
     <string name="push_status_last_attempt">Poslední pokus: %1$s</string>
     <string name="push_status_technical_detail">Technické podrobnosti: %1$s</string>
+    <string name="push_detail_app_check_attestation_failed">Ověření aplikace bylo odmítnuto (HTTP 403). Přidejte do Firebase App Check všechny SHA-256 certifikátů podepisování aplikace z Google Play.</string>
+    <string name="push_detail_app_check_rate_limited">Ověření aplikace je po příliš mnoha pokusech dočasně omezeno. Před dalším pokusem několik minut počkejte.</string>
+    <string name="push_detail_timeout">Vypršel časový limit registrace. Zkontrolujte připojení a zkuste to znovu.</string>
+    <string name="push_detail_network">Registrační služba není dostupná. Zkontrolujte připojení k internetu.</string>
+    <string name="push_detail_unexpected">Při registraci nastala neočekávaná chyba. Zkuste to znovu a pokud problém trvá, zkontrolujte protokol OSPyPush.</string>
     <string name="retry_push_registration">Opakovat registraci push</string>
     <string name="push_retry_started">Registruji…</string>
 </resources>

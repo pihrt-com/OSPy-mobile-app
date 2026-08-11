@@ -459,6 +459,11 @@
     <string name="push_status_error">Registrierung fehlgeschlagen bei: %1$s</string>
     <string name="push_status_last_attempt">Letzter Versuch: %1$s</string>
     <string name="push_status_technical_detail">Technisches Detail: %1$s</string>
+    <string name="push_detail_app_check_attestation_failed">Die App-Überprüfung wurde abgelehnt (HTTP 403). Fügen Sie alle SHA-256-Fingerabdrücke der Google-Play-App-Signierung zu Firebase App Check hinzu.</string>
+    <string name="push_detail_app_check_rate_limited">Die App-Überprüfung wurde nach zu vielen Versuchen vorübergehend eingeschränkt. Warten Sie einige Minuten, bevor Sie es erneut versuchen.</string>
+    <string name="push_detail_timeout">Zeitüberschreitung bei der Registrierung. Prüfen Sie die Verbindung und versuchen Sie es erneut.</string>
+    <string name="push_detail_network">Der Registrierungsdienst ist nicht erreichbar. Prüfen Sie die Internetverbindung.</string>
+    <string name="push_detail_unexpected">Bei der Registrierung ist ein unerwarteter Fehler aufgetreten. Versuchen Sie es erneut und prüfen Sie bei anhaltendem Problem das OSPyPush-Protokoll.</string>
     <string name="retry_push_registration">Push-Registrierung wiederholen</string>
     <string name="push_retry_started">Registrierung läuft…</string>
 </resources>
