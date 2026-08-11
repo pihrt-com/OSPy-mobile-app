@@ -4,7 +4,17 @@ Open Sprinkler Python [Git-Hub source](https://github.com/martinpihrt/OSPy)
 # OSPy Mobile APP
 Android client for the OSPy `/api/v1`. App on [Google store](https://play.google.com/store/apps/details?id=com.pihrt.ospy.mobile)
 
-Current source version: **0.3.18** (`versionCode 25`).
+Current source version: **0.3.19** (`versionCode 26`).
+
+## Included in version 0.3.19
+- Added a localized push-registration diagnostic panel to application settings. It shows the last safe registration stage, attempt time, HTTP status and stable error code without displaying FCM tokens, App Check tokens, passwords or subscription secrets.
+- Added a manual **Retry push registration** action and automatic retry after every confirmed foreground OSPy connection and periodic background notification job.
+- Registration failures are written to Android logcat under the `OSPyPush` tag instead of being silently discarded.
+- Increased the Android package version to `0.3.19` (`versionCode 26`).
+
+For rapid tests that preserve an existing production installation, use the Google Play internal testing track. An internal-track App Bundle is signed with the same Play App Signing key as production, can update the installed application in place and preserves the saved OSPy installations. A directly built local APK uses a different signing key and cannot replace the Play-installed application without uninstalling it first.
+
+Debug builds use the Firebase App Check debug provider and release builds always use Play Integrity. To test directly through ADB, build `assembleDebug`, start the application once, copy the `DebugAppCheckProvider` token from logcat and register it in Firebase Console under App Check / Android application / Manage debug tokens. Never commit or distribute a debug token. After the one-time switch from the Play-signed application, later debug APKs can be installed repeatedly with `adb install -r app/build/outputs/apk/debug/app-debug.apk` without clearing the debug application data.
 
 ## Included in version 0.3.18
 - Re-authenticating an existing saved installation sends its persistent `device_id`, replaces the rotating login session in place and no longer creates another paired-device row in OSPy.

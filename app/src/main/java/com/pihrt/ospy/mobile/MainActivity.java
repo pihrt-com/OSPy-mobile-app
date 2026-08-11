@@ -49,6 +49,7 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.text.DateFormatSymbols;
+import java.text.DateFormat;
 import java.io.OutputStream;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -59,6 +60,7 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.FormatStyle;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -723,7 +725,7 @@ public final class MainActivity extends Activity {
 
     private void showAppSettings() {
         currentPath = "";
-        currentRenderer = "";
+        currentRenderer = "app_settings";
         activeRequest = ++requestSequence;
         requestInFlight = false;
         shell(getString(R.string.app_settings));
@@ -848,6 +850,64 @@ public final class MainActivity extends Activity {
                 NotificationCenter.CATEGORY_OTHER);
         content.addView(notificationSettings);
 
+        LinearLayout pushRegistration = cardColumn();
+        pushRegistration.addView(text(
+                getString(R.string.push_registration), 16, true));
+        TextView pushDescription = text(
+                getString(R.string.push_registration_description), 13, false);
+        pushDescription.setTextColor(MUTED);
+        pushRegistration.addView(pushDescription);
+        PushSyncStatusStore pushStatusStore = new PushSyncStatusStore(this);
+        if (installations.isEmpty()) {
+            pushRegistration.addView(text(
+                    getString(R.string.push_status_no_installations), 14, false));
+        } else {
+            for (Installation installation : installations) {
+                PushSyncStatusStore.Snapshot snapshot =
+                        pushStatusStore.load(installation.id);
+                TextView status = text(
+                        getString(
+                                R.string.push_status_installation,
+                                installation.name,
+                                pushStatusText(snapshot)),
+                        14, PushSyncStatusStore.ERROR.equals(snapshot.state));
+                status.setTextColor(PushSyncStatusStore.ERROR.equals(snapshot.state)
+                        ? RED : TEXT);
+                pushRegistration.addView(status);
+                if (snapshot.updated > 0L) {
+                    String attempted = DateFormat.getDateTimeInstance(
+                            DateFormat.SHORT, DateFormat.MEDIUM)
+                            .format(new Date(snapshot.updated));
+                    TextView updated = text(getString(
+                            R.string.push_status_last_attempt, attempted),
+                            12, false);
+                    updated.setTextColor(MUTED);
+                    pushRegistration.addView(updated);
+                }
+                if (!snapshot.detail.isEmpty()) {
+                    TextView detail = text(getString(
+                            R.string.push_status_technical_detail,
+                            snapshot.detail), 12, false);
+                    detail.setTextColor(MUTED);
+                    pushRegistration.addView(detail);
+                }
+            }
+        }
+        Button retryPush = button(
+                getString(R.string.retry_push_registration), NAVY);
+        retryPush.setOnClickListener(v -> {
+            retryPush.setEnabled(false);
+            retryPush.setText(getString(R.string.push_retry_started));
+            PushRegistrationManager.syncAll(this, () -> {
+                if (!isFinishing() &&
+                        "app_settings".equals(currentRenderer)) {
+                    showAppSettings();
+                }
+            });
+        });
+        pushRegistration.addView(retryPush);
+        content.addView(pushRegistration);
+
         LinearLayout networkSettings = cardColumn();
         networkSettings.addView(text(
                 getString(R.string.connection_settings), 16, true));
@@ -923,6 +983,36 @@ public final class MainActivity extends Activity {
             else showDashboard();
         });
         content.addView(back);
+    }
+
+    private String pushStatusText(PushSyncStatusStore.Snapshot snapshot) {
+        if (PushSyncStatusStore.ERROR.equals(snapshot.state)) {
+            return getString(
+                    R.string.push_status_error,
+                    pushStageText(snapshot.stage));
+        }
+        return pushStageText(snapshot.state);
+    }
+
+    private String pushStageText(String stage) {
+        switch (stage) {
+            case PushSyncStatusStore.FCM:
+                return getString(R.string.push_status_fcm);
+            case PushSyncStatusStore.APP_CHECK:
+                return getString(R.string.push_status_app_check);
+            case PushSyncStatusStore.OSPY:
+                return getString(R.string.push_status_ospy);
+            case PushSyncStatusStore.RELAY:
+                return getString(R.string.push_status_relay);
+            case PushSyncStatusStore.SAVE:
+                return getString(R.string.push_status_save);
+            case PushSyncStatusStore.READY:
+                return getString(R.string.push_status_ready);
+            case PushSyncStatusStore.DISABLED:
+                return getString(R.string.push_status_disabled);
+            default:
+                return getString(R.string.push_status_never);
+        }
     }
 
     private interface PreferenceSetter {
@@ -1145,6 +1235,9 @@ public final class MainActivity extends Activity {
         liveUpdates = new LiveUpdates(api, this::handleLiveEvent);
         liveUpdates.start();
         NotificationScheduler.update(this, false);
+        // A confirmed foreground connection is the most reliable opportunity
+        // to retry FCM/App Check and relay registration on restrictive phones.
+        PushRegistrationManager.syncAll(this);
     }
 
     private void resetNotificationBaseline() {

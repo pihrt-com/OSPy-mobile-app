@@ -450,4 +450,21 @@
     <string name="success_status">Powodzenie</string>
     <string name="none_value">Brak</string>
     <string name="waiting_healthy_start">Oczekiwanie na prawidłowe uruchomienie</string>
+    <string name="push_registration">Rejestracja powiadomień push</string>
+    <string name="push_registration_description">Pokazuje ostatni krok rejestracji dla każdej instalacji. Tokeny, hasła i sekrety nigdy nie są wyświetlane.</string>
+    <string name="push_status_no_installations">Nie zapisano żadnej instalacji OSPy.</string>
+    <string name="push_status_installation">%1$s: %2$s</string>
+    <string name="push_status_never">Rejestracja nie została jeszcze uruchomiona</string>
+    <string name="push_status_fcm">Pobieranie tokenu FCM</string>
+    <string name="push_status_app_check">Weryfikowanie aplikacji przez App Check</string>
+    <string name="push_status_ospy">Sprawdzanie konfiguracji push w OSPy</string>
+    <string name="push_status_relay">Rejestrowanie telefonu w usłudze push relay</string>
+    <string name="push_status_save">Zapisywanie subskrypcji w OSPy</string>
+    <string name="push_status_ready">Rejestracja zakończona</string>
+    <string name="push_status_disabled">Push jest wyłączony lub nieskonfigurowany dla tej instalacji</string>
+    <string name="push_status_error">Rejestracja nie powiodła się podczas: %1$s</string>
+    <string name="push_status_last_attempt">Ostatnia próba: %1$s</string>
+    <string name="push_status_technical_detail">Szczegóły techniczne: %1$s</string>
+    <string name="retry_push_registration">Ponów rejestrację push</string>
+    <string name="push_retry_started">Rejestrowanie…</string>
 </resources>

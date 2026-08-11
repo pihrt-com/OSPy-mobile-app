@@ -18,6 +18,7 @@ public final class NotificationPollingJobService extends JobService {
 
     @Override
     public boolean onStartJob(JobParameters params) {
+        PushRegistrationManager.syncAll(this);
         if (!RUNNING.compareAndSet(false, true)) return false;
         stopped = false;
         executor = Executors.newSingleThreadExecutor();

@@ -444,4 +444,21 @@
     <string name="success_status">Erfolg</string>
     <string name="none_value">Keine</string>
     <string name="waiting_healthy_start">Warten auf einen fehlerfreien Start</string>
+    <string name="push_registration">Push-Registrierung</string>
+    <string name="push_registration_description">Zeigt den letzten Registrierungsschritt für jede Installation. Token, Passwörter und Geheimnisse werden niemals angezeigt.</string>
+    <string name="push_status_no_installations">Es ist keine OSPy-Installation gespeichert.</string>
+    <string name="push_status_installation">%1$s: %2$s</string>
+    <string name="push_status_never">Die Registrierung wurde noch nicht ausgeführt</string>
+    <string name="push_status_fcm">FCM-Token wird abgerufen</string>
+    <string name="push_status_app_check">Die Anwendung wird mit App Check überprüft</string>
+    <string name="push_status_ospy">Die OSPy-Push-Konfiguration wird geprüft</string>
+    <string name="push_status_relay">Das Telefon wird beim Push-Relay registriert</string>
+    <string name="push_status_save">Das Abonnement wird in OSPy gespeichert</string>
+    <string name="push_status_ready">Registrierung abgeschlossen</string>
+    <string name="push_status_disabled">Push ist für diese Installation deaktiviert oder nicht konfiguriert</string>
+    <string name="push_status_error">Registrierung fehlgeschlagen bei: %1$s</string>
+    <string name="push_status_last_attempt">Letzter Versuch: %1$s</string>
+    <string name="push_status_technical_detail">Technisches Detail: %1$s</string>
+    <string name="retry_push_registration">Push-Registrierung wiederholen</string>
+    <string name="push_retry_started">Registrierung läuft…</string>
 </resources>

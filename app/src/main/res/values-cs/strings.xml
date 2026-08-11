@@ -450,4 +450,21 @@
     <string name="success_status">Úspěch</string>
     <string name="none_value">Žádný</string>
     <string name="waiting_healthy_start">Čeká se na úspěšné spuštění</string>
+    <string name="push_registration">Registrace push oznámení</string>
+    <string name="push_registration_description">Zobrazuje poslední krok registrace pro každou instalaci. Tokeny, hesla ani tajné údaje se nezobrazují.</string>
+    <string name="push_status_no_installations">Není uložena žádná instalace OSPy.</string>
+    <string name="push_status_installation">%1$s: %2$s</string>
+    <string name="push_status_never">Registrace zatím neproběhla</string>
+    <string name="push_status_fcm">Získávání tokenu FCM</string>
+    <string name="push_status_app_check">Ověřování aplikace pomocí App Check</string>
+    <string name="push_status_ospy">Kontrola nastavení push v OSPy</string>
+    <string name="push_status_relay">Registrace telefonu u push relay</string>
+    <string name="push_status_save">Ukládání odběru do OSPy</string>
+    <string name="push_status_ready">Registrace byla dokončena</string>
+    <string name="push_status_disabled">Push je pro tuto instalaci vypnutý nebo není nakonfigurovaný</string>
+    <string name="push_status_error">Registrace selhala v kroku: %1$s</string>
+    <string name="push_status_last_attempt">Poslední pokus: %1$s</string>
+    <string name="push_status_technical_detail">Technické podrobnosti: %1$s</string>
+    <string name="retry_push_registration">Opakovat registraci push</string>
+    <string name="push_retry_started">Registruji…</string>
 </resources>
