@@ -33,6 +33,8 @@ final class NotificationCenter {
     private static final String CHANNEL = "ospy_events";
     private static final String FILE = "ospy_mobile_preferences";
     private static final String CURSOR_PREFIX = "notification_cursor_";
+    private static final String SPEECH_ENABLED = "notification_speech_enabled";
+    private static final String SPEECH_ALL_CATEGORIES = "notification_speech_all_categories";
     private static final long SERVER_FALLBACK_SUPPRESSION_MS = 30_000L;
     private static final long INITIAL_RECENT_WINDOW_MS = 5L * 60L * 1000L;
     private static final AtomicInteger NEXT_ID = new AtomicInteger(1000);
@@ -218,8 +220,37 @@ final class NotificationCenter {
 
     void setEnabled(boolean enabled) {
         preferences.edit().putBoolean("notifications_enabled", enabled).apply();
-        if (!enabled) manager.cancelAll();
+        if (!enabled) {
+            manager.cancelAll();
+            SpeechAnnouncer.stop();
+        }
         PushRegistrationManager.syncAll(context);
+    }
+
+    boolean isSpeechEnabled() {
+        return preferences.getBoolean(SPEECH_ENABLED, false);
+    }
+
+    void setSpeechEnabled(boolean enabled) {
+        preferences.edit().putBoolean(SPEECH_ENABLED, enabled).apply();
+        if (enabled) SpeechAnnouncer.initialize(context);
+        else SpeechAnnouncer.stop();
+    }
+
+    boolean speaksAllCategories() {
+        return preferences.getBoolean(SPEECH_ALL_CATEGORIES, false);
+    }
+
+    void setSpeaksAllCategories(boolean enabled) {
+        preferences.edit().putBoolean(SPEECH_ALL_CATEGORIES, enabled).apply();
+    }
+
+    static boolean shouldSpeak(
+            String category, boolean speechEnabled, boolean allCategories) {
+        if (!speechEnabled) return false;
+        if (allCategories) return true;
+        return CATEGORY_STATION_STARTED.equals(category) ||
+                CATEGORY_STATION_STOPPED.equals(category);
     }
 
     boolean isCategoryEnabled(String category) {
@@ -301,6 +332,9 @@ final class NotificationCenter {
                 .setAutoCancel(true);
         if (source != null && !source.trim().isEmpty()) builder.setSubText(source.trim());
         manager.notify(id, builder.build());
+        if (shouldSpeak(category, isSpeechEnabled(), speaksAllCategories())) {
+            SpeechAnnouncer.speak(context, message);
+        }
     }
 
     private long serverCursor(String installationId) {

@@ -210,6 +210,19 @@
     <string name="dark_theme">Thème sombre</string>
     <string name="dark_theme_description">Utilisez une palette de couleurs sombres tout au long de l\'application.</string>
     <string name="notification_preferences_description">Choisissez quels événements OSPy peuvent créer une notification téléphonique.</string>
+    <string name="notification_speech">Lire les notifications à voix haute</string>
+    <string name="notification_speech_description">Utilise la synthèse vocale d\'Android. Par défaut, seules les notifications de démarrage et d\'arrêt des stations sont lues.</string>
+    <string name="notification_speech_all_categories">Lire toutes les catégories de notifications activées</string>
+    <string name="notification_speech_status">Statut de la parole : %1$s</string>
+    <string name="notification_speech_status_checking">vérification du service vocal Android</string>
+    <string name="notification_speech_status_ready">prêt pour %1$s</string>
+    <string name="notification_speech_status_speaking">je parle maintenant</string>
+    <string name="notification_speech_status_spoken">le dernier message a été prononcé avec succès</string>
+    <string name="notification_speech_status_missing_data">les données vocales pour %1$s sont manquantes</string>
+    <string name="notification_speech_status_unsupported">le service vocal installé ne prend pas en charge %1$s</string>
+    <string name="notification_speech_status_error">le service vocal Android a signalé une erreur</string>
+    <string name="notification_speech_test">Test de discours</string>
+    <string name="notification_speech_test_message">Le discours de notification OSPy fonctionne.</string>
     <string name="notifications_blocked_by_android">Android bloque actuellement les notifications pour cette application.</string>
     <string name="open_notification_settings">Ouvrir les paramètres de notification Android</string>
     <string name="notify_station_started">Poste allumé</string>
@@ -497,4 +510,5 @@
     <string name="help_plugins">Affiche les plug-ins installés et permet de démarrer ou d\'arrêter les plug-ins pris en charge. Les données d’exploitation ouvrent l’état mobile, l’historique et les actions du plug-in lorsqu’ils sont fournis.</string>
     <string name="help_system">Affiche la version OSPy et l\'état de mise à jour et fournit des actions de mise à jour, de sauvegarde et de redémarrage. Les sauvegardes disponibles sont réduites par défaut ; développez la carte pour les afficher ou les télécharger.</string>
     <string name="help_settings">Contrôle le verrouillage de l\'application, l\'apparence, les catégories de notification, l\'enregistrement push, la sélection automatique de l\'installation et la langue de l\'application. Les systèmes enregistrés OSPy ouvrent la gestion de l\'installation.</string>
+    <string name="help_notification_speech">La lecture des notifications à haute voix utilise le service de synthèse vocale Android et ne nécessite pas de redémarrage de l\'application. Après l\'avoir activé, l\'état de la parole indique si la langue de l\'application sélectionnée est prête ou s\'il manque une voix ou une langue. Le test vocal vérifie la voix actuelle. Le mode Station uniquement lit les démarrages et les arrêts de la station ; le commutateur supplémentaire lit chaque catégorie de notification activée.</string>
 </resources>

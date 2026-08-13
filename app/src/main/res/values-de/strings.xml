@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+<?xml version='1.0' encoding='utf-8'?>
 <resources>
     <string name="app_name">OSPy</string>
     <string name="reconnect">Erneut anmelden</string>
@@ -201,9 +201,6 @@
     <string name="protected_storage_error_detail">Gespeicherte Installationen konnten nicht gelesen oder aktualisiert werden.</string>
     <string name="chart_series">Datenreihe</string>
     <string name="duration_join">%1$s %2$s</string>
-
-
-    <!-- Security, appearance, notification filters and update operations -->
     <string name="security">Sicherheit</string>
     <string name="app_lock">Authentifizierung beim Öffnen</string>
     <string name="app_lock_description">Beim Öffnen der App Biometrie oder die Gerätesperre anfordern.</string>
@@ -213,6 +210,19 @@
     <string name="dark_theme">Dunkles Design</string>
     <string name="dark_theme_description">In der gesamten App eine dunkle Farbpalette verwenden.</string>
     <string name="notification_preferences_description">Wählen Sie, welche OSPy-Ereignisse eine Benachrichtigung auf dem Telefon auslösen dürfen.</string>
+    <string name="notification_speech">Benachrichtigungen vorlesen</string>
+    <string name="notification_speech_description">Verwendet die Android-Sprachausgabe. Standardmäßig werden nur Benachrichtigungen zum Starten und Stoppen von Stationen vorgelesen.</string>
+    <string name="notification_speech_all_categories">Alle aktivierten Benachrichtigungskategorien vorlesen</string>
+    <string name="notification_speech_status">Sprachstatus: %1$s</string>
+    <string name="notification_speech_status_checking">Überprüfung des Sprachdienstes Android</string>
+    <string name="notification_speech_status_ready">bereit für %1$s</string>
+    <string name="notification_speech_status_speaking">Ich spreche jetzt</string>
+    <string name="notification_speech_status_spoken">Die letzte Nachricht wurde erfolgreich gesprochen</string>
+    <string name="notification_speech_status_missing_data">Sprachdaten für %1$s fehlen</string>
+    <string name="notification_speech_status_unsupported">Der installierte Sprachdienst unterstützt %1$s nicht</string>
+    <string name="notification_speech_status_error">Der Sprachdienst Android hat einen Fehler gemeldet</string>
+    <string name="notification_speech_test">Testrede</string>
+    <string name="notification_speech_test_message">OSPy Benachrichtigungsansage funktioniert.</string>
     <string name="notifications_blocked_by_android">Android blockiert derzeit Benachrichtigungen für diese App.</string>
     <string name="open_notification_settings">Android-Benachrichtigungseinstellungen öffnen</string>
     <string name="notify_station_started">Station eingeschaltet</string>
@@ -251,8 +261,6 @@
     <string name="operation_progress">Fortschritt: %1$d%%</string>
     <string name="pending_status">Ausstehend</string>
     <string name="unknown_status">Unbekannt</string>
-
-    <!-- Localized duration units -->
     <plurals name="duration_days">
         <item quantity="one">%1$d Tag</item>
         <item quantity="other">%1$d Tage</item>
@@ -502,4 +510,5 @@
     <string name="help_plugins">Zeigt installierte Plug-ins und ermöglicht das Starten oder Stoppen unterstützter Plug-ins. Betriebsdaten öffnen den mobilen Status, Verlauf und Aktionen eines Plug-ins, sofern verfügbar.</string>
     <string name="help_system">Zeigt OSPy-Version und Aktualisierungsstatus und bietet Aktualisierung, Sicherung und Neustart. Verfügbare Sicherungen sind standardmäßig eingeklappt; erweitern Sie die Karte, um sie anzuzeigen oder herunterzuladen.</string>
     <string name="help_settings">Steuert Anwendungssperre, Darstellung, Benachrichtigungskategorien, Push-Registrierung, automatische Installationsauswahl und Anwendungssprache. Gespeicherte OSPy-Systeme öffnet die Installationsverwaltung.</string>
+    <string name="help_notification_speech">Das Vorlesen von Benachrichtigungen nutzt den Text-to-Speech-Dienst Android und erfordert keinen Neustart der Anwendung. Nach der Aktivierung zeigt der Sprachstatus an, ob die ausgewählte Anwendungssprache bereit ist oder ob eine Stimme oder Sprache fehlt. Testsprache überprüft die aktuelle Stimme. Der Nur-Station-Modus liest Stationsstarts und -stopps; Der zusätzliche Schalter liest jede aktivierte Benachrichtigungskategorie.</string>
 </resources>

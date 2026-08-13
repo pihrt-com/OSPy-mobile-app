@@ -210,6 +210,19 @@
     <string name="dark_theme">Mørkt tema</string>
     <string name="dark_theme_description">Brug en mørk farvepalette under hele påføringen.</string>
     <string name="notification_preferences_description">Vælg, hvilke OSPy begivenheder der kan oprette en telefonmeddelelse.</string>
+    <string name="notification_speech">Læs meddelelser højt</string>
+    <string name="notification_speech_description">Bruger Androids tekst-til-tale. Som standard læses kun meddelelser om start og stop af stationer højt.</string>
+    <string name="notification_speech_all_categories">Læs alle aktiverede meddelelseskategorier højt</string>
+    <string name="notification_speech_status">Talestatus: %1$s</string>
+    <string name="notification_speech_status_checking">tjekker Android taletjenesten</string>
+    <string name="notification_speech_status_ready">klar til %1$s</string>
+    <string name="notification_speech_status_speaking">taler nu</string>
+    <string name="notification_speech_status_spoken">sidste besked blev læst op</string>
+    <string name="notification_speech_status_missing_data">stemmedata for %1$s mangler</string>
+    <string name="notification_speech_status_unsupported">den installerede taletjeneste understøtter ikke %1$s</string>
+    <string name="notification_speech_status_error">taletjenesten Android rapporterede en fejl</string>
+    <string name="notification_speech_test">Test tale</string>
+    <string name="notification_speech_test_message">OSPy meddelelsestale fungerer.</string>
     <string name="notifications_blocked_by_android">Android blokerer i øjeblikket meddelelser for denne app.</string>
     <string name="open_notification_settings">Åbn Android meddelelsesindstillinger</string>
     <string name="notify_station_started">Station tændt</string>
@@ -497,4 +510,5 @@
     <string name="help_plugins">Viser installerede plug-ins og gør det muligt at starte eller stoppe understøttede plug-ins. Driftsdata åbner plug-in\'s mobilstatus, historik og handlinger, når de leveres.</string>
     <string name="help_system">Viser OSPy version og opdateringstilstand og giver opdatering, backup og genstart. Tilgængelige sikkerhedskopier er som standard skjult; udvide kortet for at se eller downloade dem.</string>
     <string name="help_settings">Styrer applikationslås, udseende, meddelelseskategorier, push-registrering, automatisk installationsvalg og applikationssprog. Gemte OSPy systemer åbner installationsadministration.</string>
+    <string name="help_notification_speech">Læs meddelelser højt bruger Android tekst-til-tale-tjenesten og kræver ikke genstart af programmet. Efter aktivering viser Talestatus, om det valgte applikationssprog er klar, eller om en stemme eller et sprog mangler. Testtale bekræfter den aktuelle stemme. Kun stationstilstand læser stationsstarter og -stop; den ekstra kontakt læser alle aktiverede meddelelseskategorier.</string>
 </resources>

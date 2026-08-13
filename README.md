@@ -4,7 +4,7 @@ Open Sprinkler Python [Git-Hub source](https://github.com/martinpihrt/OSPy)
 # OSPy Mobile APP
 Android client for the OSPy `/api/v1`. App on [Google store](https://play.google.com/store/apps/details?id=com.pihrt.ospy.mobile)
 
-Current source version: **0.3.24** (`versionCode 31`).
+Current source version: **0.3.25** (`versionCode 32`).
 
 ## Screenshots
 
@@ -15,6 +15,11 @@ Current source version: **0.3.24** (`versionCode 31`).
 ### Čeština
 
 <p><a href="docs/screenshots/cs/overview.png"><img src="docs/screenshots/cs/overview.png" width="23%" alt="Český přehled"></a> <a href="docs/screenshots/cs/stations.png"><img src="docs/screenshots/cs/stations.png" width="23%" alt="České stanice"></a> <a href="docs/screenshots/cs/programs.png"><img src="docs/screenshots/cs/programs.png" width="23%" alt="České programy"></a> <a href="docs/screenshots/cs/sensors.png"><img src="docs/screenshots/cs/sensors.png" width="23%" alt="České snímače"></a></p>
+
+## Included in version 0.3.25
+- Added optional Android text-to-speech for localized OSPy notifications. Speech is disabled by default and can announce station start and stop events or every enabled notification category without restarting the application.
+- Speech uses the application language and follows notification category filters and deduplication. A live status reports initialization, readiness, speaking, success, missing voice data, an unsupported language or a speech-service error, and a test action verifies the installed voice immediately.
+- Added all speech settings in every supported language and increased the Android package version to `0.3.25` (`versionCode 32`).
 
 ## Included in version 0.3.24
 - Added complete Spanish, French, Italian, Serbian, Russian, Danish, Simplified Chinese, Japanese and Korean Android resources. All 488 strings and plural resources are available in every supported language, including application help, notifications, API errors and program controls.

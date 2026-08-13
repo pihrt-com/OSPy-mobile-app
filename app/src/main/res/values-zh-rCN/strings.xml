@@ -210,6 +210,19 @@
     <string name="dark_theme">深色主题</string>
     <string name="dark_theme_description">在整个应用程序中使用深色调色板。</string>
     <string name="notification_preferences_description">选择哪些 OSPy 事件可以创建电话通知。</string>
+    <string name="notification_speech">大声朗读通知</string>
+    <string name="notification_speech_description">使用 Android 文本转语音功能。默认情况下，仅朗读站点启动和停止通知。</string>
+    <string name="notification_speech_all_categories">朗读所有已启用的通知类别</string>
+    <string name="notification_speech_status">发言状态：%1$s</string>
+    <string name="notification_speech_status_checking">查看Android语音服务</string>
+    <string name="notification_speech_status_ready">准备好%1$s</string>
+    <string name="notification_speech_status_speaking">现在说话</string>
+    <string name="notification_speech_status_spoken">最后一条消息已成功朗读</string>
+    <string name="notification_speech_status_missing_data">%1$s 的语音数据丢失</string>
+    <string name="notification_speech_status_unsupported">安装的语音服务不支持%1$s</string>
+    <string name="notification_speech_status_error">Android语音服务报错</string>
+    <string name="notification_speech_test">测试演讲</string>
+    <string name="notification_speech_test_message">OSPy 通知语音正在运行。</string>
     <string name="notifications_blocked_by_android">Android 目前阻止此应用程序的通知。</string>
     <string name="open_notification_settings">打开Android通知设置</string>
     <string name="notify_station_started">电台已开启</string>
@@ -497,4 +510,5 @@
     <string name="help_plugins">显示已安装的插件并允许启动或停止支持的插件。操作数据会在提供时打开插件的移动状态、历史记录和操作。</string>
     <string name="help_system">显示 OSPy 版本和更新状态，并提供更新、备份和重启操作。可用备份默认折叠；展开卡片即可查看或下载它们。</string>
     <string name="help_settings">控制应用程序锁定、外观、通知类别、推送注册、自动安装选择和应用程序语言。保存OSPy系统打开安装管理。</string>
+    <string name="help_notification_speech">大声朗读通知使用 Android 文本转语音服务，不需要重新启动应用程序。启用后，语音状态会显示所选应用程序语言是否已准备好或者是否缺少语音或语言。测试语音验证当前语音。仅车站模式读取车站启动和停止；附加开关读取每个启用的通知类别。</string>
 </resources>

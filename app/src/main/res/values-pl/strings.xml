@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+<?xml version='1.0' encoding='utf-8'?>
 <resources>
     <string name="app_name">OSPy</string>
     <string name="reconnect">Zaloguj ponownie</string>
@@ -201,9 +201,6 @@
     <string name="protected_storage_error_detail">Nie można odczytać ani zaktualizować zapisanych instalacji.</string>
     <string name="chart_series">Seria</string>
     <string name="duration_join">%1$s %2$s</string>
-
-
-    <!-- Security, appearance, notification filters and update operations -->
     <string name="security">Zabezpieczenia</string>
     <string name="app_lock">Weryfikacja przy otwieraniu</string>
     <string name="app_lock_description">Przy otwieraniu aplikacji wymagaj biometrii lub blokady urządzenia.</string>
@@ -213,6 +210,19 @@
     <string name="dark_theme">Ciemny motyw</string>
     <string name="dark_theme_description">Używaj ciemnej kolorystyki w całej aplikacji.</string>
     <string name="notification_preferences_description">Wybierz zdarzenia OSPy, które mogą tworzyć powiadomienia w telefonie.</string>
+    <string name="notification_speech">Odczytuj powiadomienia na głos</string>
+    <string name="notification_speech_description">Używa syntezatora mowy Androida. Domyślnie odczytywane są tylko powiadomienia o uruchomieniu i zatrzymaniu stacji.</string>
+    <string name="notification_speech_all_categories">Odczytuj wszystkie włączone kategorie powiadomień</string>
+    <string name="notification_speech_status">Stan mowy: %1$s</string>
+    <string name="notification_speech_status_checking">sprawdzanie usługi mowy Android</string>
+    <string name="notification_speech_status_ready">gotowy na %1$s</string>
+    <string name="notification_speech_status_speaking">teraz mówię</string>
+    <string name="notification_speech_status_spoken">ostatnia wiadomość została pomyślnie wypowiedziana</string>
+    <string name="notification_speech_status_missing_data">brak danych głosowych dla języka %1$s</string>
+    <string name="notification_speech_status_unsupported">zainstalowana usługa mowy nie obsługuje języka %1$s</string>
+    <string name="notification_speech_status_error">usługa mowy Android zgłosiła błąd</string>
+    <string name="notification_speech_test">Próbna mowa</string>
+    <string name="notification_speech_test_message">OSPy mowa powiadamiająca działa.</string>
     <string name="notifications_blocked_by_android">Android obecnie blokuje powiadomienia tej aplikacji.</string>
     <string name="open_notification_settings">Otwórz ustawienia powiadomień Androida</string>
     <string name="notify_station_started">Włączenie stacji</string>
@@ -251,8 +261,6 @@
     <string name="operation_progress">Postęp: %1$d%%</string>
     <string name="pending_status">Oczekuje</string>
     <string name="unknown_status">Nieznany</string>
-
-    <!-- Localized duration units -->
     <plurals name="duration_days">
         <item quantity="one">%1$d dzień</item>
         <item quantity="few">%1$d dni</item>
@@ -508,4 +516,5 @@
     <string name="help_plugins">Pokazuje zainstalowane wtyczki i pozwala uruchamiać lub zatrzymywać obsługiwane wtyczki. Dane robocze otwierają mobilny stan, historię i działania wtyczki, jeśli są dostępne.</string>
     <string name="help_system">Pokazuje wersję OSPy i stan aktualizacji oraz udostępnia aktualizację, kopie zapasowe i restart. Dostępne kopie są domyślnie zwinięte; rozwiń kartę, aby je wyświetlić lub pobrać.</string>
     <string name="help_settings">Steruje blokadą aplikacji, wyglądem, kategoriami powiadomień, rejestracją push, automatycznym wyborem instalacji i językiem aplikacji. Zapisane systemy OSPy otwierają zarządzanie instalacjami.</string>
+    <string name="help_notification_speech">Funkcja Czytaj powiadomienia na głos korzysta z usługi zamiany tekstu na mowę Android i nie wymaga ponownego uruchamiania aplikacji. Po włączeniu status Mowa pokazuje, czy wybrany język aplikacji jest gotowy, czy też brakuje głosu lub języka. Mowa testowa sprawdza bieżący głos. Tryb tylko stacji odczytuje uruchomienia i zatrzymania stacji; dodatkowy przełącznik odczytuje każdą włączoną kategorię powiadomień.</string>
 </resources>

@@ -213,6 +213,19 @@
     <string name="dark_theme">Dark theme</string>
     <string name="dark_theme_description">Use a dark colour palette throughout the application.</string>
     <string name="notification_preferences_description">Choose which OSPy events may create a phone notification.</string>
+    <string name="notification_speech">Read notifications aloud</string>
+    <string name="notification_speech_description">Uses Android text-to-speech. By default, only station start and stop notifications are spoken.</string>
+    <string name="notification_speech_all_categories">Read all enabled notification categories</string>
+    <string name="notification_speech_status">Speech status: %1$s</string>
+    <string name="notification_speech_status_checking">checking the Android speech service</string>
+    <string name="notification_speech_status_ready">ready for %1$s</string>
+    <string name="notification_speech_status_speaking">speaking now</string>
+    <string name="notification_speech_status_spoken">last message was spoken successfully</string>
+    <string name="notification_speech_status_missing_data">voice data for %1$s is missing</string>
+    <string name="notification_speech_status_unsupported">the installed speech service does not support %1$s</string>
+    <string name="notification_speech_status_error">the Android speech service reported an error</string>
+    <string name="notification_speech_test">Test speech</string>
+    <string name="notification_speech_test_message">OSPy notification speech is working.</string>
     <string name="notifications_blocked_by_android">Android currently blocks notifications for this app.</string>
     <string name="open_notification_settings">Open Android notification settings</string>
     <string name="notify_station_started">Station switched on</string>
@@ -502,4 +515,5 @@
     <string name="help_plugins">Shows installed plug-ins and allows supported plug-ins to be started or stopped. Operating data opens the plug-in’s mobile status, history and actions when provided.</string>
     <string name="help_system">Shows OSPy version and update state and provides update, backup and restart actions. Available backups are collapsed by default; expand the card to view or download them.</string>
     <string name="help_settings">Controls application lock, appearance, notification categories, push registration, automatic installation selection and application language. Saved OSPy systems opens installation management.</string>
+    <string name="help_notification_speech">Read notifications aloud uses the Android text-to-speech service and does not require an application restart. After enabling it, Speech status shows whether the selected application language is ready or whether a voice or language is missing. Test speech verifies the current voice. Station-only mode reads station starts and stops; the additional switch reads every enabled notification category.</string>
 </resources>

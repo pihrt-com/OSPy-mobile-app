@@ -210,6 +210,19 @@
     <string name="dark_theme">ダークテーマ</string>
     <string name="dark_theme_description">アプリケーション全体で暗いカラー パレットを使用します。</string>
     <string name="notification_preferences_description">電話通知を作成する可能性がある OSPy イベントを選択します。</string>
+    <string name="notification_speech">通知を読み上げる</string>
+    <string name="notification_speech_description">Android のテキスト読み上げ機能を使用します。デフォルトでは、ステーションの開始と停止の通知のみを読み上げます。</string>
+    <string name="notification_speech_all_categories">有効な通知カテゴリをすべて読み上げる</string>
+    <string name="notification_speech_status">音声ステータス: %1$s</string>
+    <string name="notification_speech_status_checking">Android 音声サービスを確認しています</string>
+    <string name="notification_speech_status_ready">%1$sの準備ができました</string>
+    <string name="notification_speech_status_speaking">今話すと</string>
+    <string name="notification_speech_status_spoken">最後のメッセージは正常に話されました</string>
+    <string name="notification_speech_status_missing_data">%1$s の音声データがありません</string>
+    <string name="notification_speech_status_unsupported">インストールされている音声サービスは %1$s をサポートしていません</string>
+    <string name="notification_speech_status_error">Android 音声サービスがエラーを報告しました</string>
+    <string name="notification_speech_test">テストスピーチ</string>
+    <string name="notification_speech_test_message">OSPy 通知音声は機能しています。</string>
     <string name="notifications_blocked_by_android">Android は現在、このアプリの通知をブロックしています。</string>
     <string name="open_notification_settings">Android 通知設定を開く</string>
     <string name="notify_station_started">ステーションの電源が入った</string>
@@ -497,4 +510,5 @@
     <string name="help_plugins">インストールされているプラグインを表示し、サポートされているプラグインを開始または停止できるようにします。データを操作すると、プラグインのモバイル ステータス、履歴、およびアクションが提供されます。</string>
     <string name="help_system">OSPy のバージョンと更新状態を表示し、更新、バックアップ、再起動のアクションを提供します。利用可能なバックアップはデフォルトで折りたたまれています。カードを展開して表示またはダウンロードします。</string>
     <string name="help_settings">アプリケーションのロック、外観、通知カテゴリ、プッシュ登録、自動インストール選択、アプリケーション言語を制御します。保存された OSPy システムでは、インストール管理が開きます。</string>
+    <string name="help_notification_speech">通知の読み上げには Android テキスト読み上げサービスが使用され、アプリケーションを再起動する必要はありません。有効にすると、音声ステータスに、選択したアプリケーション言語の準備ができているかどうか、または音声または言語が不足しているかどうかが表示されます。テスト音声では現在の音声を確認します。ステーションのみモードはステーションの開始と停止を読み取ります。追加のスイッチは、有効なすべての通知カテゴリを読み取ります。</string>
 </resources>

@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+<?xml version='1.0' encoding='utf-8'?>
 <resources>
     <string name="app_name">OSPy</string>
     <string name="reconnect">Přihlásit znovu</string>
@@ -92,6 +92,10 @@
     <string name="inactive">Neaktivní</string>
     <string name="turn_on">Zapnout</string>
     <string name="turn_off">Vypnout</string>
+    <string name="set">Nastavit</string>
+    <string name="rain_delay_hours">Dešťové zpoždění v hodinách</string>
+    <string name="rain_delay_remaining">Zbývá: %1$s</string>
+    <string name="invalid_rain_delay">Zadejte hodnotu větší než 0 a nejvýše 8760 hodin.</string>
     <string name="running">Běží</string>
     <string name="stopped">Zastaveno</string>
     <string name="enabled">Povoleno</string>
@@ -153,10 +157,6 @@
     <string name="automatic_update">Automatická aktualizace</string>
     <string name="update_available">Dostupná aktualizace</string>
     <string name="actions">Akce</string>
-    <string name="set">Nastavit</string>
-    <string name="rain_delay_hours">Dešťové zpoždění v hodinách</string>
-    <string name="rain_delay_remaining">Zbývá: %1$s</string>
-    <string name="invalid_rain_delay">Zadejte hodnotu větší než 0 a nejvýše 8760 hodin.</string>
     <string name="app_settings">Nastavení aplikace</string>
     <string name="saved_ospy_systems">Uložené systémy OSPy</string>
     <string name="about_app">O aplikaci</string>
@@ -201,9 +201,6 @@
     <string name="protected_storage_error_detail">Uložené instalace se nepodařilo načíst nebo aktualizovat.</string>
     <string name="chart_series">Řada</string>
     <string name="duration_join">%1$s %2$s</string>
-
-
-    <!-- Security, appearance, notification filters and update operations -->
     <string name="security">Zabezpečení</string>
     <string name="app_lock">Ověření při otevření</string>
     <string name="app_lock_description">Při otevření aplikace vyžadovat biometrii nebo zámek zařízení.</string>
@@ -213,6 +210,19 @@
     <string name="dark_theme">Tmavý motiv</string>
     <string name="dark_theme_description">Použít v celé aplikaci tmavé barevné provedení.</string>
     <string name="notification_preferences_description">Vyberte, které události OSPy mohou vytvořit upozornění v telefonu.</string>
+    <string name="notification_speech">Číst oznámení nahlas</string>
+    <string name="notification_speech_description">Používá převod textu na řeč v Androidu. Ve výchozím nastavení se čtou pouze oznámení o spuštění a zastavení stanice.</string>
+    <string name="notification_speech_all_categories">Číst všechny povolené kategorie oznámení</string>
+    <string name="notification_speech_status">Stav řeči: %1$s</string>
+    <string name="notification_speech_status_checking">kontrola hlasové služby Android</string>
+    <string name="notification_speech_status_ready">připraveno pro %1$s</string>
+    <string name="notification_speech_status_speaking">teď mluví</string>
+    <string name="notification_speech_status_spoken">poslední zpráva byla úspěšně přečtena</string>
+    <string name="notification_speech_status_missing_data">chybí hlasová data pro jazyk %1$s</string>
+    <string name="notification_speech_status_unsupported">nainstalovaná hlasová služba nepodporuje %1$s</string>
+    <string name="notification_speech_status_error">hlasová služba Android ohlásila chybu</string>
+    <string name="notification_speech_test">Vyzkoušet hlas</string>
+    <string name="notification_speech_test_message">Hlasové čtení oznámení OSPy funguje.</string>
     <string name="notifications_blocked_by_android">Android nyní blokuje oznámení této aplikace.</string>
     <string name="open_notification_settings">Otevřít nastavení oznámení Androidu</string>
     <string name="notify_station_started">Zapnutí stanice</string>
@@ -251,8 +261,6 @@
     <string name="operation_progress">Průběh: %1$d%%</string>
     <string name="pending_status">Čeká</string>
     <string name="unknown_status">Neznámý</string>
-
-    <!-- Localized duration units -->
     <plurals name="duration_days">
         <item quantity="one">%1$d den</item>
         <item quantity="few">%1$d dny</item>
@@ -508,4 +516,5 @@
     <string name="help_plugins">Zobrazuje nainstalované pluginy a umožňuje podporované pluginy spustit nebo zastavit. Provozní údaje otevřou mobilní stav, historii a akce pluginu, pokud je poskytuje.</string>
     <string name="help_system">Zobrazuje verzi OSPy a stav aktualizací a nabízí aktualizaci, zálohování a restart. Dostupné zálohy jsou ve výchozím stavu sbalené; rozbalením karty je zobrazíte nebo stáhnete.</string>
     <string name="help_settings">Nastavuje zámek aplikace, vzhled, kategorie oznámení, registraci push oznámení, automatický výběr instalace a jazyk aplikace. Uložené systémy OSPy otevřou správu instalací.</string>
+    <string name="help_notification_speech">Hlasité čtení oznámení používá službu převodu textu na řeč Android a nevyžaduje restart aplikace. Po jeho aktivaci Stav řeči ukazuje, zda je vybraný jazyk aplikace připraven nebo zda chybí hlas či jazyk. Testovací řeč ověří aktuální hlas. Režim pouze stanice čte spuštění a zastavení stanice; další přepínač přečte každou povolenou kategorii oznámení.</string>
 </resources>

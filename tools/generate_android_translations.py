@@ -18,6 +18,10 @@ RES = ROOT / "app/src/main/res"
 SOURCE = RES / "values/strings.xml"
 CACHE_FILE = ROOT / "app/build/translation_cache_v2.json"
 LANGUAGES = {
+    "cs": ("cs", "values-cs"),
+    "de": ("de", "values-de"),
+    "pl": ("pl", "values-pl"),
+    "sk": ("sk", "values-sk"),
     "es": ("es", "values-es"),
     "fr": ("fr", "values-fr"),
     "it": ("it", "values-it"),
@@ -138,14 +142,29 @@ def generate(language: str, folder: str, cache: dict[str, str]) -> None:
     source_root = ET.parse(SOURCE).getroot()
     target_root = ET.Element("resources")
     translator = GoogleTranslator(source="en", target=language)
+    destination = RES / folder / "strings.xml"
+    existing: dict[tuple[str, str], str] = {}
+    if destination.exists():
+        for resource in ET.parse(destination).getroot():
+            name = resource.attrib.get("name", "")
+            if resource.tag == "string":
+                existing[(name, "")] = resource.text or ""
+            elif resource.tag in {"plurals", "string-array"}:
+                for item in resource:
+                    discriminator = item.attrib.get("quantity", str(len(existing)))
+                    existing[(name, discriminator)] = item.text or ""
     source_texts: list[str] = []
     for source in source_root:
         if source.attrib.get("translatable") == "false":
             continue
-        if source.tag == "string":
+        name = source.attrib.get("name", "")
+        if source.tag == "string" and (name, "") not in existing:
             source_texts.append(source.text or "")
         elif source.tag in {"plurals", "string-array"}:
-            source_texts.extend(item.text or "" for item in source)
+            for index, item in enumerate(source):
+                discriminator = item.attrib.get("quantity", str(index))
+                if (name, discriminator) not in existing:
+                    source_texts.append(item.text or "")
     fill_cache(translator, source_texts, cache, language)
     total = len(source_root)
     for index, source in enumerate(source_root, start=1):
@@ -153,21 +172,35 @@ def generate(language: str, folder: str, cache: dict[str, str]) -> None:
         if source.attrib.get("translatable") == "false":
             target.text = source.text
         elif source.tag == "string":
-            target.text = translate_text(
-                translator, source.text or "", cache, language,
-            )
+            target.text = existing.get((source.attrib.get("name", ""), ""))
+            if target.text is None:
+                target.text = translate_text(
+                    translator, source.text or "", cache, language,
+                )
         elif source.tag in {"plurals", "string-array"}:
-            for source_item in source:
+            source_discriminators: set[str] = set()
+            for item_index, source_item in enumerate(source):
                 target_item = ET.SubElement(
                     target, source_item.tag, dict(source_item.attrib),
                 )
-                target_item.text = translate_text(
-                    translator, source_item.text or "", cache, language,
-                )
+                discriminator = source_item.attrib.get("quantity", str(item_index))
+                source_discriminators.add(discriminator)
+                target_item.text = existing.get(
+                    (source.attrib.get("name", ""), discriminator))
+                if target_item.text is None:
+                    target_item.text = translate_text(
+                        translator, source_item.text or "", cache, language,
+                    )
+            if source.tag == "plurals":
+                name = source.attrib.get("name", "")
+                for (existing_name, quantity), value in existing.items():
+                    if existing_name != name or quantity in source_discriminators:
+                        continue
+                    extra_item = ET.SubElement(target, "item", {"quantity": quantity})
+                    extra_item.text = value
         if index % 50 == 0:
             print(f"{language}: {index}/{total}", flush=True)
     indent(target_root)
-    destination = RES / folder / "strings.xml"
     destination.parent.mkdir(parents=True, exist_ok=True)
     ET.ElementTree(target_root).write(
         destination, encoding="utf-8", xml_declaration=True,

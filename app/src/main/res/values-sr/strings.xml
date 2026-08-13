@@ -210,6 +210,19 @@
     <string name="dark_theme">Тамна тема</string>
     <string name="dark_theme_description">Користите тамну палету боја у целој апликацији.</string>
     <string name="notification_preferences_description">Одаберите који догађаји OSPy могу да креирају обавештење на телефону.</string>
+    <string name="notification_speech">Читај обавештења наглас</string>
+    <string name="notification_speech_description">Користи Android претварање текста у говор. Подразумевано се читају само обавештења о покретању и заустављању станице.</string>
+    <string name="notification_speech_all_categories">Читај све омогућене категорије обавештења</string>
+    <string name="notification_speech_status">Статус говора: %1$s</string>
+    <string name="notification_speech_status_checking">провера говорне услуге Android</string>
+    <string name="notification_speech_status_ready">спреман за %1$s</string>
+    <string name="notification_speech_status_speaking">говорећи сада</string>
+    <string name="notification_speech_status_spoken">последња порука је успешно изговорена</string>
+    <string name="notification_speech_status_missing_data">гласовни подаци за %1$s недостају</string>
+    <string name="notification_speech_status_unsupported">инсталирана говорна услуга не подржава %1$s</string>
+    <string name="notification_speech_status_error">говорна служба Android пријавила је грешку</string>
+    <string name="notification_speech_test">Тестни говор</string>
+    <string name="notification_speech_test_message">OSPy говор обавештења ради.</string>
     <string name="notifications_blocked_by_android">Android тренутно блокира обавештења за ову апликацију.</string>
     <string name="open_notification_settings">Отворите подешавања обавештења Android</string>
     <string name="notify_station_started">Станица укључена</string>
@@ -500,4 +513,5 @@
     <string name="help_plugins">Приказује инсталиране додатке и омогућава покретање или заустављање подржаних додатака. Радни подаци отварају мобилни статус, историју и радње додатка када су доступни.</string>
     <string name="help_system">Приказује OSPy верзију и стање ажурирања и пружа акције ажурирања, прављења резервних копија и поновног покретања. Доступне резервне копије су подразумевано скупљене; проширите картицу да бисте их видели или преузели.</string>
     <string name="help_settings">Контролише закључавање апликације, изглед, категорије обавештења, пусх регистрацију, аутоматски избор инсталације и језик апликације. Сачувано OSPy система отвара управљање инсталацијом.</string>
+    <string name="help_notification_speech">Читање обавештења наглас користи услугу претварања текста у говор Android и не захтева поновно покретање апликације. Након што га омогућите, статус говора показује да ли је изабрани језик апликације спреман или недостаје глас или језик. Тестни говор потврђује тренутни глас. Режим само станице очитава почетак и заустављање станице; додатни прекидач чита сваку омогућену категорију обавештења.</string>
 </resources>

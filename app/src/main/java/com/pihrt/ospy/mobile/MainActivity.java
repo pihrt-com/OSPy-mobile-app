@@ -862,6 +862,32 @@ public final class MainActivity extends ComponentActivity {
         addNotificationPreference(
                 notificationSettings, R.string.notify_other,
                 NotificationCenter.CATEGORY_OTHER);
+        TextView speechDescription = text(
+                getString(R.string.notification_speech_description), 13, false);
+        speechDescription.setTextColor(MUTED);
+        notificationSettings.addView(speechDescription);
+        addPreferenceToggle(
+                notificationSettings,
+                getString(R.string.notification_speech),
+                notifications.isSpeechEnabled(),
+                notifications::setSpeechEnabled);
+        if (notifications.isSpeechEnabled()) {
+            SpeechAnnouncer.initialize(this);
+            addPreferenceToggle(
+                    notificationSettings,
+                    getString(R.string.notification_speech_all_categories),
+                    notifications.speaksAllCategories(),
+                    notifications::setSpeaksAllCategories);
+            TextView speechStatus = text("", 13, false);
+            speechStatus.setTextColor(MUTED);
+            notificationSettings.addView(speechStatus);
+            refreshSpeechStatus(speechStatus);
+            Button testSpeech = compactButton(
+                    getString(R.string.notification_speech_test), NAVY);
+            testSpeech.setOnClickListener(v -> SpeechAnnouncer.speak(
+                    this, getString(R.string.notification_speech_test_message)));
+            notificationSettings.addView(testSpeech);
+        }
         content.addView(notificationSettings);
 
         LinearLayout pushRegistration = cardColumn();
@@ -1025,6 +1051,7 @@ public final class MainActivity extends ComponentActivity {
         addHelpSection(R.string.plugins, R.string.help_plugins);
         addHelpSection(R.string.system, R.string.help_system);
         addHelpSection(R.string.app_settings, R.string.help_settings);
+        addHelpSection(R.string.notifications, R.string.help_notification_speech);
 
         Button back = button(getString(R.string.back), RED);
         back.setOnClickListener(v -> showAppSettings());
@@ -1125,6 +1152,45 @@ public final class MainActivity extends ComponentActivity {
         option.setOnCheckedChangeListener((button, checked) ->
                 notifications.setCategoryEnabled(category, checked));
         parent.addView(option, new LinearLayout.LayoutParams(-1, -2));
+    }
+
+    private void refreshSpeechStatus(TextView view) {
+        if (view == null || view.getParent() == null ||
+                !"app_settings".equals(currentRenderer) ||
+                !notifications.isSpeechEnabled()) return;
+        String language = Locale.forLanguageTag(SpeechAnnouncer.languageTag())
+                .getDisplayName(getResources().getConfiguration().getLocales().get(0));
+        String detail;
+        switch (SpeechAnnouncer.status()) {
+            case SpeechAnnouncer.STATUS_CHECKING:
+                detail = getString(R.string.notification_speech_status_checking);
+                break;
+            case SpeechAnnouncer.STATUS_READY:
+                detail = getString(R.string.notification_speech_status_ready, language);
+                break;
+            case SpeechAnnouncer.STATUS_SPEAKING:
+                detail = getString(R.string.notification_speech_status_speaking);
+                break;
+            case SpeechAnnouncer.STATUS_SPOKEN:
+                detail = getString(R.string.notification_speech_status_spoken);
+                break;
+            case SpeechAnnouncer.STATUS_MISSING_DATA:
+                detail = getString(R.string.notification_speech_status_missing_data, language);
+                break;
+            case SpeechAnnouncer.STATUS_UNSUPPORTED:
+                detail = getString(R.string.notification_speech_status_unsupported, language);
+                break;
+            default:
+                detail = getString(R.string.notification_speech_status_error);
+                break;
+        }
+        view.setText(getString(R.string.notification_speech_status, detail));
+        view.setTextColor(
+                SpeechAnnouncer.STATUS_ERROR.equals(SpeechAnnouncer.status()) ||
+                        SpeechAnnouncer.STATUS_MISSING_DATA.equals(SpeechAnnouncer.status()) ||
+                        SpeechAnnouncer.STATUS_UNSUPPORTED.equals(SpeechAnnouncer.status())
+                        ? RED : MUTED);
+        view.postDelayed(() -> refreshSpeechStatus(view), 500L);
     }
 
     private Button linkButton(String label, String url) {
