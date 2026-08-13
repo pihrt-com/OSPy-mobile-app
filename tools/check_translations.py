@@ -14,6 +14,7 @@ RES = ROOT / "app/src/main/res"
 BASE_FILE = RES / "values/strings.xml"
 LOCALE_CONFIG = RES / "xml/locales_config.xml"
 PLACEHOLDER = re.compile(r"%(?:\d+\$)?[-#+ 0,(]*\d*(?:\.\d+)?[a-zA-Z]")
+REPLACEMENT_CHARACTER = "\ufffd"
 
 
 def placeholders(text: str) -> list[str]:
@@ -69,6 +70,8 @@ def compare_file(base: dict[str, tuple[str, object]], path: Path) -> list[str]:
             continue
 
         if base_type == "string":
+            if REPLACEMENT_CHARACTER in str(translated_value):
+                errors.append(f"{path}: {key}: contains Unicode replacement character")
             if placeholders(str(base_value)) != placeholders(str(translated_value)):
                 errors.append(
                     f"{path}: {key}: placeholders {placeholders(str(translated_value))} "
@@ -83,6 +86,10 @@ def compare_file(base: dict[str, tuple[str, object]], path: Path) -> list[str]:
             reference = base_items.get("other", next(iter(base_items.values()), ""))
             expected = placeholders(reference)
             for quantity, value in translated_items.items():
+                if REPLACEMENT_CHARACTER in value:
+                    errors.append(
+                        f"{path}: {key}/{quantity}: contains Unicode replacement character"
+                    )
                 if placeholders(value) != expected:
                     errors.append(
                         f"{path}: {key}/{quantity}: placeholders "
@@ -99,6 +106,17 @@ def main() -> int:
         print(f"Cannot parse base resources: {error}", file=sys.stderr)
         return 1
 
+    for key, (kind, value) in base.items():
+        if kind == "string":
+            if REPLACEMENT_CHARACTER in str(value):
+                errors.append(f"{BASE_FILE}: {key}: contains Unicode replacement character")
+        else:
+            for quantity, item_value in dict(value).items():  # type: ignore[arg-type]
+                if REPLACEMENT_CHARACTER in item_value:
+                    errors.append(
+                        f"{BASE_FILE}: {key}/{quantity}: contains Unicode replacement character"
+                    )
+
     translated_files = sorted(RES.glob("values-*/strings.xml"))
     if not translated_files:
         errors.append("No translated values-*/strings.xml files were found")
@@ -112,7 +130,8 @@ def main() -> int:
                       for item in locale_root.findall("locale")]
         configured = [item for item in configured if item]
         expected = ["en"] + [
-            path.parent.name.removeprefix("values-") for path in translated_files
+            path.parent.name.removeprefix("values-").replace("zh-rCN", "zh-CN")
+            for path in translated_files
         ]
         if Counter(configured) != Counter(expected):
             errors.append(

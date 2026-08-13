@@ -4,7 +4,7 @@ Open Sprinkler Python [Git-Hub source](https://github.com/martinpihrt/OSPy)
 # OSPy Mobile APP
 Android client for the OSPy `/api/v1`. App on [Google store](https://play.google.com/store/apps/details?id=com.pihrt.ospy.mobile)
 
-Current source version: **0.3.20** (`versionCode 27`).
+Current source version: **0.3.24** (`versionCode 31`).
 
 ## Screenshots
 
@@ -15,6 +15,31 @@ Current source version: **0.3.20** (`versionCode 27`).
 ### Čeština
 
 <p><a href="docs/screenshots/cs/overview.png"><img src="docs/screenshots/cs/overview.png" width="23%" alt="Český přehled"></a> <a href="docs/screenshots/cs/stations.png"><img src="docs/screenshots/cs/stations.png" width="23%" alt="České stanice"></a> <a href="docs/screenshots/cs/programs.png"><img src="docs/screenshots/cs/programs.png" width="23%" alt="České programy"></a> <a href="docs/screenshots/cs/sensors.png"><img src="docs/screenshots/cs/sensors.png" width="23%" alt="České snímače"></a></p>
+
+## Included in version 0.3.24
+- Added complete Spanish, French, Italian, Serbian, Russian, Danish, Simplified Chinese, Japanese and Korean Android resources. All 488 strings and plural resources are available in every supported language, including application help, notifications, API errors and program controls.
+- Added the nine languages to Android per-app language settings, strengthened translation validation for the `zh-CN` resource qualifier and added a reproducible translation generator that preserves format placeholders, product names and protocol terms.
+- Increased the Android package version to `0.3.24` (`versionCode 31`).
+
+## Included in version 0.3.23
+- Added a fully localized in-app help screen at the bottom of Application settings. It explains Home, Stations, Programs, Sensors, Weather, Logs, Diagnostics, Plug-ins, System and application settings, including discoverable short-tap and long-press station controls.
+- Changed the System backup list to a collapsed expandable card, so the available backup files are loaded and displayed only when requested.
+- Increased the Android package version to `0.3.23` (`versionCode 30`).
+
+## Included in version 0.3.22
+- Added timed manual station starts: a short tap starts without a time limit, while touching and holding Start opens a localized minutes-and-seconds dialog and shows the live countdown until OSPy stops the station automatically.
+- Added validation tests, all five application translations and increased the Android package version to `0.3.22` (`versionCode 29`).
+
+This feature requires the matching OSPy Mobile API v1 server support for optional `duration_seconds` on direct station starts.
+
+## Included in version 0.3.21
+- Reworked API authentication around one shared access session per saved OSPy installation. Foreground screens, live notifications, fallback polling and push registration reuse the same short-lived access token and perform a single serialized refresh instead of repeatedly rotating the saved token.
+- Removed redundant push re-registration from every 15-minute notification poll; application start, pairing, Firebase token changes, reboot and notification preference changes still synchronize the subscription.
+- Added the user water-level adjustment to Home with the effective combined OSPy value, localized validation and a one-tap reset to 100 percent.
+- Program cards are grouped by the native OSPy program group, creation and editing select `group_id`, and each group can postpone or cancel its next scheduled occurrence with Android date and time pickers.
+- Added English, Czech, German, Polish and Slovak strings, regression tests for shared-session decisions and increased the Android package version to `0.3.21` (`versionCode 28`).
+
+The matching OSPy server exposes the water-level fields, program membership and postponement endpoints through Mobile API v1. It also keeps access tokens already in flight valid across normal refresh rotation until their short expiry, while explicit logout, renewed pairing and device revocation remain immediate.
 
 ## Included in version 0.3.20
 - Replaced R8-obfuscated Firebase exception names such as `ed` with stable push-registration diagnostic codes.

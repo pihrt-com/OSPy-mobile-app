@@ -40,8 +40,10 @@ import android.widget.GridLayout;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.ScrollView;
+import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
+import android.widget.ArrayAdapter;
 
 import androidx.activity.ComponentActivity;
 import androidx.activity.EdgeToEdge;
@@ -169,6 +171,7 @@ public final class MainActivity extends ComponentActivity {
     private OverviewControlBinding overviewSchedulerControl;
     private OverviewControlBinding overviewManualControl;
     private OverviewControlBinding overviewRainControl;
+    private OverviewControlBinding overviewWaterLevelControl;
     private PairBinding overviewActiveCount;
     private LinearLayout overviewActiveStationsContainer;
     private final List<PairBinding> overviewActiveStationRows = new ArrayList<>();
@@ -988,12 +991,53 @@ public final class MainActivity extends ComponentActivity {
                         getPackageName()));
         content.addView(about);
 
+        LinearLayout helpCard = card();
+        helpCard.addView(
+                text(getString(R.string.app_help), 16, true),
+                new LinearLayout.LayoutParams(0, -2, 1));
+        Button helpButton = button(getString(R.string.open), NAVY);
+        helpButton.setOnClickListener(v -> showAppHelp());
+        helpCard.addView(helpButton);
+        content.addView(helpCard);
+
         Button back = button(getString(R.string.back), RED);
         back.setOnClickListener(v -> {
             if (current == null) showInstallations();
             else showDashboard();
         });
         content.addView(back);
+    }
+
+    private void showAppHelp() {
+        currentPath = "";
+        currentRenderer = "app_help";
+        activeRequest = ++requestSequence;
+        requestInFlight = false;
+        shell(getString(R.string.app_help));
+
+        addHelpSection(R.string.overview, R.string.help_home);
+        addHelpSection(R.string.stations, R.string.help_stations);
+        addHelpSection(R.string.programs, R.string.help_programs);
+        addHelpSection(R.string.sensors, R.string.help_sensors);
+        addHelpSection(R.string.weather, R.string.help_weather);
+        addHelpSection(R.string.logs, R.string.help_logs);
+        addHelpSection(R.string.diagnostics, R.string.help_diagnostics);
+        addHelpSection(R.string.plugins, R.string.help_plugins);
+        addHelpSection(R.string.system, R.string.help_system);
+        addHelpSection(R.string.app_settings, R.string.help_settings);
+
+        Button back = button(getString(R.string.back), RED);
+        back.setOnClickListener(v -> showAppSettings());
+        content.addView(back);
+    }
+
+    private void addHelpSection(int titleResource, int bodyResource) {
+        LinearLayout section = cardColumn();
+        section.addView(text(getString(titleResource), 16, true));
+        TextView body = text(getString(bodyResource), 14, false);
+        body.setTextColor(MUTED);
+        section.addView(body);
+        content.addView(section);
     }
 
     private String pushStatusText(PushSyncStatusStore.Snapshot snapshot) {
@@ -1510,6 +1554,14 @@ public final class MainActivity extends ComponentActivity {
                     overviewManualControl, manualMode, "manual_mode");
             updateOverviewRainControl(
                     rainBlock, irrigation.optLong("rain_block_seconds", 0));
+            double userLevelPercent = irrigation.optDouble(
+                    "level_adjustment_percent", 100.0);
+            updateOverviewWaterLevelControl(
+                    userLevelPercent,
+                    irrigation.isNull("level_adjustment")
+                            ? userLevelPercent
+                            : irrigation.optDouble(
+                                    "level_adjustment", 1.0) * 100.0);
             updateOverviewActiveStations(
                     irrigation.optJSONArray("active_stations"));
         }
@@ -1550,6 +1602,7 @@ public final class MainActivity extends ComponentActivity {
         overviewSchedulerControl = null;
         overviewManualControl = null;
         overviewRainControl = null;
+        overviewWaterLevelControl = null;
         overviewActiveCount = null;
         overviewActiveStationsContainer = null;
         overviewActiveStationRows.clear();
@@ -1588,6 +1641,8 @@ public final class MainActivity extends ComponentActivity {
                 summary, getString(R.string.manual_mode), 0.25f);
         overviewRainControl = createOverviewControl(
                 summary, getString(R.string.rain_delay), 0.35f);
+        overviewWaterLevelControl = createOverviewControl(
+                summary, getString(R.string.water_level_adjustment), 0.35f);
         overviewActiveCount = createPairBinding(
                 summary, getString(R.string.active_stations));
         overviewActiveStationsContainer = new LinearLayout(this);
@@ -1845,6 +1900,49 @@ public final class MainActivity extends ComponentActivity {
         });
     }
 
+    private void updateOverviewWaterLevelControl(
+            double userPercent, double effectivePercent) {
+        overviewWaterLevelControl.value.setText(getString(
+                R.string.water_level_value,
+                Math.round(userPercent), Math.round(effectivePercent)));
+        overviewWaterLevelControl.action.setText(getString(R.string.set));
+        styleButton(overviewWaterLevelControl.action, GREEN, false);
+        overviewWaterLevelControl.action.setOnClickListener(
+                v -> showWaterLevelDialog(userPercent));
+    }
+
+    private void showWaterLevelDialog(double currentPercent) {
+        EditText input = numericInput(String.valueOf(Math.round(currentPercent)));
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.water_level_adjustment)
+                .setMessage(R.string.water_level_adjustment_description)
+                .setView(input)
+                .setNegativeButton(android.R.string.cancel, null)
+                .setNeutralButton(R.string.reset, (dialog, which) -> {
+                    JSONObject change = new JSONObject();
+                    try {
+                        change.put("level_adjustment_percent", 100);
+                    } catch (Exception ignored) {
+                    }
+                    put("/irrigation", change, this::refreshCurrentOverview);
+                })
+                .setPositiveButton(R.string.save, (dialog, which) -> {
+                    try {
+                        double value = Double.parseDouble(
+                                input.getText().toString().trim());
+                        if (value < 0 || value > 1000) throw new NumberFormatException();
+                        JSONObject change = new JSONObject();
+                        change.put("level_adjustment_percent", value);
+                        put("/irrigation", change, this::refreshCurrentOverview);
+                    } catch (Exception error) {
+                        message(
+                                getString(R.string.water_level_adjustment),
+                                getString(R.string.invalid_water_level_adjustment));
+                    }
+                })
+                .show();
+    }
+
     private void refreshCurrentOverview() {
         if (!"overview".equals(currentRenderer) ||
                 currentPath == null || currentPath.isEmpty() ||
@@ -2049,6 +2147,11 @@ public final class MainActivity extends ComponentActivity {
                     getString(R.string.manual_mode),
                     getString(R.string.manual_mode_required_for_station_start),
                     "warning"));
+        } else {
+            content.addView(statusCard(
+                    getString(R.string.manual_mode),
+                    getString(R.string.manual_station_start_hint),
+                    "ok"));
         }
         for (int i = 0; i < stationItems.length(); i++) {
             JSONObject station = stationItems.optJSONObject(i);
@@ -2079,6 +2182,19 @@ public final class MainActivity extends ComponentActivity {
                                 "/actions/" + action,
                         new JSONObject(),
                         () -> load("/stations", "stations")));
+                if (!running) {
+                    toggle.setContentDescription(getString(
+                            R.string.start_station_button_description));
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                        toggle.setTooltipText(getString(
+                                R.string.hold_start_for_duration));
+                    }
+                    toggle.setOnLongClickListener(v -> {
+                        if (!manualMode) return false;
+                        showTimedStationStartDialog(station);
+                        return true;
+                    });
+                }
                 if (!running && !manualMode) {
                     toggle.setEnabled(false);
                     toggle.setAlpha(0.45f);
@@ -2094,14 +2210,253 @@ public final class MainActivity extends ComponentActivity {
         content.addView(stop);
     }
 
+    private void showTimedStationStartDialog(JSONObject station) {
+        LinearLayout form = new LinearLayout(this);
+        form.setOrientation(LinearLayout.HORIZONTAL);
+        int padding = dp(16);
+        form.setPadding(padding, 0, padding, 0);
+        EditText minutes = numericInput("10");
+        EditText seconds = numericInput("0");
+        form.addView(
+                labelledInput(getString(R.string.manual_minutes), minutes),
+                new LinearLayout.LayoutParams(0, -2, 1));
+        form.addView(
+                labelledInput(getString(R.string.manual_seconds), seconds),
+                new LinearLayout.LayoutParams(0, -2, 1));
+
+        AlertDialog dialog = new AlertDialog.Builder(this)
+                .setTitle(getString(
+                        R.string.timed_station_start,
+                        station.optString("name")))
+                .setMessage(R.string.timed_station_start_description)
+                .setView(form)
+                .setNegativeButton(android.R.string.cancel, null)
+                .setPositiveButton(R.string.start, null)
+                .create();
+        dialog.setOnShowListener(ignored -> dialog.getButton(
+                AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
+            final int duration;
+            try {
+                duration = manualDurationSeconds(
+                        minutes.getText().toString(),
+                        seconds.getText().toString());
+            } catch (IllegalArgumentException error) {
+                message(
+                        getString(R.string.manual_run_duration),
+                        getString(R.string.invalid_station_duration));
+                return;
+            }
+            JSONObject body = new JSONObject();
+            try {
+                body.put("duration_seconds", duration);
+            } catch (Exception error) {
+                return;
+            }
+            api.request(
+                    "POST",
+                    "/stations/" + station.optString("id") + "/actions/start",
+                    body,
+                    new ApiClient.Callback() {
+                        @Override public void success(JSONObject response) {
+                            dialog.dismiss();
+                            load("/stations", "stations");
+                        }
+
+                        @Override public void failure(String error) {
+                            message(
+                                    getString(R.string.app_name),
+                                    localizedError(error));
+                        }
+                    });
+        }));
+        dialog.show();
+    }
+
+    static int manualDurationSeconds(String minuteValue, String secondValue) {
+        try {
+            int minutes = Integer.parseInt(minuteValue.trim());
+            int seconds = Integer.parseInt(secondValue.trim());
+            if (minutes < 0 || minutes > 999 || seconds < 0 || seconds > 59) {
+                throw new IllegalArgumentException();
+            }
+            int total = minutes * 60 + seconds;
+            if (total < 1 || total > 59999) throw new IllegalArgumentException();
+            return total;
+        } catch (NumberFormatException error) {
+            throw new IllegalArgumentException();
+        }
+    }
+
     private void renderPrograms(JSONArray programItems) {
+        final int generation = loadGeneration;
+        api.request("GET", "/program-groups", null, new ApiClient.Callback() {
+            @Override public void success(JSONObject response) {
+                if (generation != loadGeneration ||
+                        !"programs".equals(currentRenderer)) return;
+                JSONArray groups = response.optJSONArray("data");
+                content.removeAllViews();
+                renderProgramsWithGroups(
+                        programItems, groups == null ? new JSONArray() : groups);
+            }
+
+            @Override public void failure(String error) {
+                if (generation != loadGeneration ||
+                        !"programs".equals(currentRenderer)) return;
+                content.removeAllViews();
+                renderProgramsWithGroups(programItems, new JSONArray());
+            }
+        });
+    }
+
+    private void renderProgramsWithGroups(
+            JSONArray programItems, JSONArray groups) {
         Button addProgram = button(getString(R.string.add_program), GREEN);
         addProgram.setOnClickListener(v -> loadNewProgramEditor());
         content.addView(addProgram);
+        for (int index = 0; index < groups.length(); index++) {
+            JSONObject group = groups.optJSONObject(index);
+            if (group == null) continue;
+            LinearLayout groupCard = addProgramGroupCard(group);
+            for (int programIndex = 0;
+                    programIndex < programItems.length(); programIndex++) {
+                JSONObject program = programItems.optJSONObject(programIndex);
+                if (program != null && group.optString("id").equals(
+                        program.optString("group_id", "default"))) {
+                    addProgramCard(program, groupCard, true);
+                }
+            }
+        }
         for (int i = 0; i < programItems.length(); i++) {
             JSONObject program = programItems.optJSONObject(i);
             if (program == null) continue;
-            LinearLayout card = cardColumn();
+            boolean shown = false;
+            for (int groupIndex = 0; groupIndex < groups.length(); groupIndex++) {
+                JSONObject group = groups.optJSONObject(groupIndex);
+                if (group != null && group.optString("id").equals(
+                        program.optString("group_id", "default"))) {
+                    shown = true;
+                    break;
+                }
+            }
+            if (!shown) addProgramCard(program);
+        }
+    }
+
+    private LinearLayout addProgramGroupCard(JSONObject group) {
+        LinearLayout card = cardColumn();
+        card.addView(text(group.optString("name"), 17, true));
+        JSONArray nextRuns = group.optJSONArray("next_runs");
+        if (nextRuns != null && nextRuns.length() > 0) {
+            JSONObject next = nextRuns.optJSONObject(0);
+            addPair(
+                    card, getString(R.string.next_group_run),
+                    next == null ? getString(R.string.not_available)
+                            : formatTimestamp(next.optString("start")));
+        }
+        JSONObject postponement = group.optJSONObject("postponement");
+        LinearLayout actions = actionRow();
+        if (postponement == null) {
+            Button postpone = compactButton(
+                    getString(R.string.postpone_group), AMBER);
+            postpone.setEnabled(nextRuns != null && nextRuns.length() > 0);
+            postpone.setOnClickListener(v -> showPostponeGroupDialog(group));
+            actions.addView(postpone);
+        } else {
+            addPair(
+                    card, getString(R.string.postponed_until),
+                    formatTimestamp(postponement.optString("target_start")));
+            Button cancel = compactButton(
+                    getString(R.string.cancel_postponement), RED);
+            cancel.setOnClickListener(v -> api.request(
+                    "DELETE",
+                    "/program-groups/" + Uri.encode(group.optString("id")) +
+                            "/postponements/" + Uri.encode(
+                                    postponement.optString("id")),
+                    null, reloadProgramsCallback()));
+            actions.addView(cancel);
+        }
+        card.addView(actions);
+        content.addView(card);
+        return card;
+    }
+
+    private void showPostponeGroupDialog(JSONObject group) {
+        JSONArray nextRuns = group.optJSONArray("next_runs");
+        JSONObject next = nextRuns == null ? null : nextRuns.optJSONObject(0);
+        LocalDateTime initial = LocalDateTime.now().plusDays(1);
+        try {
+            if (next != null) {
+                initial = LocalDateTime.parse(next.optString("start")).plusHours(1);
+            }
+        } catch (Exception ignored) {
+        }
+        Button target = dateTimeButton(initial.toString());
+        LinearLayout form = new LinearLayout(this);
+        form.setOrientation(LinearLayout.VERTICAL);
+        form.setPadding(dp(18), dp(4), dp(18), dp(4));
+        form.addView(text(getString(
+                R.string.postpone_group_description,
+                group.optString("name")), 14, false));
+        form.addView(labelledView(getString(R.string.new_start), target));
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.postpone_group)
+                .setView(form)
+                .setNegativeButton(android.R.string.cancel, null)
+                .setPositiveButton(R.string.save, (dialog, which) -> {
+                    try {
+                        JSONObject payload = new JSONObject().put(
+                                "target_start",
+                                ((LocalDateTime) target.getTag()).toString());
+                        api.request(
+                                "POST",
+                                "/program-groups/" + Uri.encode(
+                                        group.optString("id")) +
+                                        "/postponements",
+                                payload, reloadProgramsCallback());
+                    } catch (Exception error) {
+                        message(
+                                getString(R.string.postpone_group),
+                                getString(R.string.invalid_group_postponement));
+                    }
+                })
+                .show();
+    }
+
+    private ApiClient.Callback reloadProgramsCallback() {
+        return new ApiClient.Callback() {
+            @Override public void success(JSONObject response) {
+                load("/programs", "programs");
+            }
+
+            @Override public void failure(String error) {
+                message(
+                        getString(R.string.program_group),
+                        localizedError(error));
+            }
+        };
+    }
+
+    private void addProgramCard(JSONObject program) {
+        addProgramCard(program, content, false);
+    }
+
+    private void addProgramCard(
+            JSONObject program, LinearLayout parent, boolean grouped) {
+            LinearLayout card;
+            if (grouped) {
+                View divider = new View(this);
+                divider.setBackgroundColor(CARD_BORDER);
+                LinearLayout.LayoutParams dividerLayout =
+                        new LinearLayout.LayoutParams(-1, dp(1));
+                dividerLayout.setMargins(0, dp(8), 0, dp(8));
+                parent.addView(divider, dividerLayout);
+                card = new LinearLayout(this);
+                card.setOrientation(LinearLayout.VERTICAL);
+                card.setGravity(Gravity.START);
+                card.setPadding(0, 0, 0, dp(2));
+            } else {
+                card = cardColumn();
+            }
             LinearLayout header = actionRow();
             TextView label = text(
                     program.optInt("number") + ". " + program.optString("name") +
@@ -2164,8 +2519,11 @@ public final class MainActivity extends ComponentActivity {
             card.addView(actions);
             card.addView(delete);
             card.addView(details);
-            content.addView(card);
-        }
+            if (grouped) {
+                parent.addView(card, new LinearLayout.LayoutParams(-1, -2));
+            } else {
+                parent.addView(card);
+            }
     }
 
     private void loadTimeline(String path) {
@@ -2537,8 +2895,31 @@ public final class MainActivity extends ComponentActivity {
         api.request("GET", "/stations", null, new ApiClient.Callback() {
             @Override public void success(JSONObject response) {
                 JSONArray allStations = response.optJSONArray("data");
-                showProgramEditor(
-                        program, allStations == null ? new JSONArray() : allStations);
+                api.request(
+                        "GET", "/program-groups", null,
+                        new ApiClient.Callback() {
+                            @Override public void success(JSONObject groupResponse) {
+                                JSONArray allGroups = groupResponse.optJSONArray("data");
+                                showProgramEditor(
+                                        program,
+                                        allStations == null
+                                                ? new JSONArray() : allStations,
+                                        allGroups == null
+                                                ? new JSONArray() : allGroups,
+                                        true);
+                            }
+
+                            @Override public void failure(String error) {
+                                // Older OSPy versions do not expose program groups.
+                                // Editing the program must still work without them.
+                                showProgramEditor(
+                                        program,
+                                        allStations == null
+                                                ? new JSONArray() : allStations,
+                                        new JSONArray(),
+                                        false);
+                            }
+                        });
             }
 
             @Override public void failure(String error) {
@@ -2607,7 +2988,8 @@ public final class MainActivity extends ComponentActivity {
                 .put("enabled", false)
                 .put("stations", new JSONArray())
                 .put("type", type)
-                .put("type_data", typeData);
+                .put("type_data", typeData)
+                .put("group_id", "default");
         if (type == 5) {
             draft.put("start", today + "T00:00:00")
                     .put("modulo", 1440)
@@ -2933,7 +3315,8 @@ public final class MainActivity extends ComponentActivity {
     }
 
     private void showProgramEditor(
-            JSONObject program, JSONArray allStations) {
+            JSONObject program, JSONArray allStations, JSONArray allGroups,
+            boolean groupsSupported) {
         ScrollView scroll = new ScrollView(this);
         LinearLayout form = new LinearLayout(this);
         form.setOrientation(LinearLayout.VERTICAL);
@@ -2945,6 +3328,31 @@ public final class MainActivity extends ComponentActivity {
         EditText name = input(getString(R.string.program), false);
         name.setText(program.optString("name"));
         form.addView(name);
+        List<String> groupIds = new ArrayList<>();
+        List<String> groupNames = new ArrayList<>();
+        int selectedGroup = 0;
+        String currentGroup = program.optString("group_id", "default");
+        for (int index = 0; index < allGroups.length(); index++) {
+            JSONObject group = allGroups.optJSONObject(index);
+            if (group == null) continue;
+            groupIds.add(group.optString("id", "default"));
+            groupNames.add(group.optString("name", group.optString("id")));
+            if (currentGroup.equals(group.optString("id"))) {
+                selectedGroup = groupIds.size() - 1;
+            }
+        }
+        if (groupIds.isEmpty()) {
+            groupIds.add("default");
+            groupNames.add(getString(R.string.default_program_group));
+        }
+        Spinner groupSpinner = new Spinner(this);
+        ArrayAdapter<String> groupAdapter = new ArrayAdapter<>(
+                this, android.R.layout.simple_spinner_item, groupNames);
+        groupAdapter.setDropDownViewResource(
+                android.R.layout.simple_spinner_dropdown_item);
+        groupSpinner.setAdapter(groupAdapter);
+        groupSpinner.setSelection(selectedGroup);
+        form.addView(labelledView(getString(R.string.program_group), groupSpinner));
         CheckBox programEnabled = new CheckBox(this);
         programEnabled.setText(getString(R.string.program_enabled));
         programEnabled.setTextColor(TEXT);
@@ -3147,6 +3555,11 @@ public final class MainActivity extends ComponentActivity {
                                 payload.put("enabled", programEnabled.isChecked());
                                 payload.put("type", type);
                                 payload.put("type_data", typeData);
+                                if (groupsSupported) {
+                                    payload.put(
+                                            "group_id",
+                                            groupIds.get(groupSpinner.getSelectedItemPosition()));
+                                }
                                 if (type == 5) {
                                     String startValue = ((LocalDateTime)
                                             customStartField.getTag()).toString();
@@ -4157,7 +4570,21 @@ public final class MainActivity extends ComponentActivity {
         systemActionsCard.addView(systemActions);
         content.addView(systemActionsCard);
 
-        heading(getString(R.string.available_backups));
+        LinearLayout backupsCard = cardColumn();
+        LinearLayout backupsHeader = new LinearLayout(this);
+        backupsHeader.setOrientation(LinearLayout.HORIZONTAL);
+        backupsHeader.setGravity(Gravity.CENTER_VERTICAL);
+        backupsHeader.addView(
+                text(getString(R.string.available_backups), 16, true),
+                new LinearLayout.LayoutParams(0, -2, 1));
+        Button expandBackups = compactButton(
+                getString(R.string.expand), NAVY);
+        backupsHeader.addView(expandBackups);
+        backupsCard.addView(backupsHeader);
+
+        LinearLayout backupsContent = new LinearLayout(this);
+        backupsContent.setOrientation(LinearLayout.VERTICAL);
+        backupsContent.setVisibility(View.GONE);
         LinearLayout backupActions = actionRow();
         LinearLayout backupList = new LinearLayout(this);
         backupList.setOrientation(LinearLayout.VERTICAL);
@@ -4165,9 +4592,22 @@ public final class MainActivity extends ComponentActivity {
                 getString(R.string.refresh_backups), NAVY);
         refreshBackups.setOnClickListener(v -> loadBackups(backupList));
         backupActions.addView(refreshBackups);
-        content.addView(backupActions);
-        content.addView(backupList);
-        loadBackups(backupList);
+        backupsContent.addView(backupActions);
+        backupsContent.addView(backupList);
+        backupsCard.addView(backupsContent);
+        content.addView(backupsCard);
+
+        boolean[] backupsLoaded = {false};
+        expandBackups.setOnClickListener(v -> {
+            boolean show = backupsContent.getVisibility() != View.VISIBLE;
+            backupsContent.setVisibility(show ? View.VISIBLE : View.GONE);
+            expandBackups.setText(getString(
+                    show ? R.string.collapse : R.string.expand));
+            if (show && !backupsLoaded[0]) {
+                backupsLoaded[0] = true;
+                loadBackups(backupList);
+            }
+        });
 
         if (!pendingSystemAnnouncement.isEmpty()) {
             String announcement = pendingSystemAnnouncement;
@@ -5288,6 +5728,12 @@ public final class MainActivity extends ComponentActivity {
                 return getString(R.string.permission_denied);
             case "not_found":
                 return getString(R.string.item_not_found);
+            case "invalid_group_postponement":
+                return getString(R.string.invalid_group_postponement);
+            case "group_postponement_not_found":
+                return getString(R.string.group_postponement_not_found);
+            case "invalid_station_duration":
+                return getString(R.string.invalid_station_duration);
             default:
                 if (code.startsWith("invalid_") || code.startsWith("missing_") ||
                         code.startsWith("unknown_") ||
@@ -5331,6 +5777,9 @@ public final class MainActivity extends ComponentActivity {
             return getString(R.string.program_definition_incomplete);
         }
         if ("invalid_program".equals(code)) {
+            if (reason.contains("program group")) {
+                return getString(R.string.program_group_invalid);
+            }
             if (reason.contains("name")) {
                 return getString(R.string.program_name_required);
             }

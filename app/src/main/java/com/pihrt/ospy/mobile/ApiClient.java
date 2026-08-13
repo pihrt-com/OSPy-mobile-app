@@ -2,6 +2,7 @@ package com.pihrt.ospy.mobile;
 
 import android.os.Handler;
 import android.os.Looper;
+import android.util.Log;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -15,6 +16,8 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.security.cert.X509Certificate;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -25,6 +28,14 @@ import javax.net.ssl.X509TrustManager;
 
 final class ApiClient {
     private static final Object REFRESH_LOCK = new Object();
+    private static final Map<String, AccessSession> ACCESS_SESSIONS =
+            new HashMap<>();
+    private static final long TOKEN_MARGIN_MS = 30_000L;
+
+    private static final class AccessSession {
+        String token = "";
+        long expiresAt = 0L;
+    }
 
     interface Callback {
         void success(JSONObject response);
@@ -40,7 +51,6 @@ final class ApiClient {
     private final InstallationStore store;
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
     private final Handler main = new Handler(Looper.getMainLooper());
-    private String accessToken = "";
     private String pendingChallengeId = "";
 
     ApiClient(Installation installation, InstallationStore store) {
@@ -54,9 +64,26 @@ final class ApiClient {
                 JSONObject response = execute(method, path, body, true);
                 main.post(() -> callback.success(response));
             } catch (Exception error) {
+                logRequestFailure(method, path, error);
                 main.post(() -> callback.failure(message(error)));
             }
         });
+    }
+
+    private static void logRequestFailure(
+            String method, String path, Exception error) {
+        if (error instanceof ApiException) {
+            ApiException apiError = (ApiException) error;
+            Log.e(
+                    "OSPyApi",
+                    method + " " + path + " failed: HTTP " + apiError.status +
+                            " code=" + apiError.code);
+            return;
+        }
+        Log.e(
+                "OSPyApi",
+                method + " " + path + " failed: " +
+                        error.getClass().getSimpleName());
     }
 
     void download(String path, DownloadCallback callback) {
@@ -98,7 +125,7 @@ final class ApiClient {
                 JSONObject envelope = executeRaw("POST", "/auth/login", body, "");
                 JSONObject data = envelope.getJSONObject("data");
                 pendingChallengeId = "";
-                accessToken = data.getString("access_token");
+                updateAccessSession(data);
                 installation.id = data.getString("device_id");
                 installation.username = username;
                 installation.refreshToken = data.getString("refresh_token");
@@ -120,31 +147,33 @@ final class ApiClient {
     }
 
     String token() {
-        return accessToken;
+        synchronized (REFRESH_LOCK) {
+            return accessSession().token;
+        }
     }
 
     private JSONObject execute(String method, String path, JSONObject body,
                                boolean retry) throws Exception {
-        if (accessToken.isEmpty()) refresh();
+        String bearer = accessToken();
         try {
-            return executeRaw(method, path, body, accessToken);
+            return executeRaw(method, path, body, bearer);
         } catch (ApiException error) {
             if (retry && error.status == 401) {
-                refresh();
-                return executeRaw(method, path, body, accessToken);
+                refresh(bearer);
+                return executeRaw(method, path, body, accessToken());
             }
             throw error;
         }
     }
 
     private byte[] executeDownload(String path, boolean retry) throws Exception {
-        if (accessToken.isEmpty()) refresh();
+        String bearer = accessToken();
         try {
-            return executeDownloadRaw(path, accessToken);
+            return executeDownloadRaw(path, bearer);
         } catch (ApiException error) {
             if (retry && error.status == 401) {
-                refresh();
-                return executeDownloadRaw(path, accessToken);
+                refresh(bearer);
+                return executeDownloadRaw(path, accessToken());
             }
             throw error;
         }
@@ -181,8 +210,29 @@ final class ApiClient {
         return data;
     }
 
-    private void refresh() throws Exception {
+    private String accessToken() throws Exception {
         synchronized (REFRESH_LOCK) {
+            AccessSession session = accessSession();
+            if (tokenStillUsable(
+                    session.token, session.expiresAt, System.currentTimeMillis())) {
+                return session.token;
+            }
+        }
+        refresh("");
+        synchronized (REFRESH_LOCK) {
+            return accessSession().token;
+        }
+    }
+
+    private void refresh(String rejectedToken) throws Exception {
+        synchronized (REFRESH_LOCK) {
+            AccessSession session = accessSession();
+            if (shouldReuseAfterFailure(session.token, rejectedToken) ||
+                    (rejectedToken.isEmpty() && tokenStillUsable(
+                            session.token, session.expiresAt,
+                            System.currentTimeMillis()))) {
+                return;
+            }
             // A JobService and the foreground Activity can both need a token.
             // Refresh tokens rotate, so always re-read the newest persisted
             // token after obtaining the process-wide refresh lock.
@@ -195,10 +245,42 @@ final class ApiClient {
                     .put("refresh_token", installation.refreshToken);
             JSONObject envelope = executeRaw("POST", "/auth/refresh", body, "");
             JSONObject data = envelope.getJSONObject("data");
-            accessToken = data.getString("access_token");
+            updateAccessSession(data);
             installation.refreshToken = data.getString("refresh_token");
             store.upsert(installation);
         }
+    }
+
+    private AccessSession accessSession() {
+        String key = installation.id == null || installation.id.isEmpty()
+                ? installation.baseUrl : installation.id;
+        AccessSession session = ACCESS_SESSIONS.get(key);
+        if (session == null) {
+            session = new AccessSession();
+            ACCESS_SESSIONS.put(key, session);
+        }
+        return session;
+    }
+
+    private void updateAccessSession(JSONObject data) throws JSONException {
+        synchronized (REFRESH_LOCK) {
+            AccessSession session = accessSession();
+            session.token = data.getString("access_token");
+            long seconds = Math.max(60L, data.optLong("expires_in", 900L));
+            session.expiresAt = System.currentTimeMillis() + seconds * 1000L;
+        }
+    }
+
+    static boolean tokenStillUsable(String token, long expiresAt, long now) {
+        return token != null && !token.isEmpty() &&
+                expiresAt > now + TOKEN_MARGIN_MS;
+    }
+
+    static boolean shouldReuseAfterFailure(
+            String currentToken, String rejectedToken) {
+        return currentToken != null && !currentToken.isEmpty() &&
+                rejectedToken != null && !rejectedToken.isEmpty() &&
+                !currentToken.equals(rejectedToken);
     }
 
     private JSONObject executeRaw(String method, String path, JSONObject body,
