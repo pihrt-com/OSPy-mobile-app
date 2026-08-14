@@ -132,6 +132,15 @@ public final class MainActivity extends ComponentActivity {
     private float overviewPullStartY = 0f;
     private boolean overviewPullTracking = false;
     private boolean overviewPullArmed = false;
+    private JSONObject activePluginMobile;
+    private LinearLayout activePluginMobileParent;
+    private LinearLayout activePluginMobileContent;
+    private Button activePluginMobileTrigger;
+    private String activePluginMobileRange = "today";
+    private LocalDateTime activePluginMobileFrom;
+    private LocalDateTime activePluginMobileTo;
+    private boolean pluginMobileRequestInFlight = false;
+    private int pluginMobileRequestSequence = 0;
 
     // Notification transition baseline. The first overview response only
     // establishes the state and never creates notifications for old activity.
@@ -259,7 +268,17 @@ public final class MainActivity extends ComponentActivity {
     private final Handler refreshHandler = new Handler(Looper.getMainLooper());
     private final Runnable refreshTask = new Runnable() {
         @Override public void run() {
-            if (current != null && !requestInFlight &&
+            if (current != null && "plugins".equals(currentRenderer) &&
+                    activePluginMobile != null &&
+                    activePluginMobileContent != null &&
+                    activePluginMobileContent.getParent() != null &&
+                    activePluginMobileContent.getVisibility() == View.VISIBLE &&
+                    !pluginMobileRequestInFlight) {
+                loadPluginMobileRange(
+                        activePluginMobile, activePluginMobileParent,
+                        activePluginMobileTrigger, activePluginMobileRange,
+                        activePluginMobileFrom, activePluginMobileTo, true);
+            } else if (current != null && !requestInFlight &&
                     ("overview".equals(currentRenderer) ||
                             "stations".equals(currentRenderer))) {
                 fetch(currentPath, currentRenderer, false, loadGeneration);
@@ -624,7 +643,7 @@ public final class MainActivity extends ComponentActivity {
         content.setPadding(dp(12), dp(10), dp(12), dp(24));
         contentScroll.addView(content, new ScrollView.LayoutParams(-1, -2));
         page.addView(contentScroll, new LinearLayout.LayoutParams(-1, 0, 1));
-        configureOverviewPullToRefresh();
+        configurePullToRefresh();
         setContentView(page);
 
         ViewCompat.setOnApplyWindowInsetsListener(page, (view, windowInsets) -> {
@@ -641,22 +660,20 @@ public final class MainActivity extends ComponentActivity {
         ViewCompat.requestApplyInsets(page);
     }
 
-    private void configureOverviewPullToRefresh() {
+    private void configurePullToRefresh() {
         if (contentScroll == null) return;
         contentScroll.setOverScrollMode(View.OVER_SCROLL_ALWAYS);
         contentScroll.setOnTouchListener((view, event) -> {
-            boolean overviewVisible =
-                    "overview".equals(currentRenderer) &&
-                            currentPath != null && !currentPath.isEmpty();
+            boolean refreshableVisible = isPullRefreshable();
             switch (event.getActionMasked()) {
                 case MotionEvent.ACTION_DOWN:
                     overviewPullTracking =
-                            overviewVisible && contentScroll.getScrollY() == 0;
+                            refreshableVisible && contentScroll.getScrollY() == 0;
                     overviewPullStartY = event.getY();
                     overviewPullArmed = false;
                     break;
                 case MotionEvent.ACTION_MOVE:
-                    if (!overviewVisible || contentScroll.getScrollY() > 0) {
+                    if (!refreshableVisible || contentScroll.getScrollY() > 0) {
                         resetOverviewPullGesture();
                         break;
                     }
@@ -670,7 +687,7 @@ public final class MainActivity extends ComponentActivity {
                 case MotionEvent.ACTION_UP:
                     view.performClick();
                     boolean refresh = overviewPullTracking &&
-                            overviewPullArmed && overviewVisible &&
+                            overviewPullArmed && refreshableVisible &&
                             contentScroll.getScrollY() == 0 && !requestInFlight;
                     resetOverviewPullGesture();
                     if (refresh) {
@@ -1034,6 +1051,23 @@ public final class MainActivity extends ComponentActivity {
         content.addView(back);
     }
 
+    private boolean isPullRefreshable() {
+        if (currentPath == null || currentPath.isEmpty()) return false;
+        switch (currentRenderer) {
+            case "overview":
+            case "stations":
+            case "programs":
+            case "sensors":
+            case "weather":
+            case "logs":
+            case "diagnostics":
+            case "plugins":
+                return true;
+            default:
+                return false;
+        }
+    }
+
     private void showAppHelp() {
         currentPath = "";
         currentRenderer = "app_help";
@@ -1042,6 +1076,7 @@ public final class MainActivity extends ComponentActivity {
         shell(getString(R.string.app_help));
 
         addHelpSection(R.string.overview, R.string.help_home);
+        addHelpSection(R.string.refresh, R.string.help_refresh);
         addHelpSection(R.string.stations, R.string.help_stations);
         addHelpSection(R.string.programs, R.string.help_programs);
         addHelpSection(R.string.sensors, R.string.help_sensors);
@@ -1491,6 +1526,7 @@ public final class MainActivity extends ComponentActivity {
     }
 
     private void load(String path, String renderer) {
+        clearActivePluginMobile();
         currentPath = path;
         currentRenderer = renderer;
         int generation = ++loadGeneration;
@@ -3686,27 +3722,60 @@ public final class MainActivity extends ComponentActivity {
 
     private void loadPluginMobile(
             JSONObject plugin, LinearLayout parent, Button trigger) {
-        loadPluginMobileRange(plugin, parent, trigger, "today", null, null);
+        loadPluginMobileRange(
+                plugin, parent, trigger, "today", null, null, false);
     }
 
     private void loadPluginMobileRange(
             JSONObject plugin, LinearLayout parent, Button trigger,
             String selectedRange, LocalDateTime customFrom,
             LocalDateTime customTo) {
-        trigger.setEnabled(false);
-        trigger.setText(getString(R.string.loading));
+        loadPluginMobileRange(
+                plugin, parent, trigger, selectedRange, customFrom,
+                customTo, false);
+    }
+
+    private void loadPluginMobileRange(
+            JSONObject plugin, LinearLayout parent, Button trigger,
+            String selectedRange, LocalDateTime customFrom,
+            LocalDateTime customTo, boolean backgroundRefresh) {
+        if (pluginMobileRequestInFlight) {
+            if (backgroundRefresh) return;
+            pluginMobileRequestSequence++;
+        }
+        pluginMobileRequestInFlight = true;
+        if (!backgroundRefresh) {
+            trigger.setEnabled(false);
+            trigger.setText(getString(R.string.loading));
+        }
         LinearLayout mobileContent;
         Object existing = trigger.getTag();
+        if (!backgroundRefresh && activePluginMobileContent != null &&
+                activePluginMobileContent != existing &&
+                activePluginMobileContent.getVisibility() == View.VISIBLE) {
+            activePluginMobileContent.setVisibility(View.GONE);
+            if (activePluginMobileTrigger != null) {
+                activePluginMobileTrigger.setText(getString(R.string.expand));
+            }
+            clearActivePluginMobile();
+            pluginMobileRequestInFlight = true;
+        }
         if (existing instanceof LinearLayout) {
             mobileContent = (LinearLayout) existing;
-            mobileContent.removeAllViews();
             mobileContent.setVisibility(View.VISIBLE);
         } else {
+            if (backgroundRefresh) {
+                pluginMobileRequestInFlight = false;
+                return;
+            }
             mobileContent = cardColumn();
             trigger.setTag(mobileContent);
             parent.addView(mobileContent);
         }
-        mobileContent.addView(text(getString(R.string.loading), 14, false));
+        if (!backgroundRefresh) {
+            mobileContent.removeAllViews();
+            mobileContent.addView(text(getString(R.string.loading), 14, false));
+        }
 
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime from = customFrom;
@@ -3739,21 +3808,46 @@ public final class MainActivity extends ComponentActivity {
         final String activeRange = selectedRange;
         final LocalDateTime activeFrom = from;
         final LocalDateTime activeTo = to;
+        final LocalDateTime refreshFrom =
+                "custom".equals(activeRange) ? activeFrom : null;
+        final LocalDateTime refreshTo =
+                "custom".equals(activeRange) ? activeTo : null;
+        final int activeGeneration = loadGeneration;
+        final int mobileRequest = ++pluginMobileRequestSequence;
         api.request(
                 "GET", path,
                 null, new ApiClient.Callback() {
                     @Override public void success(JSONObject response) {
+                        if (mobileRequest != pluginMobileRequestSequence) return;
+                        pluginMobileRequestInFlight = false;
+                        if (activeGeneration != loadGeneration ||
+                                !"plugins".equals(currentRenderer) ||
+                                mobileContent.getParent() == null) return;
                         trigger.setEnabled(true);
                         trigger.setText(getString(R.string.collapse));
                         mobileContent.removeAllViews();
                         trigger.setOnClickListener(v -> {
                             boolean visible =
                                     mobileContent.getVisibility() == View.VISIBLE;
-                            mobileContent.setVisibility(
-                                    visible ? View.GONE : View.VISIBLE);
-                            trigger.setText(getString(
-                                    visible ? R.string.expand : R.string.collapse));
+                            if (visible) {
+                                mobileContent.setVisibility(View.GONE);
+                                trigger.setText(getString(R.string.expand));
+                                if (activePluginMobileContent == mobileContent) {
+                                    clearActivePluginMobile();
+                                }
+                            } else {
+                                loadPluginMobileRange(
+                                        plugin, parent, trigger, activeRange,
+                                        refreshFrom, refreshTo, false);
+                            }
                         });
+                        activePluginMobile = plugin;
+                        activePluginMobileParent = parent;
+                        activePluginMobileContent = mobileContent;
+                        activePluginMobileTrigger = trigger;
+                        activePluginMobileRange = activeRange;
+                        activePluginMobileFrom = refreshFrom;
+                        activePluginMobileTo = refreshTo;
                         JSONObject data = response.optJSONObject("data");
                         if (data == null) {
                             mobileContent.addView(text(
@@ -3831,17 +3925,31 @@ public final class MainActivity extends ComponentActivity {
                             if (image != null) {
                                 addMobileImage(card, image);
                             }
-                            JSONArray series = mobileCard.optJSONArray("series");
-                            if (hasSeriesPoints(series)) {
-                                card.addView(new MobileChartView(
-                                        MainActivity.this, series,
-                                        appPreferences.darkTheme()));
-                            } else if (supportsHistory(mobileCard)) {
-                                TextView empty = text(
-                                        getString(R.string.no_data_period),
-                                        13, false);
-                                empty.setTextColor(MUTED);
-                                card.addView(empty);
+                            String kind = mobileCard.optString("kind");
+                            if ("gauge_dashboard".equals(kind)) {
+                                renderMobileGaugeDashboard(card, mobileCard);
+                            } else if ("daylight_timeline".equals(kind)) {
+                                JSONObject timeline =
+                                        mobileCard.optJSONObject("timeline");
+                                if (timeline != null) {
+                                    card.addView(new MobileDaylightView(
+                                            MainActivity.this, timeline,
+                                            appPreferences.darkTheme()));
+                                }
+                            } else {
+                                JSONArray series =
+                                        mobileCard.optJSONArray("series");
+                                if (hasSeriesPoints(series)) {
+                                    card.addView(new MobileChartView(
+                                            MainActivity.this, series,
+                                            appPreferences.darkTheme()));
+                                } else if (supportsHistory(mobileCard)) {
+                                    TextView empty = text(
+                                            getString(R.string.no_data_period),
+                                            13, false);
+                                    empty.setTextColor(MUTED);
+                                    card.addView(empty);
+                                }
                             }
                             JSONObject history =
                                     mobileCard.optJSONObject("history");
@@ -3858,11 +3966,68 @@ public final class MainActivity extends ComponentActivity {
                     }
 
                     @Override public void failure(String error) {
+                        if (mobileRequest != pluginMobileRequestSequence) return;
+                        pluginMobileRequestInFlight = false;
+                        if (activeGeneration != loadGeneration ||
+                                !"plugins".equals(currentRenderer)) return;
                         trigger.setEnabled(true);
-                        trigger.setText(getString(R.string.mobile_data));
-                        message(getString(R.string.app_name), localizedError(error));
+                        trigger.setText(getString(
+                                backgroundRefresh
+                                        ? R.string.collapse
+                                        : R.string.mobile_data));
+                        if (!backgroundRefresh) {
+                            message(
+                                    getString(R.string.app_name),
+                                    localizedError(error));
+                        }
                     }
                 });
+    }
+
+    private void clearActivePluginMobile() {
+        pluginMobileRequestSequence++;
+        activePluginMobile = null;
+        activePluginMobileParent = null;
+        activePluginMobileContent = null;
+        activePluginMobileTrigger = null;
+        activePluginMobileRange = "today";
+        activePluginMobileFrom = null;
+        activePluginMobileTo = null;
+        pluginMobileRequestInFlight = false;
+    }
+
+    private void renderMobileGaugeDashboard(
+            LinearLayout parent, JSONObject mobileCard) {
+        JSONArray gauges = mobileCard.optJSONArray("gauges");
+        if (gauges == null || gauges.length() == 0) {
+            parent.addView(text(getString(R.string.no_mobile_data), 14, false));
+            return;
+        }
+        boolean canvasMode = !"text".equals(mobileCard.optString("mode"));
+        int textSize = Math.max(12, Math.min(48,
+                mobileCard.optInt("text_size", 18)));
+        for (int index = 0; index < gauges.length(); index++) {
+            JSONObject gauge = gauges.optJSONObject(index);
+            if (gauge == null) continue;
+            if (canvasMode) {
+                parent.addView(new MobileGaugeView(
+                        this, gauge, appPreferences.darkTheme()));
+                continue;
+            }
+            LinearLayout row = actionRow();
+            row.addView(
+                    text(gauge.optString("label", gauge.optString("id")),
+                            textSize, true),
+                    new LinearLayout.LayoutParams(0, -2, 1));
+            String value = gauge.optBoolean("available", !gauge.isNull("value"))
+                    ? String.valueOf(gauge.opt("value"))
+                    : getString(R.string.not_available);
+            String unit = gauge.optString("unit");
+            row.addView(text(
+                    value + (unit.isEmpty() ? "" : " " + unit),
+                    textSize, false));
+            parent.addView(row);
+        }
     }
 
     private boolean hasSeriesPoints(JSONArray series) {
@@ -4180,7 +4345,7 @@ public final class MainActivity extends ComponentActivity {
             }
         }
         if ("trend".equals(id)) {
-            switch (value.trim().toLowerCase(Locale.ROOT)) {
+            switch (MobileTrendState.normalize(value)) {
                 case "rising":
                     return "\u2191 " + getString(R.string.rising);
                 case "falling":

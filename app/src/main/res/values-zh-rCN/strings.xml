@@ -501,6 +501,7 @@
     <string name="invalid_station_duration">输入 0–999 分 0–59 秒。总持续时间必须至少为一秒。</string>
     <string name="app_help">应用帮助</string>
     <string name="help_home">显示灌溉状态、调度程序和手动模式控制、降雨延迟、水位调整、活动站点和当前时间表。从顶部下拉刷新。</string>
+    <string name="help_refresh">在主页、站点、程序、传感器、天气、日志、诊断或插件页面从顶部下拉可重新加载该部分。展开的插件运行数据每10秒自动刷新，直到折叠或离开页面。Weather Dashboard 遵循已配置的仪表或文本模式以及颜色限制；Astro 显示固定的24小时昼夜时间轴。</string>
     <string name="help_stations">显示每个启用的站及其当前状态。启动站之前必须启用手动模式。点击“开始”进行无限制的手动运行，或触摸并按住“开始”以选择分钟和秒数。点击停止以结束运行。</string>
     <string name="help_programs">显示按 OSPy 部分分组的节目。您可以启用、禁用、运行、扩展、编辑或删除程序，使用正确的调度程序类型和部分创建新程序，并推迟整个组的下一次运行。</string>
     <string name="help_sensors">显示可用传感器、其最新值、连接状态以及 OSPy 或已安装插件提供的其他数据。</string>

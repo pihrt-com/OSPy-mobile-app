@@ -507,6 +507,7 @@
     <string name="invalid_station_duration">Zadejte 0–999 minut a 0–59 sekund. Celková doba musí být alespoň jedna sekunda.</string>
     <string name="app_help">Nápověda k aplikaci</string>
     <string name="help_home">Zobrazuje stav zavlažování, ovládání plánovače a ručního režimu, dešťové zpoždění, nastavení hladiny vody, aktivní stanice a aktuální plán. Tažením od horního okraje dolů stránku obnovíte.</string>
+    <string name="help_refresh">Tažením od horního okraje dolů obnovíte Domů, Stanice, Programy, Snímače, Počasí, Záznamy, Diagnostiku nebo Pluginy. Rozbalená provozní data pluginu se automaticky obnovují každých 10 sekund, dokud je nesbalíte nebo neopustíte stránku. Weather Dashboard dodržuje nastavený režim budíků nebo textu a barevné limity; Astro zobrazuje pevnou 24hodinovou osu dne a noci.</string>
     <string name="help_stations">Zobrazuje všechny povolené stanice a jejich aktuální stav. Před spuštěním stanice musí být zapnutý ruční režim. Krátkým klepnutím na Spustit zahájíte ruční běh bez časového omezení, dlouhým podržením zvolíte minuty a sekundy. Klepnutím na Zastavit běh ukončíte.</string>
     <string name="help_programs">Zobrazuje programy seskupené do sekcí OSPy. Program lze povolit, zakázat, spustit, rozbalit, upravit nebo smazat. Můžete vytvořit nový program se správným typem plánovače a sekcí nebo odložit příští běh celé skupiny.</string>
     <string name="help_sensors">Zobrazuje dostupné snímače, jejich poslední hodnoty, stav spojení a další údaje poskytované OSPy nebo nainstalovanými pluginy.</string>

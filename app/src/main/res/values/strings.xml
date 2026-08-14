@@ -506,6 +506,7 @@
     <string name="invalid_station_duration">Enter 0–999 minutes and 0–59 seconds. The total duration must be at least one second.</string>
     <string name="app_help">Application help</string>
     <string name="help_home">Shows irrigation status, scheduler and manual-mode controls, rain delay, water-level adjustment, active stations and the current schedule. Pull down from the top to refresh.</string>
+    <string name="help_refresh">Pull down from the top of Home, Stations, Programs, Sensors, Weather, Logs, Diagnostics or Plug-ins to reload that section. Expanded plug-in operating data refreshes automatically every 10 seconds until it is collapsed or you leave the page. Weather Dashboard follows its configured gauge or text mode and colored limits; Astro shows a fixed 24-hour day/night timeline.</string>
     <string name="help_stations">Shows every enabled station and its current state. Manual mode must be enabled before a station can be started. Tap Start for an unlimited manual run, or touch and hold Start to choose minutes and seconds. Tap Stop to end the run.</string>
     <string name="help_programs">Shows programs grouped in their OSPy sections. You can enable, disable, run, expand, edit or delete a program, create a new program with the correct scheduler type and section, and postpone the next run of a whole group.</string>
     <string name="help_sensors">Shows available sensors, their latest values, connection state and other data supplied by OSPy or installed plug-ins.</string>
