@@ -8,8 +8,6 @@ import android.app.KeyguardManager;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
@@ -46,12 +44,13 @@ import android.widget.Toast;
 import android.widget.ArrayAdapter;
 
 import androidx.activity.ComponentActivity;
-import androidx.activity.EdgeToEdge;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.core.view.WindowInsetsControllerCompat;
+
+import com.bumptech.glide.Glide;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -293,7 +292,6 @@ public final class MainActivity extends ComponentActivity {
         setTheme(appPreferences.darkTheme()
                 ? R.style.AppThemeDark : R.style.AppTheme);
         super.onCreate(state);
-        EdgeToEdge.enable(this);
         applyThemePalette();
         applySystemBarAppearance();
         installationStore = new InstallationStore(this);
@@ -647,13 +645,20 @@ public final class MainActivity extends ComponentActivity {
         setContentView(page);
 
         ViewCompat.setOnApplyWindowInsetsListener(page, (view, windowInsets) -> {
-            Insets systemBars = windowInsets.getInsets(
-                    WindowInsetsCompat.Type.systemBars());
+            Insets systemBars = Build.VERSION.SDK_INT >= 35
+                    ? windowInsets.getInsets(
+                            WindowInsetsCompat.Type.systemBars()
+                                    | WindowInsetsCompat.Type.displayCutout())
+                    : Insets.NONE;
             toolbar.setPadding(
-                    dp(16), dp(10) + systemBars.top,
-                    dp(12), dp(10));
+                    dp(16) + systemBars.left,
+                    dp(10) + systemBars.top,
+                    dp(12) + systemBars.right,
+                    dp(10));
             content.setPadding(
-                    dp(12), dp(10), dp(12),
+                    dp(12) + systemBars.left,
+                    dp(10),
+                    dp(12) + systemBars.right,
                     dp(24) + systemBars.bottom);
             return windowInsets;
         });
@@ -4404,14 +4409,13 @@ public final class MainActivity extends ComponentActivity {
         try {
             byte[] bytes = Base64.decode(
                     imageData.optString("data_base64"), Base64.DEFAULT);
-            Bitmap bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.length);
-            if (bitmap == null) return;
+            if (bytes.length == 0) return;
             ImageView image = new ImageView(this);
-            image.setImageBitmap(bitmap);
             image.setAdjustViewBounds(true);
             image.setScaleType(ImageView.ScaleType.FIT_CENTER);
             image.setContentDescription(getString(R.string.radar_image));
             parent.addView(image, new LinearLayout.LayoutParams(-1, -2));
+            Glide.with(this).load(bytes).fitCenter().into(image);
             String updated = imageData.optString("updated");
             if (!updated.isEmpty()) {
                 TextView label = text(

@@ -4,7 +4,7 @@ Open Sprinkler Python [Git-Hub source](https://github.com/martinpihrt/OSPy)
 # OSPy Mobile APP
 Android client for the OSPy `/api/v1`. App on [Google store](https://play.google.com/store/apps/details?id=com.pihrt.ospy.mobile)
 
-Current source version: **0.3.27** (`versionCode 34`).
+Current source version: **0.3.28** (`versionCode 35`).
 
 ## Screenshots
 
@@ -15,6 +15,13 @@ Current source version: **0.3.27** (`versionCode 34`).
 ### Čeština
 
 <p><a href="docs/screenshots/cs/overview.png"><img src="docs/screenshots/cs/overview.png" width="23%" alt="Český přehled"></a> <a href="docs/screenshots/cs/stations.png"><img src="docs/screenshots/cs/stations.png" width="23%" alt="České stanice"></a> <a href="docs/screenshots/cs/programs.png"><img src="docs/screenshots/cs/programs.png" width="23%" alt="České programy"></a> <a href="docs/screenshots/cs/sensors.png"><img src="docs/screenshots/cs/sensors.png" width="23%" alt="České snímače"></a></p>
+
+## Included in version 0.3.28
+- Updated Android 15 edge-to-edge handling to rely on the platform-enforced layout and apply system-bar and display-cutout insets without retaining compatibility code that uses deprecated window APIs.
+- Replaced manual Base64 bitmap decoding with lifecycle-aware Glide loading, resizing and memory management for plug-in images.
+- Explicitly removed the transitively contributed Advertising ID and advertising-attribution permissions because the application does not use advertising services, and increased the Android package version to `0.3.28` (`versionCode 35`).
+
+Before publishing this version, set the Google Play Console Advertising ID declaration to **No** for every active release track because the application does not use the advertising identifier.
 
 ## Included in version 0.3.27
 - Added pull-to-refresh to Home, Stations, Programs, Sensors, Weather, Logs, Diagnostics and Plug-ins, and added automatic ten-second refresh while a plug-in operating-data panel remains expanded.
