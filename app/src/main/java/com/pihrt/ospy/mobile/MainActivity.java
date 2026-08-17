@@ -3089,6 +3089,32 @@ public final class MainActivity extends ComponentActivity {
     }
 
     private void loadProgramEditor(JSONObject program) {
+        api.request("GET", "/capabilities", null, new ApiClient.Callback() {
+            @Override public void success(JSONObject response) {
+                JSONArray features = response.optJSONObject("data") == null
+                        ? null : response.optJSONObject("data")
+                                .optJSONArray("features");
+                loadProgramEditorData(
+                        program,
+                        jsonArrayContains(features, "program_calendar") ||
+                                program.has("calendar"),
+                        jsonArrayContains(features, "solar_programs") ||
+                                program.optInt("type", -1) == 7 ||
+                                program.optInt("type", -1) == 8);
+            }
+
+            @Override public void failure(String error) {
+                loadProgramEditorData(
+                        program, program.has("calendar"),
+                        program.optInt("type", -1) == 7 ||
+                                program.optInt("type", -1) == 8);
+            }
+        });
+    }
+
+    private void loadProgramEditorData(
+            JSONObject program, boolean calendarSupported,
+            boolean solarSupported) {
         api.request("GET", "/stations", null, new ApiClient.Callback() {
             @Override public void success(JSONObject response) {
                 JSONArray allStations = response.optJSONArray("data");
@@ -3103,7 +3129,8 @@ public final class MainActivity extends ComponentActivity {
                                                 ? new JSONArray() : allStations,
                                         allGroups == null
                                                 ? new JSONArray() : allGroups,
-                                        true);
+                                        true, calendarSupported,
+                                        solarSupported);
                             }
 
                             @Override public void failure(String error) {
@@ -3114,7 +3141,8 @@ public final class MainActivity extends ComponentActivity {
                                         allStations == null
                                                 ? new JSONArray() : allStations,
                                         new JSONArray(),
-                                        false);
+                                        false, calendarSupported,
+                                        solarSupported);
                             }
                         });
             }
@@ -3126,7 +3154,21 @@ public final class MainActivity extends ComponentActivity {
     }
 
     private void loadNewProgramEditor() {
-        String[] types = new String[9];
+        api.request("GET", "/capabilities", null, new ApiClient.Callback() {
+            @Override public void success(JSONObject response) {
+                JSONObject data = response.optJSONObject("data");
+                showNewProgramTypeDialog(data != null && jsonArrayContains(
+                        data.optJSONArray("features"), "solar_programs"));
+            }
+
+            @Override public void failure(String error) {
+                showNewProgramTypeDialog(false);
+            }
+        });
+    }
+
+    private void showNewProgramTypeDialog(boolean solarSupported) {
+        String[] types = new String[solarSupported ? 9 : 7];
         for (int type = 0; type < types.length; type++) {
             types[type] = programTypeName(type);
         }
@@ -3519,7 +3561,8 @@ public final class MainActivity extends ComponentActivity {
 
     private void showProgramEditor(
             JSONObject program, JSONArray allStations, JSONArray allGroups,
-            boolean groupsSupported) {
+            boolean groupsSupported, boolean calendarSupported,
+            boolean solarSupported) {
         ScrollView scroll = new ScrollView(this);
         LinearLayout form = new LinearLayout(this);
         form.setOrientation(LinearLayout.VERTICAL);
@@ -3716,7 +3759,9 @@ public final class MainActivity extends ComponentActivity {
             form.addView(text(getString(R.string.unsupported_program_type), 14, true));
         }
 
-        form.addView(text(getString(R.string.calendar_rules), 15, true));
+        if (calendarSupported) {
+            form.addView(text(getString(R.string.calendar_rules), 15, true));
+        }
         JSONArray allowedMonths = originalCalendar.optJSONArray("allowed_months");
         List<CheckBox> monthChecks = new ArrayList<>();
         GridLayout monthGrid = new GridLayout(this);
@@ -3735,7 +3780,9 @@ public final class MainActivity extends ComponentActivity {
             params.rowSpec = GridLayout.spec((month - 1) / 4);
             monthGrid.addView(check, params);
         }
-        form.addView(labelledView(getString(R.string.allowed_months), monthGrid));
+        if (calendarSupported) {
+            form.addView(labelledView(getString(R.string.allowed_months), monthGrid));
+        }
 
         String[] parityLabels = new String[] {
                 getString(R.string.all_days), getString(R.string.odd_days),
@@ -3749,32 +3796,43 @@ public final class MainActivity extends ComponentActivity {
         String originalParity = originalCalendar.optString("day_parity", "all");
         dayParity.setSelection("odd".equals(originalParity) ? 1 :
                 ("even".equals(originalParity) ? 2 : 0));
-        form.addView(labelledView(getString(R.string.calendar_day_parity), dayParity));
+        if (calendarSupported) {
+            form.addView(labelledView(
+                    getString(R.string.calendar_day_parity), dayParity));
+        }
 
         EditText monthDays = input(getString(R.string.month_days_hint), false);
         monthDays.setText(joinJsonValues(
                 originalCalendar.optJSONArray("month_days"), ", "));
-        form.addView(labelledInput(getString(R.string.days_in_month), monthDays));
+        if (calendarSupported) {
+            form.addView(labelledInput(getString(R.string.days_in_month), monthDays));
+        }
         CheckBox excludeHolidays = new CheckBox(this);
         excludeHolidays.setText(R.string.exclude_public_holidays);
         excludeHolidays.setTextColor(TEXT);
         excludeHolidays.setChecked(originalCalendar.optBoolean(
                 "exclude_holidays", false));
-        form.addView(excludeHolidays);
+        if (calendarSupported) form.addView(excludeHolidays);
         EditText excludedDateInput = input(
                 getString(R.string.excluded_dates_hint), false);
         excludedDateInput.setSingleLine(false);
         excludedDateInput.setMinLines(2);
         excludedDateInput.setText(joinJsonValues(
                 originalCalendar.optJSONArray("excluded_dates"), "\n"));
-        form.addView(labelledInput(getString(R.string.excluded_dates), excludedDateInput));
+        if (calendarSupported) {
+            form.addView(labelledInput(
+                    getString(R.string.excluded_dates), excludedDateInput));
+        }
         EditText excludedRangeInput = input(
                 getString(R.string.excluded_ranges_hint), false);
         excludedRangeInput.setSingleLine(false);
         excludedRangeInput.setMinLines(2);
         excludedRangeInput.setText(joinExcludedRanges(
                 originalCalendar.optJSONArray("excluded_ranges")));
-        form.addView(labelledInput(getString(R.string.excluded_ranges), excludedRangeInput));
+        if (calendarSupported) {
+            form.addView(labelledInput(
+                    getString(R.string.excluded_ranges), excludedRangeInput));
+        }
         scroll.addView(form);
 
         final EditText startField = start;
@@ -3866,46 +3924,48 @@ public final class MainActivity extends ComponentActivity {
                                 payload.put("enabled", programEnabled.isChecked());
                                 payload.put("type", type);
                                 payload.put("type_data", typeData);
-                                JSONArray selectedMonths = new JSONArray();
-                                for (CheckBox check : monthChecks) {
-                                    if (check.isChecked()) {
-                                        selectedMonths.put(check.getTag());
+                                if (calendarSupported) {
+                                    JSONArray selectedMonths = new JSONArray();
+                                    for (CheckBox check : monthChecks) {
+                                        if (check.isChecked()) {
+                                            selectedMonths.put(check.getTag());
+                                        }
                                     }
-                                }
-                                if (selectedMonths.length() == 0) {
-                                    throw new IllegalArgumentException(getString(
-                                            R.string.program_month_required));
-                                }
-                                String[] parityValues = {"all", "odd", "even"};
-                                JSONObject calendar = new JSONObject()
-                                        .put("allowed_months", selectedMonths)
-                                        .put("day_parity", parityValues[
-                                                dayParity.getSelectedItemPosition()])
-                                        .put("month_days", integerList(
-                                                monthDays, 1, 31))
-                                        .put("exclude_holidays",
-                                                excludeHolidays.isChecked())
-                                        .put("excluded_dates", excludedDates(
-                                                excludedDateInput))
-                                        .put("excluded_ranges", excludedRanges(
-                                                excludedRangeInput));
-                                if (type == 7 || type == 8) {
-                                    int earliest = programTime(sunEarliestField);
-                                    int latest = programTime(sunLatestField);
-                                    if (latest < earliest) {
+                                    if (selectedMonths.length() == 0) {
                                         throw new IllegalArgumentException(getString(
-                                                R.string.program_sun_window_order));
+                                                R.string.program_month_required));
                                     }
-                                    calendar.put("sun_offset_minutes", boundedInteger(
-                                                    sunOffsetField, -720, 720,
-                                                    R.string.program_sun_offset_format))
-                                            .put("sun_earliest_minute", earliest)
-                                            .put("sun_latest_minute", latest)
-                                            .put("sun_window_policy",
-                                                    sunPolicyField.getSelectedItemPosition()
-                                                            == 1 ? "skip" : "clamp");
+                                    String[] parityValues = {"all", "odd", "even"};
+                                    JSONObject calendar = new JSONObject()
+                                            .put("allowed_months", selectedMonths)
+                                            .put("day_parity", parityValues[
+                                                    dayParity.getSelectedItemPosition()])
+                                            .put("month_days", integerList(
+                                                    monthDays, 1, 31))
+                                            .put("exclude_holidays",
+                                                    excludeHolidays.isChecked())
+                                            .put("excluded_dates", excludedDates(
+                                                    excludedDateInput))
+                                            .put("excluded_ranges", excludedRanges(
+                                                    excludedRangeInput));
+                                    if (type == 7 || type == 8) {
+                                        int earliest = programTime(sunEarliestField);
+                                        int latest = programTime(sunLatestField);
+                                        if (latest < earliest) {
+                                            throw new IllegalArgumentException(getString(
+                                                    R.string.program_sun_window_order));
+                                        }
+                                        calendar.put("sun_offset_minutes", boundedInteger(
+                                                        sunOffsetField, -720, 720,
+                                                        R.string.program_sun_offset_format))
+                                                .put("sun_earliest_minute", earliest)
+                                                .put("sun_latest_minute", latest)
+                                                .put("sun_window_policy",
+                                                        sunPolicyField.getSelectedItemPosition()
+                                                                == 1 ? "skip" : "clamp");
+                                    }
+                                    payload.put("calendar", calendar);
                                 }
-                                payload.put("calendar", calendar);
                                 if (groupsSupported) {
                                     payload.put(
                                             "group_id",
@@ -5929,6 +5989,14 @@ public final class MainActivity extends ComponentActivity {
         if (values == null) return false;
         for (int i = 0; i < values.length(); i++) {
             if (values.optInt(i, Integer.MIN_VALUE) == needle) return true;
+        }
+        return false;
+    }
+
+    private static boolean jsonArrayContains(JSONArray values, String needle) {
+        if (values == null || needle == null) return false;
+        for (int i = 0; i < values.length(); i++) {
+            if (needle.equals(values.optString(i))) return true;
         }
         return false;
     }
