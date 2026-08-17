@@ -77,6 +77,9 @@
     <string name="irrigation">Zavlažovanie</string>
     <string name="scheduler">Plánovač</string>
     <string name="manual_mode">Ručný režim</string>
+    <string name="operating_mode">Prevádzkový režim</string>
+    <string name="scheduler_disabled_reason">Plánovač je vypnutý.</string>
+    <string name="no_station_history">V tento deň nebežala žiadna stanica.</string>
     <string name="manual_mode_required_for_station_start">Ručný režim je vypnutý. Pred spustením stanice ho zapnite na domovskej stránke.</string>
     <string name="rain">Dážď</string>
     <string name="rain_delay">Oneskorenie pri daždi</string>

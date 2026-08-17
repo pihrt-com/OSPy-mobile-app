@@ -77,6 +77,9 @@
     <string name="irrigation">Nawadnianie</string>
     <string name="scheduler">Harmonogram</string>
     <string name="manual_mode">Tryb ręczny</string>
+    <string name="operating_mode">Tryb pracy</string>
+    <string name="scheduler_disabled_reason">Harmonogram jest wyłączony.</string>
+    <string name="no_station_history">Tego dnia nie uruchomiono żadnej stacji.</string>
     <string name="manual_mode_required_for_station_start">Tryb ręczny jest wyłączony. Włącz go na stronie głównej przed uruchomieniem stacji.</string>
     <string name="rain">Deszcz</string>
     <string name="rain_delay">Opóźnienie deszczowe</string>

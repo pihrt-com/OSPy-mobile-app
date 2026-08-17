@@ -77,6 +77,9 @@
     <string name="irrigation">Kunstvanding</string>
     <string name="scheduler">Planlægger</string>
     <string name="manual_mode">Manuel tilstand</string>
+    <string name="operating_mode">Driftstilstand</string>
+    <string name="scheduler_disabled_reason">Planlæggeren er slået fra.</string>
+    <string name="no_station_history">Ingen station kørte denne dag.</string>
     <string name="manual_mode_required_for_station_start">Manuel tilstand er slået fra. Aktiver det på Home, før du starter en station.</string>
     <string name="rain">Regn</string>
     <string name="rain_delay">Forsinket regn</string>

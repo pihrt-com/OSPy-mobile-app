@@ -77,6 +77,9 @@
     <string name="irrigation">灌漑</string>
     <string name="scheduler">スケジューラ</string>
     <string name="manual_mode">マニュアルモード</string>
+    <string name="operating_mode">運転モード</string>
+    <string name="scheduler_disabled_reason">スケジューラは無効です。</string>
+    <string name="no_station_history">この日はステーションの実行履歴がありません。</string>
     <string name="manual_mode_required_for_station_start">マニュアルモードはオフです。ステーションを開始する前にホームで有効にしてください。</string>
     <string name="rain">雨</string>
     <string name="rain_delay">雨による遅延</string>

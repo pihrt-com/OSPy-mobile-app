@@ -77,6 +77,9 @@
     <string name="irrigation">Riego</string>
     <string name="scheduler">Programador</string>
     <string name="manual_mode">Modo manual</string>
+    <string name="operating_mode">Modo de funcionamiento</string>
+    <string name="scheduler_disabled_reason">El programador está desactivado.</string>
+    <string name="no_station_history">Ninguna estación funcionó este día.</string>
     <string name="manual_mode_required_for_station_start">El modo manual está desactivado. Habilítelo en Inicio antes de iniciar una estación.</string>
     <string name="rain">Lluvia</string>
     <string name="rain_delay">Retraso por lluvia</string>

@@ -77,6 +77,9 @@
     <string name="irrigation">Irrigation</string>
     <string name="scheduler">Scheduler</string>
     <string name="manual_mode">Manual mode</string>
+    <string name="operating_mode">Operating mode</string>
+    <string name="scheduler_disabled_reason">The scheduler is disabled.</string>
+    <string name="no_station_history">No station ran on this day.</string>
     <string name="manual_mode_required_for_station_start">Manual mode is off. Enable it on Home before starting a station.</string>
     <string name="rain">Rain</string>
     <string name="rain_delay">Rain delay</string>

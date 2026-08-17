@@ -77,6 +77,9 @@
     <string name="irrigation">Irrigazione</string>
     <string name="scheduler">Pianificatore</string>
     <string name="manual_mode">Modalità manuale</string>
+    <string name="operating_mode">Modalità operativa</string>
+    <string name="scheduler_disabled_reason">Il pianificatore è disattivato.</string>
+    <string name="no_station_history">Nessuna stazione è stata eseguita in questo giorno.</string>
     <string name="manual_mode_required_for_station_start">La modalità manuale è disattivata. Abilitalo su Home prima di avviare una stazione.</string>
     <string name="rain">Pioggia</string>
     <string name="rain_delay">Ritardo pioggia</string>

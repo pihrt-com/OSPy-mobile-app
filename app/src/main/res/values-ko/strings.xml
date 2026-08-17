@@ -77,6 +77,9 @@
     <string name="irrigation">관개</string>
     <string name="scheduler">스케줄러</string>
     <string name="manual_mode">수동 모드</string>
+    <string name="operating_mode">작동 모드</string>
+    <string name="scheduler_disabled_reason">스케줄러가 꺼져 있습니다.</string>
+    <string name="no_station_history">이 날에는 실행된 스테이션이 없습니다.</string>
     <string name="manual_mode_required_for_station_start">수동 모드가 꺼져 있습니다. 스테이션을 시작하기 전에 홈에서 활성화하세요.</string>
     <string name="rain">비</string>
     <string name="rain_delay">비 지연</string>

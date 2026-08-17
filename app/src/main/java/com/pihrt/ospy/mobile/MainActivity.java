@@ -8,6 +8,7 @@ import android.app.KeyguardManager;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.content.res.ColorStateList;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
@@ -39,6 +40,7 @@ import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.ScrollView;
 import android.widget.Spinner;
+import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.ArrayAdapter;
@@ -176,8 +178,8 @@ public final class MainActivity extends ComponentActivity {
     // disappearing and being recreated every ten seconds.
     private LinearLayout overviewRoot;
     private LinearLayout overviewIrrigationSection;
-    private OverviewControlBinding overviewSchedulerControl;
-    private OverviewControlBinding overviewManualControl;
+    private OverviewSwitchBinding overviewSchedulerControl;
+    private OverviewSwitchBinding overviewManualControl;
     private OverviewControlBinding overviewRainControl;
     private OverviewControlBinding overviewWaterLevelControl;
     private PairBinding overviewActiveCount;
@@ -1056,6 +1058,24 @@ public final class MainActivity extends ComponentActivity {
         content.addView(back);
     }
 
+    private static final class OverviewSwitchBinding {
+        final LinearLayout track;
+        final TextView leftLabel;
+        final TextView rightLabel;
+        final Switch toggle;
+        final String label;
+
+        OverviewSwitchBinding(
+                LinearLayout track, TextView leftLabel, TextView rightLabel,
+                Switch toggle, String label) {
+            this.track = track;
+            this.leftLabel = leftLabel;
+            this.rightLabel = rightLabel;
+            this.toggle = toggle;
+            this.label = label;
+        }
+    }
+
     private boolean isPullRefreshable() {
         if (currentPath == null || currentPath.isEmpty()) return false;
         switch (currentRenderer) {
@@ -1654,11 +1674,12 @@ public final class MainActivity extends ComponentActivity {
                 overviewBlockedTimelineCache.clear();
             }
 
-            updateOverviewToggle(
-                    overviewSchedulerControl, schedulerEnabled,
-                    "scheduler_enabled");
-            updateOverviewToggle(
-                    overviewManualControl, manualMode, "manual_mode");
+            updateOverviewSwitch(
+                    overviewSchedulerControl, !schedulerEnabled,
+                    "scheduler_enabled", false, GREEN, RED);
+            updateOverviewSwitch(
+                    overviewManualControl, manualMode,
+                    "manual_mode", true, GREEN, NAVY);
             updateOverviewRainControl(
                     rainBlock, irrigation.optLong("rain_block_seconds", 0));
             double userLevelPercent = irrigation.optDouble(
@@ -1742,10 +1763,12 @@ public final class MainActivity extends ComponentActivity {
                 overviewHeading(getString(R.string.irrigation)));
 
         LinearLayout summary = cardColumn();
-        overviewSchedulerControl = createOverviewControl(
-                summary, getString(R.string.scheduler), 0.25f);
-        overviewManualControl = createOverviewControl(
-                summary, getString(R.string.manual_mode), 0.25f);
+        overviewSchedulerControl = createOverviewSwitch(
+                summary, getString(R.string.scheduler),
+                getString(R.string.on), getString(R.string.off));
+        overviewManualControl = createOverviewSwitch(
+                summary, getString(R.string.operating_mode),
+                getString(R.string.scheduler), getString(R.string.manual_mode));
         overviewRainControl = createOverviewControl(
                 summary, getString(R.string.rain_delay), 0.35f);
         overviewWaterLevelControl = createOverviewControl(
@@ -1897,10 +1920,8 @@ public final class MainActivity extends ComponentActivity {
     }
 
     private String schedulePathForSelectedDay() {
-        if (selectedScheduleDay == ScheduleDay.TODAY) {
-            return "/schedule?date=today";
-        }
-        return "/schedule?date=" + selectedScheduleDate();
+        return OverviewTimelinePolicy.pathFor(
+                selectedScheduleDay.offsetDays, selectedScheduleDate());
     }
 
     private int selectedScheduleDayLabel() {
@@ -1958,6 +1979,38 @@ public final class MainActivity extends ComponentActivity {
         return new OverviewControlBinding(currentState, action);
     }
 
+    private OverviewSwitchBinding createOverviewSwitch(
+            LinearLayout parent, String label, String left, String right) {
+        TextView name = text(label, 14, true);
+        name.setTextColor(MUTED);
+        name.setPadding(dp(3), dp(5), dp(3), dp(2));
+        parent.addView(name, new LinearLayout.LayoutParams(-1, -2));
+
+        LinearLayout track = actionRow();
+        track.setPadding(dp(12), dp(3), dp(12), dp(3));
+        TextView leftLabel = text(left, 13, false);
+        leftLabel.setGravity(Gravity.CENTER);
+        leftLabel.setTextColor(Color.WHITE);
+        track.addView(leftLabel, new LinearLayout.LayoutParams(0, -2, 1));
+
+        Switch toggle = new Switch(this);
+        toggle.setShowText(false);
+        toggle.setThumbTintList(ColorStateList.valueOf(Color.WHITE));
+        toggle.setTrackTintList(ColorStateList.valueOf(0x66FFFFFF));
+        toggle.setMinWidth(dp(54));
+        track.addView(toggle, new LinearLayout.LayoutParams(-2, -2));
+
+        TextView rightLabel = text(right, 13, false);
+        rightLabel.setGravity(Gravity.CENTER);
+        rightLabel.setTextColor(Color.WHITE);
+        track.addView(rightLabel, new LinearLayout.LayoutParams(0, -2, 1));
+        LinearLayout.LayoutParams layout = new LinearLayout.LayoutParams(-1, -2);
+        layout.setMargins(dp(3), 0, dp(3), dp(6));
+        parent.addView(track, layout);
+        return new OverviewSwitchBinding(
+                track, leftLabel, rightLabel, toggle, label);
+    }
+
     private PairBinding createPairBinding(
             LinearLayout parent, String labelText) {
         LinearLayout row = actionRow();
@@ -1970,14 +2023,32 @@ public final class MainActivity extends ComponentActivity {
         return new PairBinding(label, value);
     }
 
-    private void updateOverviewToggle(
-            OverviewControlBinding binding, boolean enabled, String key) {
-        binding.value.setText(state(enabled));
-        binding.action.setText(getString(
-                enabled ? R.string.turn_off : R.string.turn_on));
-        styleButton(binding.action, enabled ? RED : GREEN, false);
-        binding.action.setOnClickListener(v -> put(
-                "/irrigation", jsonBoolean(key, !enabled),
+    private void updateOverviewSwitch(
+            OverviewSwitchBinding binding, boolean rightSelected, String key,
+            boolean rightApiValue, int leftColor, int rightColor) {
+        binding.toggle.setOnCheckedChangeListener(null);
+        binding.toggle.setChecked(rightSelected);
+        binding.track.setBackground(background(
+                rightSelected ? rightColor : leftColor,
+                rightSelected ? rightColor : leftColor, 20));
+        binding.leftLabel.setTypeface(
+                Typeface.DEFAULT,
+                rightSelected ? Typeface.NORMAL : Typeface.BOLD);
+        binding.rightLabel.setTypeface(
+                Typeface.DEFAULT,
+                rightSelected ? Typeface.BOLD : Typeface.NORMAL);
+        binding.leftLabel.setAlpha(rightSelected ? 0.72f : 1.0f);
+        binding.rightLabel.setAlpha(rightSelected ? 1.0f : 0.72f);
+        String activeLabel = rightSelected
+                ? binding.rightLabel.getText().toString()
+                : binding.leftLabel.getText().toString();
+        binding.toggle.setContentDescription(
+                binding.label + ": " + activeLabel);
+        binding.track.setOnClickListener(v ->
+                binding.toggle.setChecked(!binding.toggle.isChecked()));
+        binding.toggle.setOnCheckedChangeListener((button, checked) -> put(
+                "/irrigation",
+                jsonBoolean(key, checked ? rightApiValue : !rightApiValue),
                 this::refreshCurrentOverview));
     }
 
@@ -2670,10 +2741,15 @@ public final class MainActivity extends ComponentActivity {
                     overviewTimelinePendingPath = "";
                     return;
                 }
-                JSONObject data = response.optJSONObject("data");
-                JSONArray items = data == null ? null : data.optJSONArray("items");
-                String scheduleUpdated = data == null
-                        ? "" : data.optString("updated");
+                Object timelineData = response.opt("data");
+                JSONObject schedule = timelineData instanceof JSONObject
+                        ? (JSONObject) timelineData : null;
+                JSONArray items = schedule != null
+                        ? schedule.optJSONArray("items")
+                        : timelineData instanceof JSONArray
+                                ? (JSONArray) timelineData : null;
+                String scheduleUpdated = schedule == null
+                        ? "" : schedule.optString("updated");
                 updateOverviewTimeline(items, scheduleUpdated);
                 overviewTimelineError.setVisibility(View.GONE);
                 finishOverviewTimelineRequest(generation);
@@ -2794,7 +2870,10 @@ public final class MainActivity extends ComponentActivity {
             overviewTimelineRows.clear();
             if (visible.isEmpty()) {
                 overviewTimelineRowsContainer.addView(text(
-                        getString(R.string.no_scheduled_runs), 14, false));
+                        getString(selectedScheduleDay == ScheduleDay.YESTERDAY
+                                ? R.string.no_station_history
+                                : R.string.no_scheduled_runs),
+                        14, false));
             } else {
                 for (JSONObject item : visible) {
                     overviewTimelineRows.add(createTimelineRow(item));
@@ -2952,6 +3031,9 @@ public final class MainActivity extends ComponentActivity {
             case "rain_sensed":
             case "rain_block":
                 return getString(R.string.rain_delay);
+            case "disabled_scheduler":
+            case "scheduler_disabled":
+                return getString(R.string.scheduler_disabled_reason);
             default:
                 return reason;
         }

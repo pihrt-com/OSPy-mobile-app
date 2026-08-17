@@ -77,6 +77,9 @@
     <string name="irrigation">Bewässerung</string>
     <string name="scheduler">Zeitplaner</string>
     <string name="manual_mode">Manueller Modus</string>
+    <string name="operating_mode">Betriebsmodus</string>
+    <string name="scheduler_disabled_reason">Der Zeitplaner ist deaktiviert.</string>
+    <string name="no_station_history">An diesem Tag lief keine Station.</string>
     <string name="manual_mode_required_for_station_start">Der manuelle Modus ist ausgeschaltet. Aktivieren Sie ihn auf der Startseite, bevor Sie eine Station starten.</string>
     <string name="rain">Regen</string>
     <string name="rain_delay">Regenverzögerung</string>

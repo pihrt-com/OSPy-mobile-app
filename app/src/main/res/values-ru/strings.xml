@@ -77,6 +77,9 @@
     <string name="irrigation">Орошение</string>
     <string name="scheduler">Планировщик</string>
     <string name="manual_mode">Ручной режим</string>
+    <string name="operating_mode">Режим работы</string>
+    <string name="scheduler_disabled_reason">Планировщик отключён.</string>
+    <string name="no_station_history">В этот день ни одна станция не работала.</string>
     <string name="manual_mode_required_for_station_start">Ручной режим выключен. Включите его на главном экране перед запуском станции.</string>
     <string name="rain">Дождь</string>
     <string name="rain_delay">Задержка дождя</string>

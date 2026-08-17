@@ -77,6 +77,9 @@
     <string name="irrigation">Наводњавање</string>
     <string name="scheduler">Планер</string>
     <string name="manual_mode">Ручни режим</string>
+    <string name="operating_mode">Режим рада</string>
+    <string name="scheduler_disabled_reason">Планер је искључен.</string>
+    <string name="no_station_history">Ниједна станица није радила тог дана.</string>
     <string name="manual_mode_required_for_station_start">Ручни режим је искључен. Омогућите га на почетној страници пре покретања станице.</string>
     <string name="rain">Киша</string>
     <string name="rain_delay">Одлагање кише</string>
