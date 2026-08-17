@@ -79,6 +79,10 @@
     <string name="manual_mode">Ручной режим</string>
     <string name="operating_mode">Режим работы</string>
     <string name="scheduler_disabled_reason">Планировщик отключён.</string>
+    <string name="calendar_excluded_reason">Исключено из календаря программы.</string>
+    <string name="public_holiday_reason">Государственный праздник.</string>
+    <string name="holiday_calendar_unavailable_reason">Календарь государственных праздников недоступен.</string>
+    <string name="service_outage_reason">Настроенное отключение службы активно.</string>
     <string name="no_station_history">В этот день ни одна станция не работала.</string>
     <string name="manual_mode_required_for_station_start">Ручной режим выключен. Включите его на главном экране перед запуском станции.</string>
     <string name="rain">Дождь</string>
@@ -266,21 +270,21 @@
     <string name="unknown_status">Неизвестно</string>
     <plurals name="duration_days">
         <item quantity="one">%1$d день</item>
+        <item quantity="other">%1$d дня</item>
         <item quantity="few">%1$d дня</item>
         <item quantity="many">%1$d дней</item>
-        <item quantity="other">%1$d дня</item>
     </plurals>
     <plurals name="duration_hours">
         <item quantity="one">%1$d час</item>
+        <item quantity="other">%1$d часа</item>
         <item quantity="few">%1$d часа</item>
         <item quantity="many">%1$d часов</item>
-        <item quantity="other">%1$d часа</item>
     </plurals>
     <plurals name="duration_minutes">
         <item quantity="one">%1$d минута</item>
+        <item quantity="other">%1$d минуты</item>
         <item quantity="few">%1$d минуты</item>
         <item quantity="many">%1$d минут</item>
-        <item quantity="other">%1$d минуты</item>
     </plurals>
     <string name="hours_short">ч</string>
     <string name="minutes_short">мин</string>
@@ -424,6 +428,27 @@
     <string name="program_type_weekly_advanced">Еженедельно (расширенный)</string>
     <string name="program_type_custom">Индивидуальное расписание</string>
     <string name="program_type_weekly_weather">Еженедельно (зависит от погоды)</string>
+    <string name="program_type_sunrise">На основе восхода солнца</string>
+    <string name="program_type_sunset">Судя по закату</string>
+    <string name="calendar_rules">Правила календаря</string>
+    <string name="allowed_months">Разрешенные месяцы</string>
+    <string name="calendar_day_parity">Паритет календарных дней</string>
+    <string name="all_days">Все дни</string>
+    <string name="odd_days">Нечетные дни</string>
+    <string name="even_days">Четные дни</string>
+    <string name="days_in_month">Дни в месяце</string>
+    <string name="month_days_hint">Например: 1, 15, 31; пустой значит каждый день</string>
+    <string name="exclude_public_holidays">Не бегайте в праздничные дни</string>
+    <string name="excluded_dates">Исключенные даты</string>
+    <string name="excluded_dates_hint">Одна дата ГГГГ-ММ-ДД в строке</string>
+    <string name="excluded_ranges">Исключенные диапазоны дат</string>
+    <string name="excluded_ranges_hint">ГГГГ-ММ-ДД..ГГГГ-ММ-ДД или ММ-ДД..ММ-ДД</string>
+    <string name="sun_time_offset">Смещение времени Солнца (минуты)</string>
+    <string name="earliest_start_time">Самое раннее время начала</string>
+    <string name="latest_start_time">Последнее время начала</string>
+    <string name="outside_allowed_time">Вне разрешенного времени</string>
+    <string name="sun_window_clamp">Перейти к ближайшему разрешенному времени</string>
+    <string name="sun_window_skip">Пропустить этот запуск</string>
     <string name="program_intervals">Интервалы расписания</string>
     <string name="repeat_days">Повторять каждые (дней)</string>
     <string name="start_date">Дата начала</string>
@@ -451,6 +476,12 @@
     <string name="program_boolean_invalid">Недопустимое значение планировщика или параметра однократного запуска.</string>
     <string name="program_time_values_invalid">Недопустимое время начала, продолжительность, количество пауз или повторений.</string>
     <string name="program_weather_values_invalid">Погодные лимиты орошения недействительны.</string>
+    <string name="program_month_required">Выберите хотя бы один разрешенный месяц.</string>
+    <string name="program_month_days_format">Введите дни месяца от 1 до 31, через запятую.</string>
+    <string name="program_excluded_dates_format">Введите исключенные даты в формате ГГГГ-ММ-ДД.</string>
+    <string name="program_excluded_ranges_format">Введите каждый диапазон в формате ГГГГ-ММ-ДД..ГГГГ-ММ-ДД или ММ-ДД..ММ-ДД.</string>
+    <string name="program_sun_offset_format">Введите смещение солнечного времени от -720 до 720 минут.</string>
+    <string name="program_sun_window_order">Самое позднее время начала не должно быть раньше самого раннего времени начала.</string>
     <string name="pause_ratio_percent">Коэффициент паузы (%)</string>
     <string name="system_update">Обновление системы</string>
     <string name="upstream_branch">Добывающий филиал</string>

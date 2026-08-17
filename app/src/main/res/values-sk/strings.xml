@@ -79,6 +79,10 @@
     <string name="manual_mode">Ručný režim</string>
     <string name="operating_mode">Prevádzkový režim</string>
     <string name="scheduler_disabled_reason">Plánovač je vypnutý.</string>
+    <string name="calendar_excluded_reason">Vylúčené z programového kalendára.</string>
+    <string name="public_holiday_reason">Štátny sviatok.</string>
+    <string name="holiday_calendar_unavailable_reason">Kalendár štátnych sviatkov nie je k dispozícii.</string>
+    <string name="service_outage_reason">Je aktívny nakonfigurovaný výpadok služby.</string>
     <string name="no_station_history">V tento deň nebežala žiadna stanica.</string>
     <string name="manual_mode_required_for_station_start">Ručný režim je vypnutý. Pred spustením stanice ho zapnite na domovskej stránke.</string>
     <string name="rain">Dážď</string>
@@ -266,21 +270,21 @@
     <string name="unknown_status">Neznámy</string>
     <plurals name="duration_days">
         <item quantity="one">%1$d deň</item>
+        <item quantity="other">%1$d dní</item>
         <item quantity="few">%1$d dni</item>
         <item quantity="many">%1$d dňa</item>
-        <item quantity="other">%1$d dní</item>
     </plurals>
     <plurals name="duration_hours">
         <item quantity="one">%1$d hodina</item>
+        <item quantity="other">%1$d hodín</item>
         <item quantity="few">%1$d hodiny</item>
         <item quantity="many">%1$d hodiny</item>
-        <item quantity="other">%1$d hodín</item>
     </plurals>
     <plurals name="duration_minutes">
         <item quantity="one">%1$d minúta</item>
+        <item quantity="other">%1$d minút</item>
         <item quantity="few">%1$d minúty</item>
         <item quantity="many">%1$d minúty</item>
-        <item quantity="other">%1$d minút</item>
     </plurals>
     <string name="hours_short">h</string>
     <string name="minutes_short">min</string>
@@ -424,6 +428,27 @@
     <string name="program_type_weekly_advanced">Týždenný (pokročilý)</string>
     <string name="program_type_custom">Vlastný plán</string>
     <string name="program_type_weekly_weather">Týždenný (podľa počasia)</string>
+    <string name="program_type_sunrise">Na základe východu slnka</string>
+    <string name="program_type_sunset">Na základe západu slnka</string>
+    <string name="calendar_rules">Pravidlá kalendára</string>
+    <string name="allowed_months">Povolené mesiace</string>
+    <string name="calendar_day_parity">Parita kalendárneho dňa</string>
+    <string name="all_days">Všetky dni</string>
+    <string name="odd_days">Nepárne dni</string>
+    <string name="even_days">Párne dni</string>
+    <string name="days_in_month">Dni v mesiaci</string>
+    <string name="month_days_hint">Napríklad: 1, 15, 31; prázdny znamená každý deň</string>
+    <string name="exclude_public_holidays">Nebehajte počas štátnych sviatkov</string>
+    <string name="excluded_dates">Vylúčené dátumy</string>
+    <string name="excluded_dates_hint">Jeden dátum RRRR-MM-DD na riadok</string>
+    <string name="excluded_ranges">Vylúčené rozsahy dátumov</string>
+    <string name="excluded_ranges_hint">RRRR-MM-DD..RRRR-MM-DD alebo MM-DD..MM-DD</string>
+    <string name="sun_time_offset">Časový posun slnka (minúty)</string>
+    <string name="earliest_start_time">Najskorší čas začiatku</string>
+    <string name="latest_start_time">Najneskorší čas začiatku</string>
+    <string name="outside_allowed_time">Mimo povoleného času</string>
+    <string name="sun_window_clamp">Presuňte sa na najbližší povolený čas</string>
+    <string name="sun_window_skip">Preskočte túto jazdu</string>
     <string name="program_intervals">Intervaly plánu</string>
     <string name="repeat_days">Opakovať každých (dní)</string>
     <string name="start_date">Počiatočný dátum</string>
@@ -451,6 +476,12 @@
     <string name="program_boolean_invalid">Nastavenie plánovača alebo jednorazového spustenia má neplatnú hodnotu.</string>
     <string name="program_time_values_invalid">Čas spustenia, trvanie, pauza alebo počet opakovaní nie sú platné.</string>
     <string name="program_weather_values_invalid">Limity závlahy podľa počasia nie sú platné.</string>
+    <string name="program_month_required">Vyberte aspoň jeden povolený mesiac.</string>
+    <string name="program_month_days_format">Zadajte dni v mesiaci od 1 do 31 oddelené čiarkami.</string>
+    <string name="program_excluded_dates_format">Zadajte vylúčené dátumy ako RRRR-MM-DD.</string>
+    <string name="program_excluded_ranges_format">Každý rozsah zadajte ako RRRR-MM-DD..RRRR-MM-DD alebo MM-DD..MM-DD.</string>
+    <string name="program_sun_offset_format">Zadajte časový posun slnka od -720 do 720 minút.</string>
+    <string name="program_sun_window_order">Najneskorší čas začiatku nesmie byť skorší ako najskorší čas začiatku.</string>
     <string name="pause_ratio_percent">Pomer pauzy (%)</string>
     <string name="system_update">Aktualizácia systému</string>
     <string name="upstream_branch">Vzdialená vetva</string>

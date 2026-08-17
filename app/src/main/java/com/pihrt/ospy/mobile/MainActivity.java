@@ -3034,6 +3034,14 @@ public final class MainActivity extends ComponentActivity {
             case "disabled_scheduler":
             case "scheduler_disabled":
                 return getString(R.string.scheduler_disabled_reason);
+            case "calendar_excluded":
+                return getString(R.string.calendar_excluded_reason);
+            case "public_holiday":
+                return getString(R.string.public_holiday_reason);
+            case "holiday_calendar_unavailable":
+                return getString(R.string.holiday_calendar_unavailable_reason);
+            case "service_outage":
+                return getString(R.string.service_outage_reason);
             default:
                 return reason;
         }
@@ -3118,7 +3126,7 @@ public final class MainActivity extends ComponentActivity {
     }
 
     private void loadNewProgramEditor() {
-        String[] types = new String[7];
+        String[] types = new String[9];
         for (int type = 0; type < types.length; type++) {
             types[type] = programTypeName(type);
         }
@@ -3168,6 +3176,10 @@ public final class MainActivity extends ComponentActivity {
                 typeData = new JSONArray().put(5).put(10).put(5).put(0.0)
                         .put(new JSONArray().put(new JSONArray().put(360).put(1)));
                 break;
+            case 7:
+            case 8:
+                typeData = new JSONArray().put(10).put(0).put(0).put(days);
+                break;
             default:
                 throw new IllegalArgumentException();
         }
@@ -3197,6 +3209,8 @@ public final class MainActivity extends ComponentActivity {
             case 4: return getString(R.string.program_type_weekly_advanced);
             case 5: return getString(R.string.program_type_custom);
             case 6: return getString(R.string.program_type_weekly_weather);
+            case 7: return getString(R.string.program_type_sunrise);
+            case 8: return getString(R.string.program_type_sunset);
             default: return getString(R.string.unknown_status);
         }
     }
@@ -3571,6 +3585,8 @@ public final class MainActivity extends ComponentActivity {
 
         JSONArray originalTypeData = program.optJSONArray("type_data");
         if (originalTypeData == null) originalTypeData = new JSONArray();
+        JSONObject originalCalendar = program.optJSONObject("calendar");
+        if (originalCalendar == null) originalCalendar = new JSONObject();
         EditText start = null;
         EditText duration = null;
         EditText pause = null;
@@ -3584,6 +3600,10 @@ public final class MainActivity extends ComponentActivity {
         EditText irrigationMin = null;
         EditText irrigationMax = null;
         EditText runMax = null;
+        EditText sunOffset = null;
+        EditText sunEarliest = null;
+        EditText sunLatest = null;
+        Spinner sunPolicy = null;
         List<CheckBox> dayChecks = new ArrayList<>();
         if (type == 0 || type == 2) {
             start = input(getString(R.string.start_time), false);
@@ -3659,9 +3679,102 @@ public final class MainActivity extends ComponentActivity {
             form.addView(labelledInput(getString(R.string.maximum_run), runMax));
             form.addView(labelledInput(getString(R.string.pause_ratio_percent), pause));
             form.addView(intervals.view);
+        } else if (type == 7 || type == 8) {
+            duration = numericInput(String.valueOf(originalTypeData.optInt(0, 10)));
+            pause = numericInput(String.valueOf(originalTypeData.optInt(1, 0)));
+            repeats = numericInput(String.valueOf(originalTypeData.optInt(2, 0)));
+            form.addView(labelledInput(getString(R.string.duration), duration));
+            form.addView(labelledInput(getString(R.string.pause), pause));
+            form.addView(labelledInput(getString(R.string.repeat_count), repeats));
+            dayChecks = addProgramDays(form, originalTypeData.optJSONArray(3));
+            sunOffset = numericInput(String.valueOf(
+                    originalCalendar.optInt("sun_offset_minutes", 0)));
+            sunOffset.setInputType(InputType.TYPE_CLASS_NUMBER |
+                    InputType.TYPE_NUMBER_FLAG_SIGNED);
+            sunEarliest = input(getString(R.string.program_time_format), false);
+            sunEarliest.setText(minutesToTime(originalCalendar.optInt(
+                    "sun_earliest_minute", 0)));
+            sunLatest = input(getString(R.string.program_time_format), false);
+            sunLatest.setText(minutesToTime(originalCalendar.optInt(
+                    "sun_latest_minute", 1439)));
+            String[] policies = new String[] {
+                    getString(R.string.sun_window_clamp),
+                    getString(R.string.sun_window_skip)};
+            sunPolicy = new Spinner(this);
+            ArrayAdapter<String> policyAdapter = new ArrayAdapter<>(
+                    this, android.R.layout.simple_spinner_item, policies);
+            policyAdapter.setDropDownViewResource(
+                    android.R.layout.simple_spinner_dropdown_item);
+            sunPolicy.setAdapter(policyAdapter);
+            sunPolicy.setSelection("skip".equals(originalCalendar.optString(
+                    "sun_window_policy", "clamp")) ? 1 : 0);
+            form.addView(labelledInput(getString(R.string.sun_time_offset), sunOffset));
+            form.addView(labelledInput(getString(R.string.earliest_start_time), sunEarliest));
+            form.addView(labelledInput(getString(R.string.latest_start_time), sunLatest));
+            form.addView(labelledView(getString(R.string.outside_allowed_time), sunPolicy));
         } else {
             form.addView(text(getString(R.string.unsupported_program_type), 14, true));
         }
+
+        form.addView(text(getString(R.string.calendar_rules), 15, true));
+        JSONArray allowedMonths = originalCalendar.optJSONArray("allowed_months");
+        List<CheckBox> monthChecks = new ArrayList<>();
+        GridLayout monthGrid = new GridLayout(this);
+        monthGrid.setColumnCount(4);
+        for (int month = 1; month <= 12; month++) {
+            CheckBox check = new CheckBox(this);
+            check.setTextColor(TEXT);
+            check.setText(String.valueOf(month));
+            check.setTag(month);
+            check.setChecked(allowedMonths == null ||
+                    jsonArrayContains(allowedMonths, month));
+            monthChecks.add(check);
+            GridLayout.LayoutParams params = new GridLayout.LayoutParams();
+            params.width = 0;
+            params.columnSpec = GridLayout.spec((month - 1) % 4, 1, 1f);
+            params.rowSpec = GridLayout.spec((month - 1) / 4);
+            monthGrid.addView(check, params);
+        }
+        form.addView(labelledView(getString(R.string.allowed_months), monthGrid));
+
+        String[] parityLabels = new String[] {
+                getString(R.string.all_days), getString(R.string.odd_days),
+                getString(R.string.even_days)};
+        Spinner dayParity = new Spinner(this);
+        ArrayAdapter<String> parityAdapter = new ArrayAdapter<>(
+                this, android.R.layout.simple_spinner_item, parityLabels);
+        parityAdapter.setDropDownViewResource(
+                android.R.layout.simple_spinner_dropdown_item);
+        dayParity.setAdapter(parityAdapter);
+        String originalParity = originalCalendar.optString("day_parity", "all");
+        dayParity.setSelection("odd".equals(originalParity) ? 1 :
+                ("even".equals(originalParity) ? 2 : 0));
+        form.addView(labelledView(getString(R.string.calendar_day_parity), dayParity));
+
+        EditText monthDays = input(getString(R.string.month_days_hint), false);
+        monthDays.setText(joinJsonValues(
+                originalCalendar.optJSONArray("month_days"), ", "));
+        form.addView(labelledInput(getString(R.string.days_in_month), monthDays));
+        CheckBox excludeHolidays = new CheckBox(this);
+        excludeHolidays.setText(R.string.exclude_public_holidays);
+        excludeHolidays.setTextColor(TEXT);
+        excludeHolidays.setChecked(originalCalendar.optBoolean(
+                "exclude_holidays", false));
+        form.addView(excludeHolidays);
+        EditText excludedDateInput = input(
+                getString(R.string.excluded_dates_hint), false);
+        excludedDateInput.setSingleLine(false);
+        excludedDateInput.setMinLines(2);
+        excludedDateInput.setText(joinJsonValues(
+                originalCalendar.optJSONArray("excluded_dates"), "\n"));
+        form.addView(labelledInput(getString(R.string.excluded_dates), excludedDateInput));
+        EditText excludedRangeInput = input(
+                getString(R.string.excluded_ranges_hint), false);
+        excludedRangeInput.setSingleLine(false);
+        excludedRangeInput.setMinLines(2);
+        excludedRangeInput.setText(joinExcludedRanges(
+                originalCalendar.optJSONArray("excluded_ranges")));
+        form.addView(labelledInput(getString(R.string.excluded_ranges), excludedRangeInput));
         scroll.addView(form);
 
         final EditText startField = start;
@@ -3677,6 +3790,10 @@ public final class MainActivity extends ComponentActivity {
         final EditText irrigationMinField = irrigationMin;
         final EditText irrigationMaxField = irrigationMax;
         final EditText runMaxField = runMax;
+        final EditText sunOffsetField = sunOffset;
+        final EditText sunEarliestField = sunEarliest;
+        final EditText sunLatestField = sunLatest;
+        final Spinner sunPolicyField = sunPolicy;
         final List<CheckBox> dayCheckFields = dayChecks;
         AlertDialog dialog = new AlertDialog.Builder(this)
                 .setTitle(program.optString("id").isEmpty()
@@ -3734,6 +3851,11 @@ public final class MainActivity extends ComponentActivity {
                                             .put(positiveInteger(runMaxField))
                                             .put(pausePercent / 100.0)
                                             .put(intervalsField.value());
+                                } else if (type == 7 || type == 8) {
+                                    typeData.put(positiveInteger(durationField))
+                                            .put(nonNegativeInteger(pauseField))
+                                            .put(nonNegativeInteger(repeatsField))
+                                            .put(selectedProgramDays(dayCheckFields));
                                 } else {
                                     throw new IllegalArgumentException(
                                             getString(R.string.unsupported_program_type));
@@ -3744,6 +3866,46 @@ public final class MainActivity extends ComponentActivity {
                                 payload.put("enabled", programEnabled.isChecked());
                                 payload.put("type", type);
                                 payload.put("type_data", typeData);
+                                JSONArray selectedMonths = new JSONArray();
+                                for (CheckBox check : monthChecks) {
+                                    if (check.isChecked()) {
+                                        selectedMonths.put(check.getTag());
+                                    }
+                                }
+                                if (selectedMonths.length() == 0) {
+                                    throw new IllegalArgumentException(getString(
+                                            R.string.program_month_required));
+                                }
+                                String[] parityValues = {"all", "odd", "even"};
+                                JSONObject calendar = new JSONObject()
+                                        .put("allowed_months", selectedMonths)
+                                        .put("day_parity", parityValues[
+                                                dayParity.getSelectedItemPosition()])
+                                        .put("month_days", integerList(
+                                                monthDays, 1, 31))
+                                        .put("exclude_holidays",
+                                                excludeHolidays.isChecked())
+                                        .put("excluded_dates", excludedDates(
+                                                excludedDateInput))
+                                        .put("excluded_ranges", excludedRanges(
+                                                excludedRangeInput));
+                                if (type == 7 || type == 8) {
+                                    int earliest = programTime(sunEarliestField);
+                                    int latest = programTime(sunLatestField);
+                                    if (latest < earliest) {
+                                        throw new IllegalArgumentException(getString(
+                                                R.string.program_sun_window_order));
+                                    }
+                                    calendar.put("sun_offset_minutes", boundedInteger(
+                                                    sunOffsetField, -720, 720,
+                                                    R.string.program_sun_offset_format))
+                                            .put("sun_earliest_minute", earliest)
+                                            .put("sun_latest_minute", latest)
+                                            .put("sun_window_policy",
+                                                    sunPolicyField.getSelectedItemPosition()
+                                                            == 1 ? "skip" : "clamp");
+                                }
+                                payload.put("calendar", calendar);
                                 if (groupsSupported) {
                                     payload.put(
                                             "group_id",
@@ -4114,6 +4276,121 @@ public final class MainActivity extends ComponentActivity {
                     value + (unit.isEmpty() ? "" : " " + unit),
                     textSize, false));
             parent.addView(row);
+        }
+    }
+
+    private static String joinJsonValues(JSONArray values, String separator) {
+        if (values == null) return "";
+        StringBuilder result = new StringBuilder();
+        for (int index = 0; index < values.length(); index++) {
+            String value = values.optString(index).trim();
+            if (value.isEmpty()) continue;
+            if (result.length() > 0) result.append(separator);
+            result.append(value);
+        }
+        return result.toString();
+    }
+
+    private static String joinExcludedRanges(JSONArray ranges) {
+        if (ranges == null) return "";
+        StringBuilder result = new StringBuilder();
+        for (int index = 0; index < ranges.length(); index++) {
+            JSONObject range = ranges.optJSONObject(index);
+            if (range == null) continue;
+            String start = range.optString("start").trim();
+            String end = range.optString("end").trim();
+            if (start.isEmpty() || end.isEmpty()) continue;
+            if (result.length() > 0) result.append('\n');
+            result.append(start).append("..").append(end);
+        }
+        return result.toString();
+    }
+
+    private JSONArray integerList(EditText input, int minimum, int maximum) {
+        JSONArray result = new JSONArray();
+        String value = input.getText().toString().trim();
+        if (value.isEmpty()) return result;
+        java.util.Set<Integer> unique = new java.util.TreeSet<>();
+        try {
+            for (String item : value.split("[,;\\s]+")) {
+                if (item.isEmpty()) continue;
+                int number = Integer.parseInt(item);
+                if (number < minimum || number > maximum) {
+                    throw new NumberFormatException();
+                }
+                unique.add(number);
+            }
+        } catch (NumberFormatException error) {
+            throw new IllegalArgumentException(getString(
+                    R.string.program_month_days_format));
+        }
+        for (Integer number : unique) result.put(number);
+        return result;
+    }
+
+    private JSONArray excludedDates(EditText input) {
+        JSONArray result = new JSONArray();
+        String value = input.getText().toString().trim();
+        if (value.isEmpty()) return result;
+        try {
+            for (String item : value.split("[,;\\s]+")) {
+                if (item.isEmpty()) continue;
+                result.put(LocalDate.parse(item).toString());
+            }
+        } catch (Exception error) {
+            throw new IllegalArgumentException(getString(
+                    R.string.program_excluded_dates_format));
+        }
+        return result;
+    }
+
+    private JSONArray excludedRanges(EditText input) throws Exception {
+        JSONArray result = new JSONArray();
+        String value = input.getText().toString().trim();
+        if (value.isEmpty()) return result;
+        for (String line : value.split("[\\r\\n;]+")) {
+            String trimmed = line.trim();
+            if (trimmed.isEmpty()) continue;
+            String[] parts = trimmed.split("\\.\\.", -1);
+            if (parts.length != 2) {
+                throw new IllegalArgumentException(getString(
+                        R.string.program_excluded_ranges_format));
+            }
+            String start = parts[0].trim();
+            String end = parts[1].trim();
+            boolean annual;
+            try {
+                if (start.matches("\\d{2}-\\d{2}") &&
+                        end.matches("\\d{2}-\\d{2}")) {
+                    java.time.MonthDay.parse("--" + start);
+                    java.time.MonthDay.parse("--" + end);
+                    annual = true;
+                } else {
+                    LocalDate.parse(start);
+                    LocalDate.parse(end);
+                    annual = false;
+                }
+            } catch (Exception error) {
+                throw new IllegalArgumentException(getString(
+                        R.string.program_excluded_ranges_format));
+            }
+            result.put(new JSONObject()
+                    .put("start", start).put("end", end)
+                    .put("annual", annual));
+        }
+        return result;
+    }
+
+    private int boundedInteger(EditText input, int minimum, int maximum,
+            int errorString) {
+        try {
+            int value = Integer.parseInt(input.getText().toString().trim());
+            if (value < minimum || value > maximum) {
+                throw new NumberFormatException();
+            }
+            return value;
+        } catch (NumberFormatException error) {
+            throw new IllegalArgumentException(getString(errorString));
         }
     }
 

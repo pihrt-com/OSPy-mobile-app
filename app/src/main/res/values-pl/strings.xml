@@ -79,6 +79,10 @@
     <string name="manual_mode">Tryb ręczny</string>
     <string name="operating_mode">Tryb pracy</string>
     <string name="scheduler_disabled_reason">Harmonogram jest wyłączony.</string>
+    <string name="calendar_excluded_reason">Wyłączone z kalendarza programu.</string>
+    <string name="public_holiday_reason">Święto państwowe.</string>
+    <string name="holiday_calendar_unavailable_reason">Kalendarz świąt państwowych jest niedostępny.</string>
+    <string name="service_outage_reason">Skonfigurowana przerwa w świadczeniu usług jest aktywna.</string>
     <string name="no_station_history">Tego dnia nie uruchomiono żadnej stacji.</string>
     <string name="manual_mode_required_for_station_start">Tryb ręczny jest wyłączony. Włącz go na stronie głównej przed uruchomieniem stacji.</string>
     <string name="rain">Deszcz</string>
@@ -266,21 +270,21 @@
     <string name="unknown_status">Nieznany</string>
     <plurals name="duration_days">
         <item quantity="one">%1$d dzień</item>
+        <item quantity="other">%1$d dnia</item>
         <item quantity="few">%1$d dni</item>
         <item quantity="many">%1$d dni</item>
-        <item quantity="other">%1$d dnia</item>
     </plurals>
     <plurals name="duration_hours">
         <item quantity="one">%1$d godzina</item>
+        <item quantity="other">%1$d godziny</item>
         <item quantity="few">%1$d godziny</item>
         <item quantity="many">%1$d godzin</item>
-        <item quantity="other">%1$d godziny</item>
     </plurals>
     <plurals name="duration_minutes">
         <item quantity="one">%1$d minuta</item>
+        <item quantity="other">%1$d minuty</item>
         <item quantity="few">%1$d minuty</item>
         <item quantity="many">%1$d minut</item>
-        <item quantity="other">%1$d minuty</item>
     </plurals>
     <string name="hours_short">godz.</string>
     <string name="minutes_short">min</string>
@@ -424,6 +428,27 @@
     <string name="program_type_weekly_advanced">Tygodniowy (zaawansowany)</string>
     <string name="program_type_custom">Własny harmonogram</string>
     <string name="program_type_weekly_weather">Tygodniowy (zależny od pogody)</string>
+    <string name="program_type_sunrise">Na podstawie wschodu słońca</string>
+    <string name="program_type_sunset">Na podstawie zachodu słońca</string>
+    <string name="calendar_rules">Zasady kalendarza</string>
+    <string name="allowed_months">Dozwolone miesiące</string>
+    <string name="calendar_day_parity">Parytet dni kalendarzowych</string>
+    <string name="all_days">Wszystkie dni</string>
+    <string name="odd_days">Dziwne dni</string>
+    <string name="even_days">Nawet dni</string>
+    <string name="days_in_month">Dni w miesiącu</string>
+    <string name="month_days_hint">Na przykład: 1, 15, 31; puste oznacza każdy dzień</string>
+    <string name="exclude_public_holidays">Nie biegaj w święta</string>
+    <string name="excluded_dates">Wykluczone daty</string>
+    <string name="excluded_dates_hint">Jedna data RRRR-MM-DD w każdym wierszu</string>
+    <string name="excluded_ranges">Wykluczone zakresy dat</string>
+    <string name="excluded_ranges_hint">RRRR-MM-DD..RRRR-MM-DD lub MM-DD..MM-DD</string>
+    <string name="sun_time_offset">Przesunięcie czasu słonecznego (minuty)</string>
+    <string name="earliest_start_time">Najwcześniejszy czas rozpoczęcia</string>
+    <string name="latest_start_time">Najpóźniejszy czas rozpoczęcia</string>
+    <string name="outside_allowed_time">Poza dozwolonym czasem</string>
+    <string name="sun_window_clamp">Przejdź do najbliższego dozwolonego czasu</string>
+    <string name="sun_window_skip">Pomiń ten bieg</string>
     <string name="program_intervals">Przedziały harmonogramu</string>
     <string name="repeat_days">Powtarzaj co (dni)</string>
     <string name="start_date">Data rozpoczęcia</string>
@@ -451,6 +476,12 @@
     <string name="program_boolean_invalid">Ustawienie harmonogramu lub jednorazowego uruchomienia ma nieprawidłową wartość.</string>
     <string name="program_time_values_invalid">Czas rozpoczęcia, czas trwania, przerwa lub liczba powtórzeń są nieprawidłowe.</string>
     <string name="program_weather_values_invalid">Limity nawadniania zależnego od pogody są nieprawidłowe.</string>
+    <string name="program_month_required">Wybierz co najmniej jeden dozwolony miesiąc.</string>
+    <string name="program_month_days_format">Wprowadź dni miesiąca od 1 do 31, oddzielając je przecinkami.</string>
+    <string name="program_excluded_dates_format">Wprowadź wykluczone daty jako RRRR-MM-DD.</string>
+    <string name="program_excluded_ranges_format">Wprowadź każdy zakres jako RRRR-MM-DD..RRRR-MM-DD lub MM-DD..MM-DD.</string>
+    <string name="program_sun_offset_format">Wprowadź przesunięcie czasu słonecznego od -720 do 720 minut.</string>
+    <string name="program_sun_window_order">Najpóźniejszy czas rozpoczęcia nie może być wcześniejszy niż najwcześniejszy czas rozpoczęcia.</string>
     <string name="pause_ratio_percent">Stosunek pauzy (%)</string>
     <string name="system_update">Aktualizacja systemu</string>
     <string name="upstream_branch">Gałąź zdalna</string>

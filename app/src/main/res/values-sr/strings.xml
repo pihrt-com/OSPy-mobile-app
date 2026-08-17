@@ -79,6 +79,10 @@
     <string name="manual_mode">Ручни режим</string>
     <string name="operating_mode">Режим рада</string>
     <string name="scheduler_disabled_reason">Планер је искључен.</string>
+    <string name="calendar_excluded_reason">Искључено календаром програма.</string>
+    <string name="public_holiday_reason">Државни празник.</string>
+    <string name="holiday_calendar_unavailable_reason">Календар државних празника није доступан.</string>
+    <string name="service_outage_reason">Активан је испад конфигурисане услуге.</string>
     <string name="no_station_history">Ниједна станица није радила тог дана.</string>
     <string name="manual_mode_required_for_station_start">Ручни режим је искључен. Омогућите га на почетној страници пре покретања станице.</string>
     <string name="rain">Киша</string>
@@ -266,18 +270,18 @@
     <string name="unknown_status">Непознато</string>
     <plurals name="duration_days">
         <item quantity="one">%1$d дан</item>
-        <item quantity="few">%1$d дана</item>
         <item quantity="other">%1$d дана</item>
+        <item quantity="few">%1$d дана</item>
     </plurals>
     <plurals name="duration_hours">
         <item quantity="one">%1$d сат</item>
-        <item quantity="few">%1$d сата</item>
         <item quantity="other">%1$d сати</item>
+        <item quantity="few">%1$d сата</item>
     </plurals>
     <plurals name="duration_minutes">
         <item quantity="one">%1$d минута</item>
-        <item quantity="few">%1$d минута</item>
         <item quantity="other">%1$d минута</item>
+        <item quantity="few">%1$d минута</item>
     </plurals>
     <string name="hours_short">х</string>
     <string name="minutes_short">мин</string>
@@ -421,6 +425,27 @@
     <string name="program_type_weekly_advanced">Недељно (напредно)</string>
     <string name="program_type_custom">Прилагођени распоред</string>
     <string name="program_type_weekly_weather">Недељно (на основу времена)</string>
+    <string name="program_type_sunrise">На основу изласка сунца</string>
+    <string name="program_type_sunset">На основу заласка сунца</string>
+    <string name="calendar_rules">Правила календара</string>
+    <string name="allowed_months">Дозвољени месеци</string>
+    <string name="calendar_day_parity">Паритет календарских дана</string>
+    <string name="all_days">Свих дана</string>
+    <string name="odd_days">Чудни дани</string>
+    <string name="even_days">Чак и дани</string>
+    <string name="days_in_month">Дани у месецу</string>
+    <string name="month_days_hint">На пример: 1, 15, 31; празно значи сваки дан</string>
+    <string name="exclude_public_holidays">Не трчите на државне празнике</string>
+    <string name="excluded_dates">Изузети датуми</string>
+    <string name="excluded_dates_hint">Један ГГГГ-ММ-ДД датум по реду</string>
+    <string name="excluded_ranges">Изузети периоди</string>
+    <string name="excluded_ranges_hint">ГГГГ-ММ-ДД..ГГГГ-ММ-ДД или ММ-ДД..ММ-ДД</string>
+    <string name="sun_time_offset">Померање времена сунца (минути)</string>
+    <string name="earliest_start_time">Најраније време почетка</string>
+    <string name="latest_start_time">Најновије време почетка</string>
+    <string name="outside_allowed_time">Ван дозвољеног времена</string>
+    <string name="sun_window_clamp">Пређите на најближе дозвољено време</string>
+    <string name="sun_window_skip">Прескочи ово трчање</string>
     <string name="program_intervals">Распоред интервала</string>
     <string name="repeat_days">Поновите сваких (дана)</string>
     <string name="start_date">Датум почетка</string>
@@ -448,6 +473,12 @@
     <string name="program_boolean_invalid">Планер или подешавање за једнократно покретање има неважећу вредност.</string>
     <string name="program_time_values_invalid">Време почетка, трајање, пауза или број понављања је неважећи.</string>
     <string name="program_weather_values_invalid">Ограничења за наводњавање заснована на временским приликама су неважећа.</string>
+    <string name="program_month_required">Изаберите најмање један дозвољени месец.</string>
+    <string name="program_month_days_format">Унесите дане у месецу од 1 до 31, одвојене зарезима.</string>
+    <string name="program_excluded_dates_format">Унесите изузете датуме као ГГГГ-ММ-ДД.</string>
+    <string name="program_excluded_ranges_format">Унесите сваки опсег као ГГГГ-ММ-ДД..ГГГГ-ММ-ДД или ММ-ДД..ММ-ДД.</string>
+    <string name="program_sun_offset_format">Унесите временско померање сунца од -720 до 720 минута.</string>
+    <string name="program_sun_window_order">Најновије време почетка не сме бити раније од најранијег времена почетка.</string>
     <string name="pause_ratio_percent">Однос паузе (%)</string>
     <string name="system_update">Ажурирање система</string>
     <string name="upstream_branch">Узводно огранак</string>
