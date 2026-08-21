@@ -549,4 +549,19 @@
     <string name="help_system">Приказује OSPy верзију и стање ажурирања и пружа акције ажурирања, прављења резервних копија и поновног покретања. Доступне резервне копије су подразумевано скупљене; проширите картицу да бисте их видели или преузели.</string>
     <string name="help_settings">Контролише закључавање апликације, изглед, категорије обавештења, пусх регистрацију, аутоматски избор инсталације и језик апликације. Сачувано OSPy система отвара управљање инсталацијом.</string>
     <string name="help_notification_speech">Читање обавештења наглас користи услугу претварања текста у говор Android и не захтева поновно покретање апликације. Након што га омогућите, статус говора показује да ли је изабрани језик апликације спреман или недостаје глас или језик. Тестни говор потврђује тренутни глас. Режим само станице очитава почетак и заустављање станице; додатни прекидач чита сваку омогућену категорију обавештења.</string>
+    <string name="notify_automation">Правила аутоматизације</string>
+    <string name="automation_rules">Правила аутоматизације</string>
+    <string name="automation_notification_title">Правила аутоматизације</string>
+    <string name="automation_rule_triggered_message">Покренуто је правило аутоматизације: %1$s</string>
+    <string name="automation_rule_repeated_message">Правило аутоматизације је и даље активно: %1$s</string>
+    <string name="automation_rule_cleared_message">Правило аутоматизације се вратило у нормалу: %1$s</string>
+    <string name="automation_rule_test_message">Обавештење о тестирању правила аутоматизације: %1$s</string>
+    <string name="service_outages">Прекиди услуга</string>
+    <string name="service_outages_description">Преглед само за читање прекида услуга конфигурисаних у OSPy. Управљајте прекидима на страници Програми OSPy.</string>
+    <string name="no_service_outages">Нису конфигурисани прекиди услуге.</string>
+    <string name="service_outage_start">Почни</string>
+    <string name="service_outage_end">Крај</string>
+    <string name="service_outage_active">Активан</string>
+    <string name="service_outage_scheduled">Планирано</string>
+    <string name="service_outage_expired">Завршено</string>
 </resources>

@@ -546,4 +546,19 @@
     <string name="help_system">Viser OSPy version og opdateringstilstand og giver opdatering, backup og genstart. Tilgængelige sikkerhedskopier er som standard skjult; udvide kortet for at se eller downloade dem.</string>
     <string name="help_settings">Styrer applikationslås, udseende, meddelelseskategorier, push-registrering, automatisk installationsvalg og applikationssprog. Gemte OSPy systemer åbner installationsadministration.</string>
     <string name="help_notification_speech">Læs meddelelser højt bruger Android tekst-til-tale-tjenesten og kræver ikke genstart af programmet. Efter aktivering viser Talestatus, om det valgte applikationssprog er klar, eller om en stemme eller et sprog mangler. Testtale bekræfter den aktuelle stemme. Kun stationstilstand læser stationsstarter og -stop; den ekstra kontakt læser alle aktiverede meddelelseskategorier.</string>
+    <string name="notify_automation">Automatiseringsregler</string>
+    <string name="automation_rules">Automatiseringsregler</string>
+    <string name="automation_notification_title">Automatiseringsregler</string>
+    <string name="automation_rule_triggered_message">Automatiseringsregel blev udløst: %1$s</string>
+    <string name="automation_rule_repeated_message">Automatiseringsreglen er stadig aktiv: %1$s</string>
+    <string name="automation_rule_cleared_message">Automatiseringsregel vendt tilbage til normal: %1$s</string>
+    <string name="automation_rule_test_message">Testmeddelelse om automatiseringsregler: %1$s</string>
+    <string name="service_outages">Serviceafbrydelser</string>
+    <string name="service_outages_description">Skrivebeskyttet oversigt over serviceafbrydelser konfigureret i OSPy. Administrer afbrydelser på siden OSPy Programmer.</string>
+    <string name="no_service_outages">Ingen serviceafbrydelser er konfigureret.</string>
+    <string name="service_outage_start">Start</string>
+    <string name="service_outage_end">Slut</string>
+    <string name="service_outage_active">Aktiv</string>
+    <string name="service_outage_scheduled">Planlagt</string>
+    <string name="service_outage_expired">Afsluttet</string>
 </resources>

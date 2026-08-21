@@ -4,7 +4,7 @@ Open Sprinkler Python [Git-Hub source](https://github.com/martinpihrt/OSPy)
 # OSPy Mobile APP
 Android client for the OSPy `/api/v1`. App on [Google store](https://play.google.com/store/apps/details?id=com.pihrt.ospy.mobile)
 
-Current source version: **0.3.29** (`versionCode 36`).
+Current source version: **0.3.31** (`versionCode 38`).
 
 ## Screenshots
 
@@ -15,6 +15,13 @@ Current source version: **0.3.29** (`versionCode 36`).
 ### Čeština
 
 <p><a href="docs/screenshots/cs/overview.png"><img src="docs/screenshots/cs/overview.png" width="23%" alt="Český přehled"></a> <a href="docs/screenshots/cs/stations.png"><img src="docs/screenshots/cs/stations.png" width="23%" alt="České stanice"></a> <a href="docs/screenshots/cs/programs.png"><img src="docs/screenshots/cs/programs.png" width="23%" alt="České programy"></a> <a href="docs/screenshots/cs/sensors.png"><img src="docs/screenshots/cs/sensors.png" width="23%" alt="České snímače"></a></p>
+
+## Included in version 0.3.31
+- Added a dedicated Automation Rules notification category, localized triggered, repeated, recovery and test messages, and the actual rule name supplied in structured push data.
+- Added a read-only Service outages card to System with localized active, scheduled and ended states and local date/time formatting. Outages remain managed by the authoritative OSPy Programs page.
+- Added all new interface and notification strings in every supported application language and increased the Android package version to `0.3.31` (`versionCode 38`).
+
+This version requires matching OSPy Mobile API support for the `automation` push category and read-only `/service-outages` endpoint.
 
 ## Included in version 0.3.29
 - Home Yesterday now reads actual completed station history for the selected OSPy-local day, while Today and Tomorrow continue to show the current or predicted schedule.

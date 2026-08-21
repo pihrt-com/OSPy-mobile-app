@@ -165,6 +165,7 @@ final class PushRegistrationManager {
         if (instanceId.isEmpty()) return;
 
         JSONObject subscription = push.optJSONObject("subscription");
+        JSONArray supportedCategories = push.optJSONArray("categories");
         boolean bindingCurrent = subscription != null &&
                 state.matches(installation.id, instanceId, relayUrl, fcmToken);
         if (!bindingCurrent) {
@@ -176,7 +177,8 @@ final class PushRegistrationManager {
                     .put("subscription_id", registration.getString("subscription_id"))
                     .put("send_secret", registration.getString("send_secret"))
                     .put("enabled", new NotificationCenter(context).isEnabled())
-                    .put("categories", enabledCategories(context));
+                    .put("categories", enabledCategories(
+                            context, supportedCategories));
             syncStatus.progress(installation.id, PushSyncStatusStore.SAVE);
             client.requestBlocking("POST", "/push", body);
             state.save(installation.id, instanceId, relayUrl, fcmToken);
@@ -186,7 +188,8 @@ final class PushRegistrationManager {
 
         JSONObject preferences = new JSONObject()
                 .put("enabled", new NotificationCenter(context).isEnabled())
-                .put("categories", enabledCategories(context));
+                .put("categories", enabledCategories(
+                        context, supportedCategories));
         syncStatus.progress(installation.id, PushSyncStatusStore.SAVE);
         client.requestBlocking("PUT", "/push", preferences);
         syncStatus.progress(installation.id, PushSyncStatusStore.READY);
@@ -302,7 +305,8 @@ final class PushRegistrationManager {
         }
     }
 
-    private static JSONArray enabledCategories(Context context) {
+    private static JSONArray enabledCategories(
+            Context context, JSONArray supportedCategories) {
         NotificationCenter center = new NotificationCenter(context);
         String[] values = {
                 NotificationCenter.CATEGORY_STATION_STARTED,
@@ -310,16 +314,29 @@ final class PushRegistrationManager {
                 NotificationCenter.CATEGORY_RAIN,
                 NotificationCenter.CATEGORY_DIAGNOSTICS,
                 NotificationCenter.CATEGORY_UPDATES,
+                NotificationCenter.CATEGORY_AUTOMATION,
                 NotificationCenter.CATEGORY_OTHER,
         };
         JSONArray result = new JSONArray();
         for (String value : values) {
-            if (center.isCategoryEnabled(value)) result.put(value);
+            if (isSupported(supportedCategories, value) &&
+                    center.isCategoryEnabled(value)) result.put(value);
         }
         if (result.length() == 0) {
-            for (String value : values) result.put(value);
+            for (String value : values) {
+                if (isSupported(supportedCategories, value)) result.put(value);
+            }
         }
         return result;
+    }
+
+    private static boolean isSupported(JSONArray supported, String category) {
+        if (supported == null) return !NotificationCenter.CATEGORY_AUTOMATION.equals(
+                category);
+        for (int index = 0; index < supported.length(); index++) {
+            if (category.equals(supported.optString(index))) return true;
+        }
+        return false;
     }
 
     private static String normalizeRelayUrl(String value) {

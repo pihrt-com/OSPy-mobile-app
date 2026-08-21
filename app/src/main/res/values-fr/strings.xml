@@ -546,4 +546,19 @@
     <string name="help_system">Affiche la version OSPy et l\'état de mise à jour et fournit des actions de mise à jour, de sauvegarde et de redémarrage. Les sauvegardes disponibles sont réduites par défaut ; développez la carte pour les afficher ou les télécharger.</string>
     <string name="help_settings">Contrôle le verrouillage de l\'application, l\'apparence, les catégories de notification, l\'enregistrement push, la sélection automatique de l\'installation et la langue de l\'application. Les systèmes enregistrés OSPy ouvrent la gestion de l\'installation.</string>
     <string name="help_notification_speech">La lecture des notifications à haute voix utilise le service de synthèse vocale Android et ne nécessite pas de redémarrage de l\'application. Après l\'avoir activé, l\'état de la parole indique si la langue de l\'application sélectionnée est prête ou s\'il manque une voix ou une langue. Le test vocal vérifie la voix actuelle. Le mode Station uniquement lit les démarrages et les arrêts de la station ; le commutateur supplémentaire lit chaque catégorie de notification activée.</string>
+    <string name="notify_automation">Règles d\'automatisation</string>
+    <string name="automation_rules">Règles d\'automatisation</string>
+    <string name="automation_notification_title">Règles d\'automatisation</string>
+    <string name="automation_rule_triggered_message">La règle d\'automatisation a été déclenchée : %1$s</string>
+    <string name="automation_rule_repeated_message">La règle d\'automatisation est toujours active : %1$s</string>
+    <string name="automation_rule_cleared_message">La règle d\'automatisation est revenue à la normale : %1$s</string>
+    <string name="automation_rule_test_message">Notification de test des règles d\'automatisation : %1$s</string>
+    <string name="service_outages">Pannes de service</string>
+    <string name="service_outages_description">Présentation en lecture seule des pannes de service configurées dans OSPy. Gérez les pannes sur la page Programmes OSPy.</string>
+    <string name="no_service_outages">Aucune interruption de service n’est configurée.</string>
+    <string name="service_outage_start">Commencer</string>
+    <string name="service_outage_end">Fin</string>
+    <string name="service_outage_active">Actif</string>
+    <string name="service_outage_scheduled">Programmé</string>
+    <string name="service_outage_expired">Terminé</string>
 </resources>

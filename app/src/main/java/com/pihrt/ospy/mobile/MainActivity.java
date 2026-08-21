@@ -884,6 +884,9 @@ public final class MainActivity extends ComponentActivity {
                 notificationSettings, R.string.notify_updates,
                 NotificationCenter.CATEGORY_UPDATES);
         addNotificationPreference(
+                notificationSettings, R.string.notify_automation,
+                NotificationCenter.CATEGORY_AUTOMATION);
+        addNotificationPreference(
                 notificationSettings, R.string.notify_other,
                 NotificationCenter.CATEGORY_OTHER);
         TextView speechDescription = text(
@@ -5224,6 +5227,14 @@ public final class MainActivity extends ComponentActivity {
         systemActionsCard.addView(systemActions);
         content.addView(systemActionsCard);
 
+        LinearLayout serviceOutagesCard = cardColumn();
+        serviceOutagesCard.addView(text(
+                getString(R.string.service_outages), 16, true));
+        serviceOutagesCard.addView(text(
+                getString(R.string.loading), 14, false));
+        content.addView(serviceOutagesCard);
+        loadServiceOutages(serviceOutagesCard);
+
         LinearLayout backupsCard = cardColumn();
         LinearLayout backupsHeader = new LinearLayout(this);
         backupsHeader.setOrientation(LinearLayout.HORIZONTAL);
@@ -5268,6 +5279,86 @@ public final class MainActivity extends ComponentActivity {
             pendingSystemAnnouncement = "";
             content.post(() -> showSystemAnnouncement(announcement));
         }
+    }
+
+    private void loadServiceOutages(LinearLayout card) {
+        if (api == null || card == null) return;
+        api.request("GET", "/service-outages", null, new ApiClient.Callback() {
+            @Override public void success(JSONObject response) {
+                if (!"system".equals(currentRenderer) || card.getParent() == null) return;
+                JSONArray outages = response.optJSONArray("data");
+                renderServiceOutages(card, outages == null ? new JSONArray() : outages);
+            }
+
+            @Override public void failure(String error) {
+                if (!"system".equals(currentRenderer) || card.getParent() == null) return;
+                card.removeAllViews();
+                card.addView(text(getString(R.string.service_outages), 16, true));
+                TextView failure = text(localizedError(error), 13, false);
+                failure.setTextColor(RED);
+                card.addView(failure);
+            }
+        });
+    }
+
+    private void renderServiceOutages(LinearLayout card, JSONArray outages) {
+        card.removeAllViews();
+        card.addView(text(getString(R.string.service_outages), 16, true));
+        card.addView(text(
+                getString(R.string.service_outages_description), 13, false));
+        if (outages.length() == 0) {
+            TextView empty = text(getString(R.string.no_service_outages), 14, false);
+            empty.setTextColor(MUTED);
+            card.addView(empty);
+            return;
+        }
+        LocalDateTime now = LocalDateTime.now();
+        for (int index = 0; index < outages.length(); index++) {
+            JSONObject item = outages.optJSONObject(index);
+            if (item == null) continue;
+            LinearLayout outage = new LinearLayout(this);
+            outage.setOrientation(LinearLayout.VERTICAL);
+            outage.setPadding(dp(10), dp(8), dp(10), dp(8));
+            outage.setBackground(background(SURFACE, CARD_BORDER, 8));
+
+            LinearLayout titleRow = actionRow();
+            titleRow.addView(
+                    text(item.optString("name"), 15, true),
+                    new LinearLayout.LayoutParams(0, -2, 1));
+            LocalDateTime start = parseServiceOutageDateTime(
+                    item.optString("start"));
+            int status = item.optBoolean("active", false)
+                    ? R.string.service_outage_active
+                    : start != null && start.isAfter(now)
+                    ? R.string.service_outage_scheduled
+                    : R.string.service_outage_expired;
+            TextView state = text(getString(status), 13, true);
+            state.setTextColor(item.optBoolean("active", false) ? RED : MUTED);
+            titleRow.addView(state);
+            outage.addView(titleRow);
+            addPair(outage, getString(R.string.service_outage_start),
+                    localizedServiceOutageDateTime(item.optString("start")));
+            addPair(outage, getString(R.string.service_outage_end),
+                    localizedServiceOutageDateTime(item.optString("end")));
+            LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(-1, -2);
+            params.topMargin = dp(8);
+            card.addView(outage, params);
+        }
+    }
+
+    private LocalDateTime parseServiceOutageDateTime(String value) {
+        try {
+            return LocalDateTime.parse(value);
+        } catch (Exception ignored) {
+            return null;
+        }
+    }
+
+    private String localizedServiceOutageDateTime(String value) {
+        LocalDateTime parsed = parseServiceOutageDateTime(value);
+        return parsed == null ? value : parsed.format(
+                DateTimeFormatter.ofLocalizedDateTime(
+                        FormatStyle.MEDIUM, FormatStyle.SHORT));
     }
 
     private void resetSystemOperationState() {

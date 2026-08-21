@@ -546,4 +546,19 @@
     <string name="help_system">OSPy 버전 및 업데이트 상태를 표시하고 업데이트, 백업 및 다시 시작 작업을 제공합니다. 사용 가능한 백업은 기본적으로 축소되어 있습니다. 카드를 확장하여 보거나 다운로드하세요.</string>
     <string name="help_settings">애플리케이션 잠금, 모양, 알림 카테고리, 푸시 등록, 자동 설치 선택, 애플리케이션 언어를 제어합니다. 저장된 OSPy 시스템이 설치 관리를 엽니다.</string>
     <string name="help_notification_speech">소리내어 알림 읽기는 Android 텍스트 음성 변환 서비스를 사용하며 애플리케이션을 다시 시작할 필요가 없습니다. 활성화한 후 음성 상태에는 선택한 애플리케이션 언어가 준비되었는지 또는 음성이나 언어가 누락되었는지 여부가 표시됩니다. 테스트 음성은 현재 음성을 확인합니다. 스테이션 전용 모드는 스테이션 시작 및 중지를 읽습니다. 추가 스위치는 활성화된 모든 알림 카테고리를 읽습니다.</string>
+    <string name="notify_automation">자동화 규칙</string>
+    <string name="automation_rules">자동화 규칙</string>
+    <string name="automation_notification_title">자동화 규칙</string>
+    <string name="automation_rule_triggered_message">자동화 규칙이 트리거되었습니다: %1$s</string>
+    <string name="automation_rule_repeated_message">자동화 규칙이 아직 활성 상태임: %1$s</string>
+    <string name="automation_rule_cleared_message">자동화 규칙이 정상으로 반환됨: %1$s</string>
+    <string name="automation_rule_test_message">자동화 규칙 테스트 알림: %1$s</string>
+    <string name="service_outages">서비스 중단</string>
+    <string name="service_outages_description">OSPy에 구성된 서비스 중단에 대한 읽기 전용 개요입니다. OSPy 프로그램 페이지에서 중단을 관리하세요.</string>
+    <string name="no_service_outages">서비스 중단이 구성되지 않습니다.</string>
+    <string name="service_outage_start">시작</string>
+    <string name="service_outage_end">끝</string>
+    <string name="service_outage_active">활성</string>
+    <string name="service_outage_scheduled">예정됨</string>
+    <string name="service_outage_expired">종료됨</string>
 </resources>

@@ -546,4 +546,19 @@
     <string name="help_system">Zeigt OSPy-Version und Aktualisierungsstatus und bietet Aktualisierung, Sicherung und Neustart. Verfügbare Sicherungen sind standardmäßig eingeklappt; erweitern Sie die Karte, um sie anzuzeigen oder herunterzuladen.</string>
     <string name="help_settings">Steuert Anwendungssperre, Darstellung, Benachrichtigungskategorien, Push-Registrierung, automatische Installationsauswahl und Anwendungssprache. Gespeicherte OSPy-Systeme öffnet die Installationsverwaltung.</string>
     <string name="help_notification_speech">Das Vorlesen von Benachrichtigungen nutzt den Text-to-Speech-Dienst Android und erfordert keinen Neustart der Anwendung. Nach der Aktivierung zeigt der Sprachstatus an, ob die ausgewählte Anwendungssprache bereit ist oder ob eine Stimme oder Sprache fehlt. Testsprache überprüft die aktuelle Stimme. Der Nur-Station-Modus liest Stationsstarts und -stopps; Der zusätzliche Schalter liest jede aktivierte Benachrichtigungskategorie.</string>
+    <string name="notify_automation">Automatisierungsregeln</string>
+    <string name="automation_rules">Automatisierungsregeln</string>
+    <string name="automation_notification_title">Automatisierungsregeln</string>
+    <string name="automation_rule_triggered_message">Automatisierungsregel wurde ausgelöst: %1$s</string>
+    <string name="automation_rule_repeated_message">Die Automatisierungsregel ist noch aktiv: %1$s</string>
+    <string name="automation_rule_cleared_message">Die Automatisierungsregel wurde wieder normalisiert: %1$s</string>
+    <string name="automation_rule_test_message">Testbenachrichtigung für Automatisierungsregeln: %1$s</string>
+    <string name="service_outages">Serviceausfälle</string>
+    <string name="service_outages_description">Schreibgeschützter Überblick über die in OSPy konfigurierten Dienstausfälle. Verwalten Sie Ausfälle auf der Seite „OSPy-Programme“.</string>
+    <string name="no_service_outages">Es sind keine Dienstausfälle konfiguriert.</string>
+    <string name="service_outage_start">Starten</string>
+    <string name="service_outage_end">Ende</string>
+    <string name="service_outage_active">Aktiv</string>
+    <string name="service_outage_scheduled">Geplant</string>
+    <string name="service_outage_expired">Beendet</string>
 </resources>

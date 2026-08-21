@@ -548,7 +548,22 @@
     <string name="help_logs">Event log records OSPy state and warnings. Station log shows completed station runs, their program and actual duration.</string>
     <string name="help_diagnostics">Shows the health of the scheduler, schedule calculation, output hardware and other OSPy components. Open this section when OSPy reports a problem.</string>
     <string name="help_plugins">Shows installed plug-ins and allows supported plug-ins to be started or stopped. Operating data opens the plug-in’s mobile status, history and actions when provided.</string>
-    <string name="help_system">Shows OSPy version and update state and provides update, backup and restart actions. Available backups are collapsed by default; expand the card to view or download them.</string>
+    <string name="help_system">Shows OSPy version, update state and configured service outages, and provides update, backup and restart actions. Available backups are collapsed by default; expand the card to view or download them.</string>
     <string name="help_settings">Controls application lock, appearance, notification categories, push registration, automatic installation selection and application language. Saved OSPy systems opens installation management.</string>
     <string name="help_notification_speech">Read notifications aloud uses the Android text-to-speech service and does not require an application restart. After enabling it, Speech status shows whether the selected application language is ready or whether a voice or language is missing. Test speech verifies the current voice. Station-only mode reads station starts and stops; the additional switch reads every enabled notification category.</string>
+    <string name="notify_automation">Automation Rules</string>
+    <string name="automation_rules">Automation Rules</string>
+    <string name="automation_notification_title">Automation Rules</string>
+    <string name="automation_rule_triggered_message">Automation rule was triggered: %1$s</string>
+    <string name="automation_rule_repeated_message">Automation rule is still active: %1$s</string>
+    <string name="automation_rule_cleared_message">Automation rule returned to normal: %1$s</string>
+    <string name="automation_rule_test_message">Automation Rules test notification: %1$s</string>
+    <string name="service_outages">Service outages</string>
+    <string name="service_outages_description">Read-only overview of service outages configured in OSPy. Manage outages on the OSPy Programs page.</string>
+    <string name="no_service_outages">No service outages are configured.</string>
+    <string name="service_outage_start">Start</string>
+    <string name="service_outage_end">End</string>
+    <string name="service_outage_active">Active</string>
+    <string name="service_outage_scheduled">Scheduled</string>
+    <string name="service_outage_expired">Ended</string>
 </resources>

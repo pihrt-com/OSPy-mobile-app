@@ -28,6 +28,7 @@ final class NotificationCenter {
     static final String CATEGORY_RAIN = "rain";
     static final String CATEGORY_DIAGNOSTICS = "diagnostics";
     static final String CATEGORY_UPDATES = "updates";
+    static final String CATEGORY_AUTOMATION = "automation";
     static final String CATEGORY_OTHER = "other";
 
     private static final String CHANNEL = "ospy_events";
@@ -112,6 +113,10 @@ final class NotificationCenter {
         String stationName = station == null
                 ? context.getString(R.string.station)
                 : station.optString("name", context.getString(R.string.station));
+        String ruleName = payload == null
+                ? context.getString(R.string.automation_rules)
+                : payload.optString(
+                        "rule_name", context.getString(R.string.automation_rules));
         switch (code) {
             case "station_started":
                 return new String[]{
@@ -129,6 +134,30 @@ final class NotificationCenter {
                 return new String[]{
                         context.getString(R.string.rain_delay_started_notification_title),
                         context.getString(R.string.rain_active_notification_message)};
+            case "automation_rule_triggered":
+                return new String[]{
+                        context.getString(R.string.automation_notification_title),
+                        context.getString(
+                                R.string.automation_rule_triggered_message,
+                                ruleName)};
+            case "automation_rule_repeated":
+                return new String[]{
+                        context.getString(R.string.automation_notification_title),
+                        context.getString(
+                                R.string.automation_rule_repeated_message,
+                                ruleName)};
+            case "automation_rule_cleared":
+                return new String[]{
+                        context.getString(R.string.automation_notification_title),
+                        context.getString(
+                                R.string.automation_rule_cleared_message,
+                                ruleName)};
+            case "automation_rule_notification_test":
+                return new String[]{
+                        context.getString(R.string.automation_notification_title),
+                        context.getString(
+                                R.string.automation_rule_test_message,
+                                ruleName)};
             default:
                 if (CATEGORY_DIAGNOSTICS.equals(category)) {
                     return new String[]{
@@ -270,9 +299,14 @@ final class NotificationCenter {
 
     static String categoryForServerNotification(JSONObject data) {
         if (data == null) return CATEGORY_OTHER;
-        String type = normalizeToken(data.optString(
-                "type", data.optString("event_type", "")));
-        String code = normalizeToken(data.optString("code", ""));
+        return categoryForServerNotification(
+                data.optString("type", data.optString("event_type", "")),
+                data.optString("code", ""));
+    }
+
+    static String categoryForServerNotification(String eventType, String eventCode) {
+        String type = normalizeToken(eventType);
+        String code = normalizeToken(eventCode);
         String combined = type + " " + code;
 
         boolean stationType = containsAny(type, "station", "zone");
@@ -303,6 +337,11 @@ final class NotificationCenter {
         if (containsAny(type, "update", "upgrade", "rollback") ||
                 containsAny(code, "update", "upgrade", "rollback", "revision")) {
             return CATEGORY_UPDATES;
+        }
+        if (containsAny(type, "automation") ||
+                containsAny(code, "automation_rule") ||
+                containsAny(combined, "automation_rule")) {
+            return CATEGORY_AUTOMATION;
         }
         return CATEGORY_OTHER;
     }

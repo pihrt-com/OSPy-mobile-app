@@ -546,4 +546,19 @@
     <string name="help_system">OSPy のバージョンと更新状態を表示し、更新、バックアップ、再起動のアクションを提供します。利用可能なバックアップはデフォルトで折りたたまれています。カードを展開して表示またはダウンロードします。</string>
     <string name="help_settings">アプリケーションのロック、外観、通知カテゴリ、プッシュ登録、自動インストール選択、アプリケーション言語を制御します。保存された OSPy システムでは、インストール管理が開きます。</string>
     <string name="help_notification_speech">通知の読み上げには Android テキスト読み上げサービスが使用され、アプリケーションを再起動する必要はありません。有効にすると、音声ステータスに、選択したアプリケーション言語の準備ができているかどうか、または音声または言語が不足しているかどうかが表示されます。テスト音声では現在の音声を確認します。ステーションのみモードはステーションの開始と停止を読み取ります。追加のスイッチは、有効なすべての通知カテゴリを読み取ります。</string>
+    <string name="notify_automation">自動化ルール</string>
+    <string name="automation_rules">自動化ルール</string>
+    <string name="automation_notification_title">自動化ルール</string>
+    <string name="automation_rule_triggered_message">自動化ルールがトリガーされました: %1$s</string>
+    <string name="automation_rule_repeated_message">自動化ルールはまだ有効です: %1$s</string>
+    <string name="automation_rule_cleared_message">自動化ルールが通常に戻りました: %1$s</string>
+    <string name="automation_rule_test_message">自動化ルールのテスト通知: %1$s</string>
+    <string name="service_outages">サービスの停止</string>
+    <string name="service_outages_description">OSPy で構成されたサービス停止の読み取り専用の概要。OSPy の [プログラム] ページで停止を管理します。</string>
+    <string name="no_service_outages">サービス停止は構成されていません。</string>
+    <string name="service_outage_start">スタート</string>
+    <string name="service_outage_end">終了</string>
+    <string name="service_outage_active">アクティブ</string>
+    <string name="service_outage_scheduled">予定されている</string>
+    <string name="service_outage_expired">終了しました</string>
 </resources>

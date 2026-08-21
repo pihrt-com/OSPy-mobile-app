@@ -546,4 +546,19 @@
     <string name="help_system">显示 OSPy 版本和更新状态，并提供更新、备份和重启操作。可用备份默认折叠；展开卡片即可查看或下载它们。</string>
     <string name="help_settings">控制应用程序锁定、外观、通知类别、推送注册、自动安装选择和应用程序语言。保存OSPy系统打开安装管理。</string>
     <string name="help_notification_speech">大声朗读通知使用 Android 文本转语音服务，不需要重新启动应用程序。启用后，语音状态会显示所选应用程序语言是否已准备好或者是否缺少语音或语言。测试语音验证当前语音。仅车站模式读取车站启动和停止；附加开关读取每个启用的通知类别。</string>
+    <string name="notify_automation">自动化规则</string>
+    <string name="automation_rules">自动化规则</string>
+    <string name="automation_notification_title">自动化规则</string>
+    <string name="automation_rule_triggered_message">触发自动化规则：%1$s</string>
+    <string name="automation_rule_repeated_message">自动化规则仍然有效：%1$s</string>
+    <string name="automation_rule_cleared_message">自动化规则恢复正常：%1$s</string>
+    <string name="automation_rule_test_message">自动化规则测试通知：%1$s</string>
+    <string name="service_outages">服务中断</string>
+    <string name="service_outages_description">OSPy 中配置的服务中断的只读概述。在 OSPy 程序页面上管理中断。</string>
+    <string name="no_service_outages">未配置服务中断。</string>
+    <string name="service_outage_start">开始</string>
+    <string name="service_outage_end">结束</string>
+    <string name="service_outage_active">活跃</string>
+    <string name="service_outage_scheduled">预定</string>
+    <string name="service_outage_expired">结束</string>
 </resources>

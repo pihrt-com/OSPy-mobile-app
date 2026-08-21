@@ -552,4 +552,19 @@
     <string name="help_system">Pokazuje wersję OSPy i stan aktualizacji oraz udostępnia aktualizację, kopie zapasowe i restart. Dostępne kopie są domyślnie zwinięte; rozwiń kartę, aby je wyświetlić lub pobrać.</string>
     <string name="help_settings">Steruje blokadą aplikacji, wyglądem, kategoriami powiadomień, rejestracją push, automatycznym wyborem instalacji i językiem aplikacji. Zapisane systemy OSPy otwierają zarządzanie instalacjami.</string>
     <string name="help_notification_speech">Funkcja Czytaj powiadomienia na głos korzysta z usługi zamiany tekstu na mowę Android i nie wymaga ponownego uruchamiania aplikacji. Po włączeniu status Mowa pokazuje, czy wybrany język aplikacji jest gotowy, czy też brakuje głosu lub języka. Mowa testowa sprawdza bieżący głos. Tryb tylko stacji odczytuje uruchomienia i zatrzymania stacji; dodatkowy przełącznik odczytuje każdą włączoną kategorię powiadomień.</string>
+    <string name="notify_automation">Zasady automatyzacji</string>
+    <string name="automation_rules">Zasady automatyzacji</string>
+    <string name="automation_notification_title">Zasady automatyzacji</string>
+    <string name="automation_rule_triggered_message">Reguła automatyzacji została uruchomiona: %1$s</string>
+    <string name="automation_rule_repeated_message">Reguła automatyzacji jest nadal aktywna: %1$s</string>
+    <string name="automation_rule_cleared_message">Reguła automatyzacji wróciła do normy: %1$s</string>
+    <string name="automation_rule_test_message">Powiadomienie o teście reguł automatyzacji: %1$s</string>
+    <string name="service_outages">Przerwy w świadczeniu usług</string>
+    <string name="service_outages_description">Przegląd tylko do odczytu przestojów w świadczeniu usług skonfigurowanych w OSPy. Zarządzaj przestojami na stronie Programy OSPy.</string>
+    <string name="no_service_outages">Nie skonfigurowano żadnych przerw w świadczeniu usług.</string>
+    <string name="service_outage_start">Zacznij</string>
+    <string name="service_outage_end">Koniec</string>
+    <string name="service_outage_active">Aktywny</string>
+    <string name="service_outage_scheduled">Zaplanowane</string>
+    <string name="service_outage_expired">Zakończone</string>
 </resources>

@@ -552,4 +552,19 @@
     <string name="help_system">Zobrazuje verziu OSPy a stav aktualizácií a ponúka aktualizáciu, zálohovanie a reštart. Dostupné zálohy sú predvolene zbalené; rozbalením karty ich zobrazíte alebo stiahnete.</string>
     <string name="help_settings">Nastavuje zámok aplikácie, vzhľad, kategórie upozornení, registráciu push upozornení, automatický výber inštalácie a jazyk aplikácie. Uložené systémy OSPy otvoria správu inštalácií.</string>
     <string name="help_notification_speech">Čítanie upozornení nahlas využíva službu prevodu textu na reč Android a nevyžaduje reštart aplikácie. Po jeho povolení sa v Stave reči zobrazí, či je vybratý jazyk aplikácie pripravený alebo či chýba hlas alebo jazyk. Testovacia reč overí aktuálny hlas. Režim iba pre stanicu číta spustenie a zastavenie stanice; dodatočný prepínač prečíta každú povolenú kategóriu upozornení.</string>
+    <string name="notify_automation">Pravidlá automatizácie</string>
+    <string name="automation_rules">Pravidlá automatizácie</string>
+    <string name="automation_notification_title">Pravidlá automatizácie</string>
+    <string name="automation_rule_triggered_message">Bolo spustené pravidlo automatizácie: %1$s</string>
+    <string name="automation_rule_repeated_message">Pravidlo automatizácie je stále aktívne: %1$s</string>
+    <string name="automation_rule_cleared_message">Pravidlo automatizácie sa vrátilo do normálu: %1$s</string>
+    <string name="automation_rule_test_message">Oznámenie o teste pravidiel automatizácie: %1$s</string>
+    <string name="service_outages">Výpadky služieb</string>
+    <string name="service_outages_description">Prehľad výpadkov služby iba na čítanie nakonfigurovaných v OSPy. Výpadky spravujte na stránke OSPy Programy.</string>
+    <string name="no_service_outages">Nie sú nakonfigurované žiadne výpadky služby.</string>
+    <string name="service_outage_start">Štart</string>
+    <string name="service_outage_end">Koniec</string>
+    <string name="service_outage_active">Aktívne</string>
+    <string name="service_outage_scheduled">Naplánované</string>
+    <string name="service_outage_expired">Ukončené</string>
 </resources>

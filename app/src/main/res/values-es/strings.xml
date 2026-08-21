@@ -546,4 +546,19 @@
     <string name="help_system">Muestra la versión OSPy y el estado de actualización y proporciona acciones de actualización, copia de seguridad y reinicio. Las copias de seguridad disponibles están colapsadas de forma predeterminada; expanda la tarjeta para verlos o descargarlos.</string>
     <string name="help_settings">Controla el bloqueo de la aplicación, la apariencia, las categorías de notificación, el registro push, la selección automática de instalación y el idioma de la aplicación. Los sistemas OSPy guardados abren la gestión de instalación.</string>
     <string name="help_notification_speech">Leer notificaciones en voz alta utiliza el servicio de texto a voz Android y no requiere reiniciar la aplicación. Después de habilitarlo, el estado de la voz muestra si el idioma de la aplicación seleccionada está listo o si falta una voz o un idioma. La prueba de voz verifica la voz actual. El modo sólo estación lee los inicios y paradas de la estación; el interruptor adicional lee cada categoría de notificación habilitada.</string>
+    <string name="notify_automation">Reglas de automatización</string>
+    <string name="automation_rules">Reglas de automatización</string>
+    <string name="automation_notification_title">Reglas de automatización</string>
+    <string name="automation_rule_triggered_message">Se activó la regla de automatización: %1$s</string>
+    <string name="automation_rule_repeated_message">La regla de automatización aún está activa: %1$s</string>
+    <string name="automation_rule_cleared_message">La regla de automatización volvió a la normalidad: %1$s</string>
+    <string name="automation_rule_test_message">Notificación de prueba de reglas de automatización: %1$s</string>
+    <string name="service_outages">Cortes de servicio</string>
+    <string name="service_outages_description">Descripción general de solo lectura de las interrupciones del servicio configuradas en OSPy. Administre las interrupciones en la página Programas OSPy.</string>
+    <string name="no_service_outages">No se configuran cortes de servicio.</string>
+    <string name="service_outage_start">Empezar</string>
+    <string name="service_outage_end">Fin</string>
+    <string name="service_outage_active">Activo</string>
+    <string name="service_outage_scheduled">Programado</string>
+    <string name="service_outage_expired">Terminado</string>
 </resources>

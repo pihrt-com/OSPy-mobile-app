@@ -549,7 +549,22 @@
     <string name="help_logs">Záznam událostí obsahuje stavy a varování OSPy. Záznam stanic zobrazuje dokončené běhy stanic, jejich program a skutečnou dobu běhu.</string>
     <string name="help_diagnostics">Zobrazuje stav plánovače, výpočtu plánu, výstupního hardwaru a dalších částí OSPy. Tuto sekci otevřete, když OSPy hlásí problém.</string>
     <string name="help_plugins">Zobrazuje nainstalované pluginy a umožňuje podporované pluginy spustit nebo zastavit. Provozní údaje otevřou mobilní stav, historii a akce pluginu, pokud je poskytuje.</string>
-    <string name="help_system">Zobrazuje verzi OSPy a stav aktualizací a nabízí aktualizaci, zálohování a restart. Dostupné zálohy jsou ve výchozím stavu sbalené; rozbalením karty je zobrazíte nebo stáhnete.</string>
+    <string name="help_system">Zobrazuje verzi OSPy, stav aktualizací a nastavené servisní odstávky a nabízí aktualizaci, zálohování a restart. Dostupné zálohy jsou ve výchozím stavu sbalené; rozbalením karty je zobrazíte nebo stáhnete.</string>
     <string name="help_settings">Nastavuje zámek aplikace, vzhled, kategorie oznámení, registraci push oznámení, automatický výběr instalace a jazyk aplikace. Uložené systémy OSPy otevřou správu instalací.</string>
     <string name="help_notification_speech">Hlasité čtení oznámení používá službu převodu textu na řeč Android a nevyžaduje restart aplikace. Po jeho aktivaci Stav řeči ukazuje, zda je vybraný jazyk aplikace připraven nebo zda chybí hlas či jazyk. Testovací řeč ověří aktuální hlas. Režim pouze stanice čte spuštění a zastavení stanice; další přepínač přečte každou povolenou kategorii oznámení.</string>
+    <string name="notify_automation">Pravidla automatizace</string>
+    <string name="automation_rules">Pravidla automatizace</string>
+    <string name="automation_notification_title">Pravidla automatizace</string>
+    <string name="automation_rule_triggered_message">Pravidlo automatizace bylo aktivováno: %1$s</string>
+    <string name="automation_rule_repeated_message">Pravidlo automatizace je stále aktivní: %1$s</string>
+    <string name="automation_rule_cleared_message">Pravidlo automatizace se vrátilo do normálu: %1$s</string>
+    <string name="automation_rule_test_message">Testovací oznámení pravidel automatizace: %1$s</string>
+    <string name="service_outages">Servisní odstávky</string>
+    <string name="service_outages_description">Přehled servisních odstávek nastavených v OSPy pouze pro čtení. Odstávky spravujte na stránce Programy v OSPy.</string>
+    <string name="no_service_outages">Nejsou nastaveny žádné servisní odstávky.</string>
+    <string name="service_outage_start">Začátek</string>
+    <string name="service_outage_end">Konec</string>
+    <string name="service_outage_active">Aktivní</string>
+    <string name="service_outage_scheduled">Naplánováno</string>
+    <string name="service_outage_expired">Ukončeno</string>
 </resources>
