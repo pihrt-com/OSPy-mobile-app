@@ -117,6 +117,8 @@ final class NotificationCenter {
                 ? context.getString(R.string.automation_rules)
                 : payload.optString(
                         "rule_name", context.getString(R.string.automation_rules));
+        String conditionSummary = payload == null
+                ? "" : payload.optString("condition_summary", "").trim();
         switch (code) {
             case "station_started":
                 return new String[]{
@@ -139,25 +141,25 @@ final class NotificationCenter {
                         context.getString(R.string.automation_notification_title),
                         context.getString(
                                 R.string.automation_rule_triggered_message,
-                                ruleName)};
+                                ruleName) + notificationDetails(conditionSummary)};
             case "automation_rule_repeated":
                 return new String[]{
                         context.getString(R.string.automation_notification_title),
                         context.getString(
                                 R.string.automation_rule_repeated_message,
-                                ruleName)};
+                                ruleName) + notificationDetails(conditionSummary)};
             case "automation_rule_cleared":
                 return new String[]{
                         context.getString(R.string.automation_notification_title),
                         context.getString(
                                 R.string.automation_rule_cleared_message,
-                                ruleName)};
+                                ruleName) + notificationDetails(conditionSummary)};
             case "automation_rule_notification_test":
                 return new String[]{
                         context.getString(R.string.automation_notification_title),
                         context.getString(
                                 R.string.automation_rule_test_message,
-                                ruleName)};
+                                ruleName) + notificationDetails(conditionSummary)};
             default:
                 if (CATEGORY_DIAGNOSTICS.equals(category)) {
                     return new String[]{
@@ -374,6 +376,10 @@ final class NotificationCenter {
         if (shouldSpeak(category, isSpeechEnabled(), speaksAllCategories())) {
             SpeechAnnouncer.speak(context, message);
         }
+    }
+
+    static String notificationDetails(String value) {
+        return value == null || value.trim().isEmpty() ? "" : "\n" + value.trim();
     }
 
     private long serverCursor(String installationId) {

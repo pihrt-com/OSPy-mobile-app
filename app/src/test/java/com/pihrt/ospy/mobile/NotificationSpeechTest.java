@@ -42,4 +42,12 @@ public class NotificationSpeechTest {
                 NotificationCenter.categoryForServerNotification(
                         "system", "automation_rule_notification_test"));
     }
+
+    @Test
+    public void automationConditionDetailsAreAppendedOnTheirOwnLine() {
+        assertEquals("", NotificationCenter.notificationDetails(""));
+        assertEquals("\nTemperature: 18.4 C < 20 C",
+                NotificationCenter.notificationDetails(
+                        " Temperature: 18.4 C < 20 C "));
+    }
 }
