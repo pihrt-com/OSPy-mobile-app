@@ -561,4 +561,8 @@
     <string name="service_outage_active">活跃</string>
     <string name="service_outage_scheduled">预定</string>
     <string name="service_outage_expired">结束</string>
+    <string name="plugin_group_running">运行中</string>
+    <string name="plugin_group_stopped">已停止</string>
+    <string name="plugin_group_no_data">无运行数据</string>
+    <string name="plugin_group_title">%1$s (%2$d)</string>
 </resources>

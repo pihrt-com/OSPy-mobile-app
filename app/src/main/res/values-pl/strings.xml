@@ -567,4 +567,8 @@
     <string name="service_outage_active">Aktywny</string>
     <string name="service_outage_scheduled">Zaplanowane</string>
     <string name="service_outage_expired">Zakończone</string>
+    <string name="plugin_group_running">Uruchomione</string>
+    <string name="plugin_group_stopped">Zatrzymane</string>
+    <string name="plugin_group_no_data">Bez danych roboczych</string>
+    <string name="plugin_group_title">%1$s (%2$d)</string>
 </resources>

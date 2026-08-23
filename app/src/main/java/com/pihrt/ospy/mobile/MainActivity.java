@@ -5068,59 +5068,119 @@ public final class MainActivity extends ComponentActivity {
     }
 
     private void renderPlugins(JSONArray pluginItems) {
+        List<JSONObject> runningPlugins = new ArrayList<>();
+        List<JSONObject> stoppedPlugins = new ArrayList<>();
+        List<JSONObject> pluginsWithoutData = new ArrayList<>();
         for (int i = 0; i < pluginItems.length(); i++) {
             JSONObject plugin = pluginItems.optJSONObject(i);
             if (plugin == null) continue;
-            JSONObject health = plugin.optJSONObject("health");
-            String healthStatus = health == null
-                    ? "" : health.optString("status");
-            LinearLayout card = cardColumn();
-            card.addView(text(
-                    plugin.optString("name", plugin.optString("id")) +
-                            (plugin.optString("version").isEmpty()
-                                    ? "" : " · " + plugin.optString("version")),
-                    16, true));
-            LinearLayout statuses = actionRow();
-            statuses.addView(badge(
-                    plugin.optBoolean("running")
-                            ? getString(R.string.running)
-                            : getString(R.string.stopped),
-                    plugin.optBoolean("running") ? "ok" : "stopped"));
-            if (!healthStatus.isEmpty()) {
-                statuses.addView(badge(
-                        localizedStatus(healthStatus), healthStatus));
-            }
-            boolean pluginEnabled = plugin.optBoolean("enabled");
-            Button pluginToggle = button(
-                    getString(pluginEnabled
-                            ? R.string.turn_off : R.string.turn_on),
-                    pluginEnabled ? RED : GREEN);
-            pluginToggle.setOnClickListener(v -> {
-                JSONObject payload = new JSONObject();
-                try {
-                    payload.put("enabled", !pluginEnabled);
-                } catch (Exception ignored) {
-                    return;
-                }
-                put(
-                        "/plugins/" + plugin.optString("id"),
-                        payload,
-                        () -> load("/plugins", "plugins"));
-            });
-            statuses.addView(pluginToggle);
-            card.addView(statuses);
             JSONObject mobile = plugin.optJSONObject("mobile");
             boolean mobileAvailable =
                     mobile != null && mobile.optBoolean("available");
-            Button dataButton = compactButton(
-                    getString(R.string.mobile_data),
-                    mobileAvailable ? NAVY : MUTED);
-            dataButton.setEnabled(mobileAvailable);
-            dataButton.setOnClickListener(v ->
-                    loadPluginMobile(plugin, card, dataButton));
-            card.addView(dataButton);
-            content.addView(card);
+            switch (PluginGrouping.classify(
+                    plugin.optBoolean("running"), mobileAvailable)) {
+                case RUNNING_WITH_DATA:
+                    runningPlugins.add(plugin);
+                    break;
+                case STOPPED:
+                    stoppedPlugins.add(plugin);
+                    break;
+                case RUNNING_WITHOUT_DATA:
+                    pluginsWithoutData.add(plugin);
+                    break;
+            }
         }
+        addPluginGroup(
+                R.string.plugin_group_running, runningPlugins, true);
+        addPluginGroup(
+                R.string.plugin_group_stopped, stoppedPlugins, false);
+        addPluginGroup(
+                R.string.plugin_group_no_data, pluginsWithoutData, false);
+    }
+
+    private void addPluginGroup(
+            int titleResource, List<JSONObject> plugins,
+            boolean initiallyExpanded) {
+        LinearLayout section = cardColumn();
+        LinearLayout header = actionRow();
+        header.addView(text(
+                        getString(
+                                R.string.plugin_group_title,
+                                getString(titleResource), plugins.size()),
+                        18, true),
+                new LinearLayout.LayoutParams(0, -2, 1));
+        Button toggle = compactButton(
+                getString(initiallyExpanded
+                        ? R.string.collapse : R.string.expand), NAVY);
+        header.addView(toggle);
+        section.addView(header);
+
+        LinearLayout groupContent = new LinearLayout(this);
+        groupContent.setOrientation(LinearLayout.VERTICAL);
+        groupContent.setVisibility(
+                initiallyExpanded ? View.VISIBLE : View.GONE);
+        for (JSONObject plugin : plugins) {
+            renderPluginCard(plugin, groupContent);
+        }
+        section.addView(groupContent, new LinearLayout.LayoutParams(-1, -2));
+        toggle.setOnClickListener(v -> {
+            boolean expand = groupContent.getVisibility() != View.VISIBLE;
+            groupContent.setVisibility(expand ? View.VISIBLE : View.GONE);
+            toggle.setText(expand ? R.string.collapse : R.string.expand);
+        });
+        content.addView(section);
+    }
+
+    private void renderPluginCard(JSONObject plugin, LinearLayout parent) {
+        JSONObject health = plugin.optJSONObject("health");
+        String healthStatus = health == null
+                ? "" : health.optString("status");
+        LinearLayout card = cardColumn();
+        card.addView(text(
+                plugin.optString("name", plugin.optString("id")) +
+                        (plugin.optString("version").isEmpty()
+                                ? "" : " · " + plugin.optString("version")),
+                16, true));
+        LinearLayout statuses = actionRow();
+        statuses.addView(badge(
+                plugin.optBoolean("running")
+                        ? getString(R.string.running)
+                        : getString(R.string.stopped),
+                plugin.optBoolean("running") ? "ok" : "stopped"));
+        if (!healthStatus.isEmpty()) {
+            statuses.addView(badge(
+                    localizedStatus(healthStatus), healthStatus));
+        }
+        boolean pluginEnabled = plugin.optBoolean("enabled");
+        Button pluginToggle = button(
+                getString(pluginEnabled
+                        ? R.string.turn_off : R.string.turn_on),
+                pluginEnabled ? RED : GREEN);
+        pluginToggle.setOnClickListener(v -> {
+            JSONObject payload = new JSONObject();
+            try {
+                payload.put("enabled", !pluginEnabled);
+            } catch (Exception ignored) {
+                return;
+            }
+            put(
+                    "/plugins/" + plugin.optString("id"),
+                    payload,
+                    () -> load("/plugins", "plugins"));
+        });
+        statuses.addView(pluginToggle);
+        card.addView(statuses);
+        JSONObject mobile = plugin.optJSONObject("mobile");
+        boolean mobileAvailable =
+                mobile != null && mobile.optBoolean("available");
+        Button dataButton = compactButton(
+                getString(R.string.mobile_data),
+                mobileAvailable ? NAVY : MUTED);
+        dataButton.setEnabled(mobileAvailable);
+        dataButton.setOnClickListener(v ->
+                loadPluginMobile(plugin, card, dataButton));
+        card.addView(dataButton);
+        parent.addView(card);
     }
 
     private void renderSystem(Object value) {

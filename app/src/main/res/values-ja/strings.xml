@@ -561,4 +561,8 @@
     <string name="service_outage_active">アクティブ</string>
     <string name="service_outage_scheduled">予定されている</string>
     <string name="service_outage_expired">終了しました</string>
+    <string name="plugin_group_running">実行中</string>
+    <string name="plugin_group_stopped">停止中</string>
+    <string name="plugin_group_no_data">稼働データなし</string>
+    <string name="plugin_group_title">%1$s (%2$d)</string>
 </resources>
