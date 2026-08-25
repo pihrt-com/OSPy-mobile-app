@@ -62,6 +62,8 @@
     <string name="connecting_last_installation">Opretter forbindelse til den seneste installation...</string>
     <string name="connecting_please_wait">Vent venligst, mens OSPy kontrollerer den gemte forbindelse.</string>
     <string name="choose_another_installation">Vælg en anden installation</string>
+    <string name="switch_installation">Skift OSPy-system</string>
+    <string name="switch_installation_accessibility">%1$s. Tryk for at skifte OSPy-system.</string>
     <string name="unlock">Lås OSPy op</string>
     <string name="unlock_subtitle">Biometriske eller enhedslegitimationsoplysninger</string>
     <string name="protected_storage_error">Beskyttet lagerfejl</string>
@@ -88,6 +90,8 @@
     <string name="rain">Regn</string>
     <string name="rain_delay">Forsinket regn</string>
     <string name="active_stations">Aktive stationer</string>
+    <string name="rain_sensor">Regnsensor</string>
+    <string name="rain_sensor_off">Slukket</string>
     <string name="notifications">Meddelelser</string>
     <string name="warnings">Advarsler</string>
     <string name="ok_status">OK</string>
@@ -95,6 +99,10 @@
     <string name="error_status">Fejl</string>
     <string name="on">På</string>
     <string name="off">Fra</string>
+    <string name="on_short">Til</string>
+    <string name="off_short">Fra</string>
+    <string name="scheduler_short">Plan</string>
+    <string name="manual_mode_short">Manuel</string>
     <string name="active">Aktiv</string>
     <string name="inactive">Inaktiv</string>
     <string name="turn_on">Tænd</string>
@@ -168,6 +176,8 @@
     <string name="saved_ospy_systems">Gemte OSPy systemer</string>
     <string name="about_app">Om ansøgningen</string>
     <string name="app_version">Applikationsversion</string>
+    <string name="app_version_date">Versionsdato</string>
+    <string name="app_version_date_value">2026-08-25</string>
     <string name="ospy_github">OSPy på GitHub</string>
     <string name="plugins_github">OSPy plug-ins på GitHub</string>
     <string name="app_source_github">Applikationskilde på GitHub</string>
@@ -543,7 +553,6 @@
     <string name="help_logs">Hændelseslog registrerer OSPy tilstand og advarsler. Stationslog viser gennemførte stationskørsler, deres program og faktiske varighed.</string>
     <string name="help_diagnostics">Viser planlæggerens tilstand, tidsplanberegning, outputhardware og andre OSPy komponenter. Åbn dette afsnit, når OSPy rapporterer et problem.</string>
     <string name="help_plugins">Viser installerede plug-ins og gør det muligt at starte eller stoppe understøttede plug-ins. Driftsdata åbner plug-in\'s mobilstatus, historik og handlinger, når de leveres.</string>
-    <string name="help_system">Viser OSPy version og opdateringstilstand og giver opdatering, backup og genstart. Tilgængelige sikkerhedskopier er som standard skjult; udvide kortet for at se eller downloade dem.</string>
     <string name="help_settings">Styrer applikationslås, udseende, meddelelseskategorier, push-registrering, automatisk installationsvalg og applikationssprog. Gemte OSPy systemer åbner installationsadministration.</string>
     <string name="help_notification_speech">Læs meddelelser højt bruger Android tekst-til-tale-tjenesten og kræver ikke genstart af programmet. Efter aktivering viser Talestatus, om det valgte applikationssprog er klar, eller om en stemme eller et sprog mangler. Testtale bekræfter den aktuelle stemme. Kun stationstilstand læser stationsstarter og -stop; den ekstra kontakt læser alle aktiverede meddelelseskategorier.</string>
     <string name="notify_automation">Automatiseringsregler</string>
@@ -554,7 +563,6 @@
     <string name="automation_rule_cleared_message">Automatiseringsregel vendt tilbage til normal: %1$s</string>
     <string name="automation_rule_test_message">Testmeddelelse om automatiseringsregler: %1$s</string>
     <string name="service_outages">Serviceafbrydelser</string>
-    <string name="service_outages_description">Skrivebeskyttet oversigt over serviceafbrydelser konfigureret i OSPy. Administrer afbrydelser på siden OSPy Programmer.</string>
     <string name="no_service_outages">Ingen serviceafbrydelser er konfigureret.</string>
     <string name="service_outage_start">Start</string>
     <string name="service_outage_end">Slut</string>
@@ -565,4 +573,16 @@
     <string name="plugin_group_stopped">Stoppede</string>
     <string name="plugin_group_no_data">Ingen driftsdata</string>
     <string name="plugin_group_title">%1$s (%2$d)</string>
+    <string name="help_system">Shows OSPy version and update state, and provides update, backup and restart actions. Service outages can be created, edited or deleted with local date-and-time pickers. Available backups are collapsed by default; expand the card to view or download them.</string>
+    <string name="service_outages_description">Create and manage periods when automatic program runs must be blocked. Manual runs remain available.</string>
+    <string name="add_service_outage">Add outage</string>
+    <string name="edit_service_outage">Edit outage</string>
+    <string name="service_outage_name">Outage name</string>
+    <string name="invalid_service_outage">Enter a name and select an end date and time later than the start.</string>
+    <string name="confirm_delete_service_outage">Delete service outage “%1$s”?</string>
+    <string name="pause_between_programs">Pause between programs</string>
+    <string name="pause_between_programs_description">Adds a persistent idle period between different automatic programs. Stations within one program and manual runs are not affected.</string>
+    <string name="program_pause_hours">Hours</string>
+    <string name="program_pause_value">%1$d h · %2$d min · %3$d s</string>
+    <string name="invalid_program_pause">Enter 0–8760 hours and 0–59 minutes and seconds. The maximum pause is one year.</string>
 </resources>

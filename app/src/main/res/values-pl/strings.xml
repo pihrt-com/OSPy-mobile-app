@@ -62,6 +62,8 @@
     <string name="connecting_last_installation">Łączenie z ostatnią instalacją…</string>
     <string name="connecting_please_wait">Poczekaj, aż OSPy sprawdzi zapisane połączenie.</string>
     <string name="choose_another_installation">Wybierz inną instalację</string>
+    <string name="switch_installation">Przełącz system OSPy</string>
+    <string name="switch_installation_accessibility">%1$s. Dotknij, aby przełączyć system OSPy.</string>
     <string name="unlock">Odblokuj OSPy</string>
     <string name="unlock_subtitle">Biometria lub dane logowania urządzenia</string>
     <string name="protected_storage_error">Błąd chronionej pamięci</string>
@@ -88,6 +90,8 @@
     <string name="rain">Deszcz</string>
     <string name="rain_delay">Opóźnienie deszczowe</string>
     <string name="active_stations">Aktywne stacje</string>
+    <string name="rain_sensor">Czujnik deszczu</string>
+    <string name="rain_sensor_off">Wyłączony</string>
     <string name="notifications">Powiadomienia</string>
     <string name="warnings">Ostrzeżenia</string>
     <string name="ok_status">OK</string>
@@ -95,6 +99,10 @@
     <string name="error_status">Błąd</string>
     <string name="on">Włączone</string>
     <string name="off">Wyłączone</string>
+    <string name="on_short">Wł.</string>
+    <string name="off_short">Wył.</string>
+    <string name="scheduler_short">Plan</string>
+    <string name="manual_mode_short">Ręcznie</string>
     <string name="active">Aktywne</string>
     <string name="inactive">Nieaktywne</string>
     <string name="turn_on">Włącz</string>
@@ -168,6 +176,8 @@
     <string name="saved_ospy_systems">Zapisane systemy OSPy</string>
     <string name="about_app">O aplikacji</string>
     <string name="app_version">Wersja aplikacji</string>
+    <string name="app_version_date">Data wersji</string>
+    <string name="app_version_date_value">2026-08-25</string>
     <string name="ospy_github">OSPy w serwisie GitHub</string>
     <string name="plugins_github">Wtyczki OSPy w serwisie GitHub</string>
     <string name="app_source_github">Kod źródłowy aplikacji w serwisie GitHub</string>
@@ -549,7 +559,6 @@
     <string name="help_logs">Dziennik zdarzeń zawiera stany i ostrzeżenia OSPy. Dziennik stacji pokazuje zakończone uruchomienia stacji, ich program i rzeczywisty czas pracy.</string>
     <string name="help_diagnostics">Pokazuje stan harmonogramu, obliczania planu, sprzętu wyjściowego i innych składników OSPy. Otwórz tę sekcję, gdy OSPy zgłasza problem.</string>
     <string name="help_plugins">Pokazuje zainstalowane wtyczki i pozwala uruchamiać lub zatrzymywać obsługiwane wtyczki. Dane robocze otwierają mobilny stan, historię i działania wtyczki, jeśli są dostępne.</string>
-    <string name="help_system">Pokazuje wersję OSPy i stan aktualizacji oraz udostępnia aktualizację, kopie zapasowe i restart. Dostępne kopie są domyślnie zwinięte; rozwiń kartę, aby je wyświetlić lub pobrać.</string>
     <string name="help_settings">Steruje blokadą aplikacji, wyglądem, kategoriami powiadomień, rejestracją push, automatycznym wyborem instalacji i językiem aplikacji. Zapisane systemy OSPy otwierają zarządzanie instalacjami.</string>
     <string name="help_notification_speech">Funkcja Czytaj powiadomienia na głos korzysta z usługi zamiany tekstu na mowę Android i nie wymaga ponownego uruchamiania aplikacji. Po włączeniu status Mowa pokazuje, czy wybrany język aplikacji jest gotowy, czy też brakuje głosu lub języka. Mowa testowa sprawdza bieżący głos. Tryb tylko stacji odczytuje uruchomienia i zatrzymania stacji; dodatkowy przełącznik odczytuje każdą włączoną kategorię powiadomień.</string>
     <string name="notify_automation">Zasady automatyzacji</string>
@@ -560,7 +569,6 @@
     <string name="automation_rule_cleared_message">Reguła automatyzacji wróciła do normy: %1$s</string>
     <string name="automation_rule_test_message">Powiadomienie o teście reguł automatyzacji: %1$s</string>
     <string name="service_outages">Przerwy w świadczeniu usług</string>
-    <string name="service_outages_description">Przegląd tylko do odczytu przestojów w świadczeniu usług skonfigurowanych w OSPy. Zarządzaj przestojami na stronie Programy OSPy.</string>
     <string name="no_service_outages">Nie skonfigurowano żadnych przerw w świadczeniu usług.</string>
     <string name="service_outage_start">Zacznij</string>
     <string name="service_outage_end">Koniec</string>
@@ -571,4 +579,16 @@
     <string name="plugin_group_stopped">Zatrzymane</string>
     <string name="plugin_group_no_data">Bez danych roboczych</string>
     <string name="plugin_group_title">%1$s (%2$d)</string>
+    <string name="help_system">Shows OSPy version and update state, and provides update, backup and restart actions. Service outages can be created, edited or deleted with local date-and-time pickers. Available backups are collapsed by default; expand the card to view or download them.</string>
+    <string name="service_outages_description">Create and manage periods when automatic program runs must be blocked. Manual runs remain available.</string>
+    <string name="add_service_outage">Add outage</string>
+    <string name="edit_service_outage">Edit outage</string>
+    <string name="service_outage_name">Outage name</string>
+    <string name="invalid_service_outage">Enter a name and select an end date and time later than the start.</string>
+    <string name="confirm_delete_service_outage">Delete service outage “%1$s”?</string>
+    <string name="pause_between_programs">Pause between programs</string>
+    <string name="pause_between_programs_description">Adds a persistent idle period between different automatic programs. Stations within one program and manual runs are not affected.</string>
+    <string name="program_pause_hours">Hours</string>
+    <string name="program_pause_value">%1$d h · %2$d min · %3$d s</string>
+    <string name="invalid_program_pause">Enter 0–8760 hours and 0–59 minutes and seconds. The maximum pause is one year.</string>
 </resources>

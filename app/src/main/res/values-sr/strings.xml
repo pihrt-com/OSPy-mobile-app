@@ -62,6 +62,8 @@
     <string name="connecting_last_installation">Повезивање на последњу инсталацију…</string>
     <string name="connecting_please_wait">Сачекајте док OSPy провери сачувану везу.</string>
     <string name="choose_another_installation">Изаберите другу инсталацију</string>
+    <string name="switch_installation">Промени OSPy систем</string>
+    <string name="switch_installation_accessibility">%1$s. Додирните да промените OSPy систем.</string>
     <string name="unlock">Откључај OSPy</string>
     <string name="unlock_subtitle">Биометрија или акредитив уређаја</string>
     <string name="protected_storage_error">Грешка заштићеног складиштења</string>
@@ -88,6 +90,8 @@
     <string name="rain">Киша</string>
     <string name="rain_delay">Одлагање кише</string>
     <string name="active_stations">Активне станице</string>
+    <string name="rain_sensor">Сензор за кишу</string>
+    <string name="rain_sensor_off">Искључен</string>
     <string name="notifications">Обавештења</string>
     <string name="warnings">Упозорења</string>
     <string name="ok_status">ОК</string>
@@ -95,6 +99,10 @@
     <string name="error_status">Грешка</string>
     <string name="on">Он</string>
     <string name="off">Офф</string>
+    <string name="on_short">Укљ.</string>
+    <string name="off_short">Искљ.</string>
+    <string name="scheduler_short">План</string>
+    <string name="manual_mode_short">Ручно</string>
     <string name="active">Активан</string>
     <string name="inactive">Неактиван</string>
     <string name="turn_on">Укључи</string>
@@ -168,6 +176,8 @@
     <string name="saved_ospy_systems">Сачувано OSPy система</string>
     <string name="about_app">О апликацији</string>
     <string name="app_version">Верзија апликације</string>
+    <string name="app_version_date">Датум верзије</string>
+    <string name="app_version_date_value">2026-08-25</string>
     <string name="ospy_github">OSPy на GitHub</string>
     <string name="plugins_github">OSPy додаци на GitHub</string>
     <string name="app_source_github">Извор апликације на GitHub</string>
@@ -546,7 +556,6 @@
     <string name="help_logs">Дневник догађаја бележи стање OSPy и упозорења. Дневник станице приказује завршене вожње станице, њихов програм и стварно трајање.</string>
     <string name="help_diagnostics">Приказује здравље планера, прорачун распореда, излазни хардвер и друге OSPy компоненте. Отворите овај одељак када OSPy пријави проблем.</string>
     <string name="help_plugins">Приказује инсталиране додатке и омогућава покретање или заустављање подржаних додатака. Радни подаци отварају мобилни статус, историју и радње додатка када су доступни.</string>
-    <string name="help_system">Приказује OSPy верзију и стање ажурирања и пружа акције ажурирања, прављења резервних копија и поновног покретања. Доступне резервне копије су подразумевано скупљене; проширите картицу да бисте их видели или преузели.</string>
     <string name="help_settings">Контролише закључавање апликације, изглед, категорије обавештења, пусх регистрацију, аутоматски избор инсталације и језик апликације. Сачувано OSPy система отвара управљање инсталацијом.</string>
     <string name="help_notification_speech">Читање обавештења наглас користи услугу претварања текста у говор Android и не захтева поновно покретање апликације. Након што га омогућите, статус говора показује да ли је изабрани језик апликације спреман или недостаје глас или језик. Тестни говор потврђује тренутни глас. Режим само станице очитава почетак и заустављање станице; додатни прекидач чита сваку омогућену категорију обавештења.</string>
     <string name="notify_automation">Правила аутоматизације</string>
@@ -557,7 +566,6 @@
     <string name="automation_rule_cleared_message">Правило аутоматизације се вратило у нормалу: %1$s</string>
     <string name="automation_rule_test_message">Обавештење о тестирању правила аутоматизације: %1$s</string>
     <string name="service_outages">Прекиди услуга</string>
-    <string name="service_outages_description">Преглед само за читање прекида услуга конфигурисаних у OSPy. Управљајте прекидима на страници Програми OSPy.</string>
     <string name="no_service_outages">Нису конфигурисани прекиди услуге.</string>
     <string name="service_outage_start">Почни</string>
     <string name="service_outage_end">Крај</string>
@@ -568,4 +576,16 @@
     <string name="plugin_group_stopped">Заустављени</string>
     <string name="plugin_group_no_data">Без радних података</string>
     <string name="plugin_group_title">%1$s (%2$d)</string>
+    <string name="help_system">Shows OSPy version and update state, and provides update, backup and restart actions. Service outages can be created, edited or deleted with local date-and-time pickers. Available backups are collapsed by default; expand the card to view or download them.</string>
+    <string name="service_outages_description">Create and manage periods when automatic program runs must be blocked. Manual runs remain available.</string>
+    <string name="add_service_outage">Add outage</string>
+    <string name="edit_service_outage">Edit outage</string>
+    <string name="service_outage_name">Outage name</string>
+    <string name="invalid_service_outage">Enter a name and select an end date and time later than the start.</string>
+    <string name="confirm_delete_service_outage">Delete service outage “%1$s”?</string>
+    <string name="pause_between_programs">Pause between programs</string>
+    <string name="pause_between_programs_description">Adds a persistent idle period between different automatic programs. Stations within one program and manual runs are not affected.</string>
+    <string name="program_pause_hours">Hours</string>
+    <string name="program_pause_value">%1$d h · %2$d min · %3$d s</string>
+    <string name="invalid_program_pause">Enter 0–8760 hours and 0–59 minutes and seconds. The maximum pause is one year.</string>
 </resources>

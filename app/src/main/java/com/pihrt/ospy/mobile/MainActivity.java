@@ -183,6 +183,7 @@ public final class MainActivity extends ComponentActivity {
     private OverviewControlBinding overviewRainControl;
     private OverviewControlBinding overviewWaterLevelControl;
     private PairBinding overviewActiveCount;
+    private PairBinding overviewRainSensor;
     private LinearLayout overviewActiveStationsContainer;
     private final List<PairBinding> overviewActiveStationRows = new ArrayList<>();
     private String overviewActiveStationStructure = "";
@@ -602,6 +603,14 @@ public final class MainActivity extends ComponentActivity {
             title.setSingleLine(true);
             title.setEllipsize(android.text.TextUtils.TruncateAt.END);
             title.setGravity(Gravity.CENTER);
+            title.setClickable(true);
+            title.setFocusable(true);
+            title.setContentDescription(getString(
+                    R.string.switch_installation_accessibility, heading));
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                title.setTooltipText(getString(R.string.switch_installation));
+            }
+            title.setOnClickListener(v -> showInstallationSwitcher());
             LinearLayout.LayoutParams titleParams =
                     new LinearLayout.LayoutParams(0, dp(28), 1);
             titleParams.setMargins(dp(8), 0, dp(8), 0);
@@ -759,6 +768,41 @@ public final class MainActivity extends ComponentActivity {
         Button add = button(getString(R.string.add_installation), NAVY);
         add.setOnClickListener(v -> showPairing());
         content.addView(add);
+    }
+
+    private void showInstallationSwitcher() {
+        try {
+            installations = installationStore.load();
+        } catch (Exception error) {
+            message(
+                    getString(R.string.protected_storage_error),
+                    getString(R.string.protected_storage_error_detail));
+            return;
+        }
+        if (installations.isEmpty()) {
+            showInstallations();
+            return;
+        }
+        String[] names = new String[installations.size()];
+        int selected = -1;
+        for (int i = 0; i < installations.size(); i++) {
+            Installation installation = installations.get(i);
+            names[i] = installation.name;
+            if (current != null && current.id.equals(installation.id)) {
+                selected = i;
+            }
+        }
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.switch_installation)
+                .setSingleChoiceItems(names, selected, (dialog, which) -> {
+                    dialog.dismiss();
+                    Installation installation = installations.get(which);
+                    if (current == null || !current.id.equals(installation.id)) {
+                        open(installation);
+                    }
+                })
+                .setNegativeButton(android.R.string.cancel, null)
+                .show();
     }
 
     private void showAppSettings() {
@@ -1029,6 +1073,9 @@ public final class MainActivity extends ComponentActivity {
         addPair(
                 about, getString(R.string.app_version),
                 BuildConfig.VERSION_NAME);
+        addPair(
+                about, getString(R.string.app_version_date),
+                getString(R.string.app_version_date_value));
         about.addView(linkButton(
                 getString(R.string.ospy_github),
                 "https://github.com/martinpihrt/OSPy"));
@@ -1695,6 +1742,9 @@ public final class MainActivity extends ComponentActivity {
                                     "level_adjustment", 1.0) * 100.0);
             updateOverviewActiveStations(
                     irrigation.optJSONArray("active_stations"));
+            updateOverviewRainSensor(
+                    irrigation.optBoolean("rain_sensor_enabled", false),
+                    irrigation.optBoolean("rain_sensed", false));
         }
 
         String updated = data.optString("updated");
@@ -1735,6 +1785,7 @@ public final class MainActivity extends ComponentActivity {
         overviewRainControl = null;
         overviewWaterLevelControl = null;
         overviewActiveCount = null;
+        overviewRainSensor = null;
         overviewActiveStationsContainer = null;
         overviewActiveStationRows.clear();
         overviewActiveStationStructure = "";
@@ -1768,14 +1819,15 @@ public final class MainActivity extends ComponentActivity {
         LinearLayout summary = cardColumn();
         overviewSchedulerControl = createOverviewSwitch(
                 summary, getString(R.string.scheduler),
-                getString(R.string.on), getString(R.string.off));
+                getString(R.string.on_short), getString(R.string.off_short));
         overviewManualControl = createOverviewSwitch(
                 summary, getString(R.string.operating_mode),
-                getString(R.string.scheduler), getString(R.string.manual_mode));
+                getString(R.string.scheduler_short),
+                getString(R.string.manual_mode_short));
         overviewRainControl = createOverviewControl(
-                summary, getString(R.string.rain_delay), 0.35f);
+                summary, getString(R.string.rain_delay));
         overviewWaterLevelControl = createOverviewControl(
-                summary, getString(R.string.water_level_adjustment), 0.35f);
+                summary, getString(R.string.water_level_adjustment));
         overviewActiveCount = createPairBinding(
                 summary, getString(R.string.active_stations));
         overviewActiveStationsContainer = new LinearLayout(this);
@@ -1783,6 +1835,8 @@ public final class MainActivity extends ComponentActivity {
         summary.addView(
                 overviewActiveStationsContainer,
                 new LinearLayout.LayoutParams(-1, -2));
+        overviewRainSensor = createPairBinding(
+                summary, getString(R.string.rain_sensor));
         overviewIrrigationSection.addView(summary);
         overviewRoot.addView(overviewIrrigationSection);
 
@@ -1967,18 +2021,22 @@ public final class MainActivity extends ComponentActivity {
     }
 
     private OverviewControlBinding createOverviewControl(
-            LinearLayout parent, String label, float valueWeight) {
+            LinearLayout parent, String label) {
+        LinearLayout container = new LinearLayout(this);
+        container.setOrientation(LinearLayout.VERTICAL);
         LinearLayout row = actionRow();
         TextView name = text(label, 14, true);
         name.setTextColor(MUTED);
-        row.addView(name, new LinearLayout.LayoutParams(0, -2, 0.38f));
-        TextView currentState = text("", 14, false);
-        row.addView(
-                currentState,
-                new LinearLayout.LayoutParams(0, -2, valueWeight));
+        row.addView(name, new LinearLayout.LayoutParams(0, -2, 1));
         Button action = compactButton("", GREEN);
         row.addView(action);
-        parent.addView(row, new LinearLayout.LayoutParams(-1, -2));
+        container.addView(row, new LinearLayout.LayoutParams(-1, -2));
+        TextView currentState = text("", 14, false);
+        currentState.setPadding(dp(3), 0, dp(3), dp(4));
+        container.addView(
+                currentState,
+                new LinearLayout.LayoutParams(-1, -2));
+        parent.addView(container, new LinearLayout.LayoutParams(-1, -2));
         return new OverviewControlBinding(currentState, action);
     }
 
@@ -1990,11 +2048,11 @@ public final class MainActivity extends ComponentActivity {
         parent.addView(name, new LinearLayout.LayoutParams(-1, -2));
 
         LinearLayout track = actionRow();
-        track.setPadding(dp(12), dp(3), dp(12), dp(3));
+        track.setPadding(dp(8), dp(3), dp(8), dp(3));
         TextView leftLabel = text(left, 13, false);
         leftLabel.setGravity(Gravity.CENTER);
         leftLabel.setTextColor(Color.WHITE);
-        track.addView(leftLabel, new LinearLayout.LayoutParams(0, -2, 1));
+        track.addView(leftLabel, new LinearLayout.LayoutParams(dp(58), -2));
 
         Switch toggle = new Switch(this);
         toggle.setShowText(false);
@@ -2006,8 +2064,8 @@ public final class MainActivity extends ComponentActivity {
         TextView rightLabel = text(right, 13, false);
         rightLabel.setGravity(Gravity.CENTER);
         rightLabel.setTextColor(Color.WHITE);
-        track.addView(rightLabel, new LinearLayout.LayoutParams(0, -2, 1));
-        LinearLayout.LayoutParams layout = new LinearLayout.LayoutParams(-1, -2);
+        track.addView(rightLabel, new LinearLayout.LayoutParams(dp(58), -2));
+        LinearLayout.LayoutParams layout = new LinearLayout.LayoutParams(-2, -2);
         layout.setMargins(dp(3), 0, dp(3), dp(6));
         parent.addView(track, layout);
         return new OverviewSwitchBinding(
@@ -2171,6 +2229,14 @@ public final class MainActivity extends ComponentActivity {
                             ? formatCountdown(remaining)
                             : getString(R.string.running));
         }
+    }
+
+    private void updateOverviewRainSensor(boolean enabled, boolean sensed) {
+        if (overviewRainSensor == null) return;
+        overviewRainSensor.value.setText(getString(
+                !enabled
+                        ? R.string.rain_sensor_off
+                        : sensed ? R.string.active : R.string.inactive));
     }
 
     private String stationStableKey(JSONObject station) {
@@ -2470,6 +2536,24 @@ public final class MainActivity extends ComponentActivity {
 
     private void renderPrograms(JSONArray programItems) {
         final int generation = loadGeneration;
+        api.request("GET", "/program-settings", null, new ApiClient.Callback() {
+            @Override public void success(JSONObject response) {
+                if (generation != loadGeneration ||
+                        !"programs".equals(currentRenderer)) return;
+                loadProgramGroups(
+                        programItems, response.optJSONObject("data"), generation);
+            }
+
+            @Override public void failure(String error) {
+                if (generation != loadGeneration ||
+                        !"programs".equals(currentRenderer)) return;
+                loadProgramGroups(programItems, null, generation);
+            }
+        });
+    }
+
+    private void loadProgramGroups(
+            JSONArray programItems, JSONObject settings, int generation) {
         api.request("GET", "/program-groups", null, new ApiClient.Callback() {
             @Override public void success(JSONObject response) {
                 if (generation != loadGeneration ||
@@ -2477,23 +2561,26 @@ public final class MainActivity extends ComponentActivity {
                 JSONArray groups = response.optJSONArray("data");
                 content.removeAllViews();
                 renderProgramsWithGroups(
-                        programItems, groups == null ? new JSONArray() : groups);
+                        programItems,
+                        groups == null ? new JSONArray() : groups,
+                        settings);
             }
 
             @Override public void failure(String error) {
                 if (generation != loadGeneration ||
                         !"programs".equals(currentRenderer)) return;
                 content.removeAllViews();
-                renderProgramsWithGroups(programItems, new JSONArray());
+                renderProgramsWithGroups(programItems, new JSONArray(), settings);
             }
         });
     }
 
     private void renderProgramsWithGroups(
-            JSONArray programItems, JSONArray groups) {
+            JSONArray programItems, JSONArray groups, JSONObject settings) {
         Button addProgram = button(getString(R.string.add_program), GREEN);
         addProgram.setOnClickListener(v -> loadNewProgramEditor());
         content.addView(addProgram);
+        if (settings != null) addProgramPauseCard(settings);
         for (int index = 0; index < groups.length(); index++) {
             JSONObject group = groups.optJSONObject(index);
             if (group == null) continue;
@@ -2521,6 +2608,106 @@ public final class MainActivity extends ComponentActivity {
             }
             if (!shown) addProgramCard(program);
         }
+    }
+
+    private void addProgramPauseCard(JSONObject settings) {
+        int total = Math.max(0, settings.optInt(
+                "pause_between_programs_seconds", 0));
+        LinearLayout card = cardColumn();
+        LinearLayout header = actionRow();
+        header.addView(
+                text(getString(R.string.pause_between_programs), 16, true),
+                new LinearLayout.LayoutParams(0, -2, 1));
+        Button edit = compactButton(getString(R.string.edit), NAVY);
+        edit.setOnClickListener(v -> showProgramPauseDialog(total));
+        header.addView(edit);
+        card.addView(header);
+        card.addView(text(
+                getString(R.string.pause_between_programs_description),
+                13, false));
+        addPair(
+                card, getString(R.string.current_value),
+                getString(
+                        R.string.program_pause_value,
+                        total / 3600, total % 3600 / 60, total % 60));
+        content.addView(card);
+    }
+
+    private void showProgramPauseDialog(int currentSeconds) {
+        EditText hours = numericInput(String.valueOf(currentSeconds / 3600));
+        EditText minutes = numericInput(String.valueOf(
+                currentSeconds % 3600 / 60));
+        EditText seconds = numericInput(String.valueOf(currentSeconds % 60));
+        GridLayout fields = new GridLayout(this);
+        fields.setColumnCount(3);
+        View[] values = {
+                labelledInput(getString(R.string.program_pause_hours), hours),
+                labelledInput(getString(R.string.manual_minutes), minutes),
+                labelledInput(getString(R.string.manual_seconds), seconds),
+        };
+        for (int index = 0; index < values.length; index++) {
+            GridLayout.LayoutParams params = new GridLayout.LayoutParams();
+            params.width = 0;
+            params.columnSpec = GridLayout.spec(index, 1, 1f);
+            params.setMargins(dp(3), 0, dp(3), 0);
+            fields.addView(values[index], params);
+        }
+        LinearLayout form = new LinearLayout(this);
+        form.setOrientation(LinearLayout.VERTICAL);
+        form.setPadding(dp(18), dp(4), dp(18), dp(4));
+        form.addView(text(
+                getString(R.string.pause_between_programs_description),
+                14, false));
+        form.addView(fields);
+
+        AlertDialog dialog = new AlertDialog.Builder(this)
+                .setTitle(R.string.pause_between_programs)
+                .setView(form)
+                .setNegativeButton(android.R.string.cancel, null)
+                .setPositiveButton(R.string.save, null)
+                .create();
+        dialog.setOnShowListener(unused -> dialog.getButton(
+                AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
+                    try {
+                        int hourValue = nonNegativeInteger(hours);
+                        int minuteValue = nonNegativeInteger(minutes);
+                        int secondValue = nonNegativeInteger(seconds);
+                        long total = hourValue * 3600L +
+                                minuteValue * 60L + secondValue;
+                        if (hourValue > 8760 || minuteValue > 59 ||
+                                secondValue > 59 || total > 31536000L) {
+                            throw new IllegalArgumentException();
+                        }
+                        JSONObject payload = new JSONObject();
+                        payload.put(
+                                "pause_between_programs_seconds", (int) total);
+                        dialog.getButton(AlertDialog.BUTTON_POSITIVE)
+                                .setEnabled(false);
+                        api.request(
+                                "PUT", "/program-settings", payload,
+                                new ApiClient.Callback() {
+                                    @Override public void success(
+                                            JSONObject response) {
+                                        dialog.dismiss();
+                                        load("/programs", "programs");
+                                    }
+
+                                    @Override public void failure(String error) {
+                                        dialog.getButton(
+                                                AlertDialog.BUTTON_POSITIVE)
+                                                .setEnabled(true);
+                                        message(
+                                                getString(R.string.pause_between_programs),
+                                                localizedError(error));
+                                    }
+                                });
+                    } catch (Exception error) {
+                        message(
+                                getString(R.string.pause_between_programs),
+                                getString(R.string.invalid_program_pause));
+                    }
+                }));
+        dialog.show();
     }
 
     private LinearLayout addProgramGroupCard(JSONObject group) {
@@ -4273,6 +4460,15 @@ public final class MainActivity extends ComponentActivity {
                                         formatTimestamp(history.optString(
                                                 "last_available")));
                             }
+                            addPluginCardActions(
+                                    card, plugin, mobileCard, parent, trigger,
+                                    activeRange, refreshFrom, refreshTo);
+                            addPluginCardDownloads(card, plugin, mobileCard);
+                            if ("system_update".equals(plugin.optString("id")) &&
+                                    "system_update".equals(
+                                            mobileCard.optString("id"))) {
+                                addSystemUpdatePluginControls(card, metrics);
+                            }
                             mobileContent.addView(card);
                         }
                     }
@@ -4294,6 +4490,145 @@ public final class MainActivity extends ComponentActivity {
                         }
                     }
                 });
+    }
+
+    private void addPluginCardActions(
+            LinearLayout card, JSONObject plugin, JSONObject mobileCard,
+            LinearLayout pluginParent, Button trigger, String range,
+            LocalDateTime from, LocalDateTime to) {
+        JSONArray actions = mobileCard.optJSONArray("actions");
+        if (actions == null || actions.length() == 0) return;
+        GridLayout buttons = new GridLayout(this);
+        buttons.setColumnCount(3);
+        for (int index = 0; index < actions.length(); index++) {
+            JSONObject action = actions.optJSONObject(index);
+            if (action == null || action.optString("id").isEmpty()) continue;
+            String actionId = action.optString("id");
+            Button button = compactButton(
+                    action.optString("label", actionId), NAVY);
+            button.setOnClickListener(v -> {
+                button.setEnabled(false);
+                JSONObject payload = action.optJSONObject("payload");
+                api.request(
+                        "POST",
+                        "/plugins/" + Uri.encode(plugin.optString("id")) +
+                                "/actions/" + Uri.encode(actionId),
+                        payload == null ? new JSONObject() : payload,
+                        new ApiClient.Callback() {
+                            @Override public void success(JSONObject response) {
+                                JSONObject result = response.optJSONObject("data");
+                                toast(result == null
+                                        ? getString(R.string.accepted)
+                                        : result.optString(
+                                                "message",
+                                                getString(R.string.accepted)));
+                                loadPluginMobileRange(
+                                        plugin, pluginParent, trigger,
+                                        range, from, to, false);
+                            }
+
+                            @Override public void failure(String error) {
+                                button.setEnabled(true);
+                                message(
+                                        getString(R.string.app_name),
+                                        localizedError(error));
+                            }
+                        });
+            });
+            GridLayout.LayoutParams params = new GridLayout.LayoutParams();
+            params.width = 0;
+            params.columnSpec = GridLayout.spec(index % 3, 1, 1f);
+            params.rowSpec = GridLayout.spec(index / 3);
+            params.setMargins(dp(2), dp(2), dp(2), dp(2));
+            buttons.addView(button, params);
+        }
+        card.addView(buttons, new LinearLayout.LayoutParams(-1, -2));
+    }
+
+    private void addPluginCardDownloads(
+            LinearLayout card, JSONObject plugin, JSONObject mobileCard) {
+        JSONArray downloads = mobileCard.optJSONArray("downloads");
+        if (downloads == null) return;
+        for (int index = 0; index < downloads.length(); index++) {
+            JSONObject download = downloads.optJSONObject(index);
+            if (download == null || download.optString("id").isEmpty()) continue;
+            String filename = download.optString("filename");
+            if (filename.isEmpty()) continue;
+            Button button = compactButton(
+                    download.optString(
+                            "label", getString(R.string.download)), GREEN);
+            button.setOnClickListener(v -> downloadPluginFile(
+                    plugin.optString("id"), download.optString("id"),
+                    filename));
+            card.addView(button);
+        }
+    }
+
+    private void downloadPluginFile(
+            String pluginId, String downloadId, String filename) {
+        api.download(
+                "/plugins/" + Uri.encode(pluginId) + "/downloads/" +
+                        Uri.encode(downloadId),
+                new ApiClient.DownloadCallback() {
+                    @Override public void success(byte[] data) {
+                        pendingBackupData = data;
+                        Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
+                        intent.addCategory(Intent.CATEGORY_OPENABLE);
+                        intent.setType("application/zip");
+                        intent.putExtra(Intent.EXTRA_TITLE, filename);
+                        startActivityForResult(intent, REQUEST_SAVE_BACKUP);
+                    }
+
+                    @Override public void failure(String error) {
+                        message(
+                                getString(R.string.app_name),
+                                localizedError(error));
+                    }
+                });
+    }
+
+    private void addSystemUpdatePluginControls(
+            LinearLayout card, JSONArray metrics) {
+        if (metrics != null) {
+            for (int index = 0; index < metrics.length(); index++) {
+                JSONObject metric = metrics.optJSONObject(index);
+                if (metric == null) continue;
+                switch (metric.optString("id")) {
+                    case "current_commit":
+                        systemCurrentCommit = metric.optString("value");
+                        break;
+                    case "target_commit":
+                        systemTargetCommit = metric.optString("value");
+                        break;
+                    case "update_available":
+                        systemUpdateAvailable = metric.optBoolean("value", false);
+                        break;
+                    default:
+                        break;
+                }
+            }
+        }
+        LinearLayout actions = actionRow();
+        systemCheckButton = compactButton(
+                getString(R.string.check_updates), GREEN);
+        systemCheckButton.setOnClickListener(v ->
+                startSystemUpdateOperation("check"));
+        actions.addView(systemCheckButton);
+        systemInstallButton = compactButton(
+                getString(R.string.install_update), GREEN);
+        systemInstallButton.setOnClickListener(v -> confirmSystemUpdate());
+        actions.addView(systemInstallButton);
+        card.addView(actions);
+        systemOperationStatusView = text("", 13, true);
+        systemOperationStatusView.setTextColor(MUTED);
+        card.addView(systemOperationStatusView);
+        systemOperationProgressView = new ProgressBar(
+                this, null, android.R.attr.progressBarStyleHorizontal);
+        systemOperationProgressView.setMax(100);
+        card.addView(
+                systemOperationProgressView,
+                new LinearLayout.LayoutParams(-1, dp(8)));
+        updateSystemOperationUi();
     }
 
     private void clearActivePluginMobile() {
@@ -4580,6 +4915,30 @@ public final class MainActivity extends ComponentActivity {
             return serverLabel.isEmpty() ? id : serverLabel;
         }
         switch (id) {
+            case "enabled":
+                return getString(R.string.enabled);
+            case "automatic_update":
+                return getString(R.string.automatic_update);
+            case "checking":
+                return getString(R.string.checking_updates);
+            case "update_available":
+                return getString(R.string.update_available);
+            case "current_version":
+                return getString(R.string.current_version);
+            case "current_commit":
+                return getString(R.string.current_commit);
+            case "target_commit":
+                return getString(R.string.target_commit);
+            case "stable_release":
+                return getString(R.string.stable_release);
+            case "upstream_branch":
+                return getString(R.string.upstream_branch);
+            case "update_channel":
+                return getString(R.string.update_channel);
+            case "update_watchdog":
+                return getString(R.string.update_watchdog);
+            case "last_watchdog_result":
+                return getString(R.string.last_watchdog_result);
             case "rain_state":
                 return getString(R.string.rain_status);
             case "radar_source":
@@ -4980,6 +5339,10 @@ public final class MainActivity extends ComponentActivity {
             content.addView(row);
         }
         if (showProvider) {
+            LinearLayout chmiImage = new LinearLayout(this);
+            chmiImage.setOrientation(LinearLayout.VERTICAL);
+            content.addView(chmiImage);
+            loadChmiWeatherImage(chmiImage);
             addStandalonePair(
                     getString(R.string.provider), weather.optString("provider"));
             addStandalonePair(
@@ -5141,18 +5504,23 @@ public final class MainActivity extends ComponentActivity {
                         (plugin.optString("version").isEmpty()
                                 ? "" : " · " + plugin.optString("version")),
                 16, true));
+        if (!healthStatus.isEmpty()) {
+            TextView healthView = text(localizedStatus(healthStatus), 13, false);
+            healthView.setTextColor(MUTED);
+            card.addView(healthView);
+        }
         LinearLayout statuses = actionRow();
-        statuses.addView(badge(
+        TextView runningStatus = text(
                 plugin.optBoolean("running")
                         ? getString(R.string.running)
                         : getString(R.string.stopped),
-                plugin.optBoolean("running") ? "ok" : "stopped"));
-        if (!healthStatus.isEmpty()) {
-            statuses.addView(badge(
-                    localizedStatus(healthStatus), healthStatus));
-        }
+                14, true);
+        runningStatus.setTextColor(
+                plugin.optBoolean("running") ? GREEN : MUTED);
+        statuses.addView(
+                runningStatus, new LinearLayout.LayoutParams(0, -2, 1));
         boolean pluginEnabled = plugin.optBoolean("enabled");
-        Button pluginToggle = button(
+        Button pluginToggle = compactButton(
                 getString(pluginEnabled
                         ? R.string.turn_off : R.string.turn_on),
                 pluginEnabled ? RED : GREEN);
@@ -5169,7 +5537,6 @@ public final class MainActivity extends ComponentActivity {
                     () -> load("/plugins", "plugins"));
         });
         statuses.addView(pluginToggle);
-        card.addView(statuses);
         JSONObject mobile = plugin.optJSONObject("mobile");
         boolean mobileAvailable =
                 mobile != null && mobile.optBoolean("available");
@@ -5179,21 +5546,17 @@ public final class MainActivity extends ComponentActivity {
         dataButton.setEnabled(mobileAvailable);
         dataButton.setOnClickListener(v ->
                 loadPluginMobile(plugin, card, dataButton));
-        card.addView(dataButton);
+        statuses.addView(dataButton);
+        card.addView(statuses);
         parent.addView(card);
     }
 
     private void renderSystem(Object value) {
         JSONObject root = value instanceof JSONObject
                 ? (JSONObject) value : new JSONObject();
+        captureSystemUpdateState(root);
         JSONObject ospy = root.optJSONObject("ospy");
         JSONObject details = ospy == null ? null : ospy.optJSONObject("details");
-        systemUpdateAvailable = details != null &&
-                details.optBoolean("update_available", false);
-        systemCurrentCommit = details == null
-                ? "" : details.optString("current_commit", "");
-        systemTargetCommit = details == null
-                ? "" : details.optString("target_commit", "");
 
         LinearLayout updateCard = cardColumn();
         updateCard.addView(text(getString(R.string.app_name), 19, true));
@@ -5341,6 +5704,44 @@ public final class MainActivity extends ComponentActivity {
         }
     }
 
+    private void loadChmiWeatherImage(LinearLayout target) {
+        final int generation = loadGeneration;
+        api.request(
+                "GET", "/plugins/chmi/mobile?max_points=20", null,
+                new ApiClient.Callback() {
+                    @Override public void success(JSONObject response) {
+                        if (generation != loadGeneration ||
+                                !"weather".equals(currentRenderer) ||
+                                target.getParent() == null) return;
+                        JSONObject data = response.optJSONObject("data");
+                        JSONObject status = data == null
+                                ? null : data.optJSONObject("status");
+                        if (status == null ||
+                                !"ok".equals(status.optString("status"))) return;
+                        JSONArray cards = data == null
+                                ? null : data.optJSONArray("cards");
+                        if (cards == null) return;
+                        for (int index = 0; index < cards.length(); index++) {
+                            JSONObject cardData = cards.optJSONObject(index);
+                            JSONObject image = cardData == null
+                                    ? null : cardData.optJSONObject("image");
+                            if (image == null) continue;
+                            LinearLayout card = cardColumn();
+                            card.addView(text(
+                                    getString(R.string.radar_at_location),
+                                    15, true));
+                            addMobileImage(card, image);
+                            target.addView(card);
+                            return;
+                        }
+                    }
+
+                    @Override public void failure(String error) {
+                        // CHMI is optional; unavailable plug-in data is omitted.
+                    }
+                });
+    }
+
     private void loadServiceOutages(LinearLayout card) {
         if (api == null || card == null) return;
         api.request("GET", "/service-outages", null, new ApiClient.Callback() {
@@ -5363,7 +5764,15 @@ public final class MainActivity extends ComponentActivity {
 
     private void renderServiceOutages(LinearLayout card, JSONArray outages) {
         card.removeAllViews();
-        card.addView(text(getString(R.string.service_outages), 16, true));
+        LinearLayout header = actionRow();
+        header.addView(
+                text(getString(R.string.service_outages), 16, true),
+                new LinearLayout.LayoutParams(0, -2, 1));
+        Button add = compactButton(
+                getString(R.string.add_service_outage), GREEN);
+        add.setOnClickListener(v -> showServiceOutageDialog(card, null));
+        header.addView(add);
+        card.addView(header);
         card.addView(text(
                 getString(R.string.service_outages_description), 13, false));
         if (outages.length() == 0) {
@@ -5400,10 +5809,133 @@ public final class MainActivity extends ComponentActivity {
                     localizedServiceOutageDateTime(item.optString("start")));
             addPair(outage, getString(R.string.service_outage_end),
                     localizedServiceOutageDateTime(item.optString("end")));
+            LinearLayout actions = actionRow();
+            Button edit = compactButton(getString(R.string.edit), NAVY);
+            edit.setOnClickListener(v -> showServiceOutageDialog(card, item));
+            actions.addView(edit);
+            Button delete = compactButton(getString(R.string.delete), RED);
+            delete.setOnClickListener(v -> confirmDeleteServiceOutage(card, item));
+            actions.addView(delete);
+            outage.addView(actions);
             LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(-1, -2);
             params.topMargin = dp(8);
             card.addView(outage, params);
         }
+    }
+
+    private void showServiceOutageDialog(
+            LinearLayout card, JSONObject existing) {
+        boolean editing = existing != null;
+        LocalDateTime start = editing
+                ? parseServiceOutageDateTime(existing.optString("start"))
+                : null;
+        LocalDateTime end = editing
+                ? parseServiceOutageDateTime(existing.optString("end"))
+                : null;
+        if (start == null) {
+            start = LocalDateTime.now().withSecond(0).withNano(0);
+        }
+        if (end == null || !end.isAfter(start)) end = start.plusHours(1);
+
+        LinearLayout form = new LinearLayout(this);
+        form.setOrientation(LinearLayout.VERTICAL);
+        form.setPadding(dp(20), dp(4), dp(20), 0);
+        EditText name = input(getString(R.string.service_outage_name), false);
+        if (editing) name.setText(existing.optString("name"));
+        form.addView(name);
+
+        Button startButton = dateTimeButton(start.toString());
+        form.addView(labelledView(
+                getString(R.string.date_from), startButton));
+        Button endButton = dateTimeButton(end.toString());
+        form.addView(labelledView(
+                getString(R.string.date_to), endButton));
+
+        AlertDialog dialog = new AlertDialog.Builder(this)
+                .setTitle(editing
+                        ? R.string.edit_service_outage
+                        : R.string.add_service_outage)
+                .setView(form)
+                .setNegativeButton(android.R.string.cancel, null)
+                .setPositiveButton(R.string.save, null)
+                .create();
+        dialog.setOnShowListener(unused -> dialog.getButton(
+                AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
+                    String selectedName = name.getText().toString().trim();
+                    LocalDateTime selectedStart =
+                            (LocalDateTime) startButton.getTag();
+                    LocalDateTime selectedEnd =
+                            (LocalDateTime) endButton.getTag();
+                    if (selectedName.isEmpty() || selectedName.length() > 200 ||
+                            selectedStart == null || selectedEnd == null ||
+                            !selectedEnd.isAfter(selectedStart)) {
+                        message(
+                                getString(R.string.service_outages),
+                                getString(R.string.invalid_service_outage));
+                        return;
+                    }
+                    JSONObject payload = new JSONObject();
+                    try {
+                        payload.put("name", selectedName);
+                        payload.put("start", selectedStart.toString());
+                        payload.put("end", selectedEnd.toString());
+                    } catch (Exception error) {
+                        message(
+                                getString(R.string.service_outages),
+                                getString(R.string.invalid_service_outage));
+                        return;
+                    }
+                    String method = editing ? "PUT" : "POST";
+                    String path = editing
+                            ? "/service-outages/" + existing.optString("id")
+                            : "/service-outages";
+                    dialog.getButton(AlertDialog.BUTTON_POSITIVE)
+                            .setEnabled(false);
+                    api.request(method, path, payload, new ApiClient.Callback() {
+                        @Override public void success(JSONObject response) {
+                            dialog.dismiss();
+                            toast(getString(R.string.accepted));
+                            loadServiceOutages(card);
+                        }
+
+                        @Override public void failure(String error) {
+                            dialog.getButton(AlertDialog.BUTTON_POSITIVE)
+                                    .setEnabled(true);
+                            message(
+                                    getString(R.string.service_outages),
+                                    localizedError(error));
+                        }
+                    });
+                }));
+        dialog.show();
+    }
+
+    private void confirmDeleteServiceOutage(
+            LinearLayout card, JSONObject outage) {
+        new AlertDialog.Builder(this)
+                .setMessage(getString(
+                        R.string.confirm_delete_service_outage,
+                        outage.optString("name")))
+                .setNegativeButton(android.R.string.cancel, null)
+                .setPositiveButton(R.string.delete, (dialog, which) ->
+                        api.request(
+                                "DELETE",
+                                "/service-outages/" + outage.optString("id"),
+                                null,
+                                new ApiClient.Callback() {
+                                    @Override public void success(
+                                            JSONObject response) {
+                                        toast(getString(R.string.accepted));
+                                        loadServiceOutages(card);
+                                    }
+
+                                    @Override public void failure(String error) {
+                                        message(
+                                                getString(R.string.service_outages),
+                                                localizedError(error));
+                                    }
+                                }))
+                .show();
     }
 
     private LocalDateTime parseServiceOutageDateTime(String value) {
@@ -5662,13 +6194,39 @@ public final class MainActivity extends ComponentActivity {
 
     private void displayRefreshedSystem(JSONObject response) {
         JSONObject data = response.optJSONObject("data");
+        if (data != null) captureSystemUpdateState(data);
         if ("system".equals(currentRenderer) &&
                 data != null && content != null) {
             content.removeAllViews();
             renderSystem(data);
+        } else if ("plugins".equals(currentRenderer) &&
+                activePluginMobile != null &&
+                "system_update".equals(activePluginMobile.optString("id")) &&
+                activePluginMobileParent != null &&
+                activePluginMobileTrigger != null) {
+            loadPluginMobileRange(
+                    activePluginMobile, activePluginMobileParent,
+                    activePluginMobileTrigger, activePluginMobileRange,
+                    activePluginMobileFrom, activePluginMobileTo, false);
+            if (!pendingSystemAnnouncement.isEmpty()) {
+                String announcement = pendingSystemAnnouncement;
+                pendingSystemAnnouncement = "";
+                content.post(() -> showSystemAnnouncement(announcement));
+            }
         } else {
             updateSystemOperationUi();
         }
+    }
+
+    private void captureSystemUpdateState(JSONObject data) {
+        JSONObject ospy = data.optJSONObject("ospy");
+        JSONObject details = ospy == null ? null : ospy.optJSONObject("details");
+        systemUpdateAvailable = details != null &&
+                details.optBoolean("update_available", false);
+        systemCurrentCommit = details == null
+                ? "" : details.optString("current_commit", "");
+        systemTargetCommit = details == null
+                ? "" : details.optString("target_commit", "");
     }
 
     private void failSystemOperation(String error) {
@@ -5765,7 +6323,13 @@ public final class MainActivity extends ComponentActivity {
     }
 
     private void showSystemAnnouncement(String announcement) {
-        if (!"system".equals(currentRenderer)) return;
+        boolean systemUpdatePluginVisible =
+                "plugins".equals(currentRenderer) &&
+                        activePluginMobile != null &&
+                        "system_update".equals(
+                                activePluginMobile.optString("id"));
+        if (!"system".equals(currentRenderer) &&
+                !systemUpdatePluginVisible) return;
         if ("check".equals(announcement)) {
             String result = getString(systemUpdateAvailable
                     ? R.string.update_found
@@ -6543,6 +7107,8 @@ public final class MainActivity extends ComponentActivity {
                 return getString(R.string.item_not_found);
             case "invalid_group_postponement":
                 return getString(R.string.invalid_group_postponement);
+            case "invalid_program_pause":
+                return getString(R.string.invalid_program_pause);
             case "group_postponement_not_found":
                 return getString(R.string.group_postponement_not_found);
             case "invalid_station_duration":

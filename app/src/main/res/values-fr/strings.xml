@@ -62,6 +62,8 @@
     <string name="connecting_last_installation">Connexion à la dernière installation…</string>
     <string name="connecting_please_wait">Veuillez patienter pendant que OSPy vérifie la connexion enregistrée.</string>
     <string name="choose_another_installation">Choisissez une autre installation</string>
+    <string name="switch_installation">Changer de système OSPy</string>
+    <string name="switch_installation_accessibility">%1$s. Appuyez pour changer de système OSPy.</string>
     <string name="unlock">Débloquez OSPy</string>
     <string name="unlock_subtitle">Données biométriques ou informations d\'identification de l\'appareil</string>
     <string name="protected_storage_error">Erreur de stockage protégé</string>
@@ -88,6 +90,8 @@
     <string name="rain">Pluie</string>
     <string name="rain_delay">Retard de pluie</string>
     <string name="active_stations">Stations actives</string>
+    <string name="rain_sensor">Capteur de pluie</string>
+    <string name="rain_sensor_off">Désactivé</string>
     <string name="notifications">Notifications</string>
     <string name="warnings">Avertissements</string>
     <string name="ok_status">D\'accord</string>
@@ -95,6 +99,10 @@
     <string name="error_status">Erreur</string>
     <string name="on">Sur</string>
     <string name="off">Désactivé</string>
+    <string name="on_short">Oui</string>
+    <string name="off_short">Non</string>
+    <string name="scheduler_short">Plan</string>
+    <string name="manual_mode_short">Manuel</string>
     <string name="active">Actif</string>
     <string name="inactive">Inactif</string>
     <string name="turn_on">Allumer</string>
@@ -168,6 +176,8 @@
     <string name="saved_ospy_systems">Systèmes OSPy enregistrés</string>
     <string name="about_app">À propos de la candidature</string>
     <string name="app_version">Version de l\'application</string>
+    <string name="app_version_date">Date de version</string>
+    <string name="app_version_date_value">2026-08-25</string>
     <string name="ospy_github">OSPy sur GitHub</string>
     <string name="plugins_github">OSPy plug-ins sur GitHub</string>
     <string name="app_source_github">Source de la candidature au GitHub</string>
@@ -543,7 +553,6 @@
     <string name="help_logs">Le journal des événements enregistre l’état et les avertissements OSPy. Le journal de la station montre les parcours de station terminés, leur programme et leur durée réelle.</string>
     <string name="help_diagnostics">Affiche l\'état du planificateur, le calcul du calendrier, le matériel de sortie et d\'autres composants OSPy. Ouvrez cette section lorsque OSPy signale un problème.</string>
     <string name="help_plugins">Affiche les plug-ins installés et permet de démarrer ou d\'arrêter les plug-ins pris en charge. Les données d’exploitation ouvrent l’état mobile, l’historique et les actions du plug-in lorsqu’ils sont fournis.</string>
-    <string name="help_system">Affiche la version OSPy et l\'état de mise à jour et fournit des actions de mise à jour, de sauvegarde et de redémarrage. Les sauvegardes disponibles sont réduites par défaut ; développez la carte pour les afficher ou les télécharger.</string>
     <string name="help_settings">Contrôle le verrouillage de l\'application, l\'apparence, les catégories de notification, l\'enregistrement push, la sélection automatique de l\'installation et la langue de l\'application. Les systèmes enregistrés OSPy ouvrent la gestion de l\'installation.</string>
     <string name="help_notification_speech">La lecture des notifications à haute voix utilise le service de synthèse vocale Android et ne nécessite pas de redémarrage de l\'application. Après l\'avoir activé, l\'état de la parole indique si la langue de l\'application sélectionnée est prête ou s\'il manque une voix ou une langue. Le test vocal vérifie la voix actuelle. Le mode Station uniquement lit les démarrages et les arrêts de la station ; le commutateur supplémentaire lit chaque catégorie de notification activée.</string>
     <string name="notify_automation">Règles d\'automatisation</string>
@@ -554,7 +563,6 @@
     <string name="automation_rule_cleared_message">La règle d\'automatisation est revenue à la normale : %1$s</string>
     <string name="automation_rule_test_message">Notification de test des règles d\'automatisation : %1$s</string>
     <string name="service_outages">Pannes de service</string>
-    <string name="service_outages_description">Présentation en lecture seule des pannes de service configurées dans OSPy. Gérez les pannes sur la page Programmes OSPy.</string>
     <string name="no_service_outages">Aucune interruption de service n’est configurée.</string>
     <string name="service_outage_start">Commencer</string>
     <string name="service_outage_end">Fin</string>
@@ -565,4 +573,16 @@
     <string name="plugin_group_stopped">Arrêtés</string>
     <string name="plugin_group_no_data">Sans données d’exploitation</string>
     <string name="plugin_group_title">%1$s (%2$d)</string>
+    <string name="help_system">Shows OSPy version and update state, and provides update, backup and restart actions. Service outages can be created, edited or deleted with local date-and-time pickers. Available backups are collapsed by default; expand the card to view or download them.</string>
+    <string name="service_outages_description">Create and manage periods when automatic program runs must be blocked. Manual runs remain available.</string>
+    <string name="add_service_outage">Add outage</string>
+    <string name="edit_service_outage">Edit outage</string>
+    <string name="service_outage_name">Outage name</string>
+    <string name="invalid_service_outage">Enter a name and select an end date and time later than the start.</string>
+    <string name="confirm_delete_service_outage">Delete service outage “%1$s”?</string>
+    <string name="pause_between_programs">Pause between programs</string>
+    <string name="pause_between_programs_description">Adds a persistent idle period between different automatic programs. Stations within one program and manual runs are not affected.</string>
+    <string name="program_pause_hours">Hours</string>
+    <string name="program_pause_value">%1$d h · %2$d min · %3$d s</string>
+    <string name="invalid_program_pause">Enter 0–8760 hours and 0–59 minutes and seconds. The maximum pause is one year.</string>
 </resources>

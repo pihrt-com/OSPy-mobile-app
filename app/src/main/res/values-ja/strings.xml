@@ -62,6 +62,8 @@
     <string name="connecting_last_installation">最後のインストールに接続しています…</string>
     <string name="connecting_please_wait">OSPy が保存された接続をチェックしている間、お待ちください。</string>
     <string name="choose_another_installation">別のインストールを選択してください</string>
+    <string name="switch_installation">OSPyシステムを切り替える</string>
+    <string name="switch_installation_accessibility">%1$s。タップしてOSPyシステムを切り替えます。</string>
     <string name="unlock">OSPyのロックを解除してください</string>
     <string name="unlock_subtitle">生体認証またはデバイスの認証情報</string>
     <string name="protected_storage_error">保護されたストレージのエラー</string>
@@ -88,6 +90,8 @@
     <string name="rain">雨</string>
     <string name="rain_delay">雨による遅延</string>
     <string name="active_stations">アクティブなステーション</string>
+    <string name="rain_sensor">雨センサー</string>
+    <string name="rain_sensor_off">オフ</string>
     <string name="notifications">通知</string>
     <string name="warnings">警告</string>
     <string name="ok_status">OK</string>
@@ -95,6 +99,10 @@
     <string name="error_status">エラー</string>
     <string name="on">オン</string>
     <string name="off">オフ</string>
+    <string name="on_short">オン</string>
+    <string name="off_short">オフ</string>
+    <string name="scheduler_short">予定</string>
+    <string name="manual_mode_short">手動</string>
     <string name="active">アクティブ</string>
     <string name="inactive">非アクティブ</string>
     <string name="turn_on">オンにする</string>
@@ -168,6 +176,8 @@
     <string name="saved_ospy_systems">保存されたシステム数 OSPy</string>
     <string name="about_app">アプリケーションについて</string>
     <string name="app_version">アプリケーションのバージョン</string>
+    <string name="app_version_date">バージョン日</string>
+    <string name="app_version_date_value">2026-08-25</string>
     <string name="ospy_github">OSPy で OSPy</string>
     <string name="plugins_github">OSPy 上の OSPy プラグイン</string>
     <string name="app_source_github">アプリケーションソース: GitHub</string>
@@ -543,7 +553,6 @@
     <string name="help_logs">イベント ログには、OSPy の状態と警告が記録されます。ステーションのログには、完了したステーションの実行、そのプログラム、および実際の継続時間が表示されます。</string>
     <string name="help_diagnostics">スケジューラ、スケジュール計算、出力ハードウェア、およびその他の OSPy コンポーネントの状態を表示します。 OSPy が問題を報告した場合は、このセクションを開いてください。</string>
     <string name="help_plugins">インストールされているプラグインを表示し、サポートされているプラグインを開始または停止できるようにします。データを操作すると、プラグインのモバイル ステータス、履歴、およびアクションが提供されます。</string>
-    <string name="help_system">OSPy のバージョンと更新状態を表示し、更新、バックアップ、再起動のアクションを提供します。利用可能なバックアップはデフォルトで折りたたまれています。カードを展開して表示またはダウンロードします。</string>
     <string name="help_settings">アプリケーションのロック、外観、通知カテゴリ、プッシュ登録、自動インストール選択、アプリケーション言語を制御します。保存された OSPy システムでは、インストール管理が開きます。</string>
     <string name="help_notification_speech">通知の読み上げには Android テキスト読み上げサービスが使用され、アプリケーションを再起動する必要はありません。有効にすると、音声ステータスに、選択したアプリケーション言語の準備ができているかどうか、または音声または言語が不足しているかどうかが表示されます。テスト音声では現在の音声を確認します。ステーションのみモードはステーションの開始と停止を読み取ります。追加のスイッチは、有効なすべての通知カテゴリを読み取ります。</string>
     <string name="notify_automation">自動化ルール</string>
@@ -554,7 +563,6 @@
     <string name="automation_rule_cleared_message">自動化ルールが通常に戻りました: %1$s</string>
     <string name="automation_rule_test_message">自動化ルールのテスト通知: %1$s</string>
     <string name="service_outages">サービスの停止</string>
-    <string name="service_outages_description">OSPy で構成されたサービス停止の読み取り専用の概要。OSPy の [プログラム] ページで停止を管理します。</string>
     <string name="no_service_outages">サービス停止は構成されていません。</string>
     <string name="service_outage_start">スタート</string>
     <string name="service_outage_end">終了</string>
@@ -565,4 +573,16 @@
     <string name="plugin_group_stopped">停止中</string>
     <string name="plugin_group_no_data">稼働データなし</string>
     <string name="plugin_group_title">%1$s (%2$d)</string>
+    <string name="help_system">Shows OSPy version and update state, and provides update, backup and restart actions. Service outages can be created, edited or deleted with local date-and-time pickers. Available backups are collapsed by default; expand the card to view or download them.</string>
+    <string name="service_outages_description">Create and manage periods when automatic program runs must be blocked. Manual runs remain available.</string>
+    <string name="add_service_outage">Add outage</string>
+    <string name="edit_service_outage">Edit outage</string>
+    <string name="service_outage_name">Outage name</string>
+    <string name="invalid_service_outage">Enter a name and select an end date and time later than the start.</string>
+    <string name="confirm_delete_service_outage">Delete service outage “%1$s”?</string>
+    <string name="pause_between_programs">Pause between programs</string>
+    <string name="pause_between_programs_description">Adds a persistent idle period between different automatic programs. Stations within one program and manual runs are not affected.</string>
+    <string name="program_pause_hours">Hours</string>
+    <string name="program_pause_value">%1$d h · %2$d min · %3$d s</string>
+    <string name="invalid_program_pause">Enter 0–8760 hours and 0–59 minutes and seconds. The maximum pause is one year.</string>
 </resources>

@@ -62,6 +62,8 @@
     <string name="connecting_last_installation">Pripájam sa k poslednej inštalácii…</string>
     <string name="connecting_please_wait">Počkajte, kým OSPy overí uložené pripojenie.</string>
     <string name="choose_another_installation">Vybrať inú inštaláciu</string>
+    <string name="switch_installation">Prepnúť systém OSPy</string>
+    <string name="switch_installation_accessibility">%1$s. Klepnutím prepnete systém OSPy.</string>
     <string name="unlock">Odomknúť OSPy</string>
     <string name="unlock_subtitle">Biometria alebo zámok zariadenia</string>
     <string name="protected_storage_error">Chyba chráneného úložiska</string>
@@ -88,6 +90,8 @@
     <string name="rain">Dážď</string>
     <string name="rain_delay">Oneskorenie pri daždi</string>
     <string name="active_stations">Aktívne stanice</string>
+    <string name="rain_sensor">Dažďový snímač</string>
+    <string name="rain_sensor_off">Vypnutý</string>
     <string name="notifications">Upozornenia</string>
     <string name="warnings">Varovania</string>
     <string name="ok_status">V poriadku</string>
@@ -95,6 +99,10 @@
     <string name="error_status">Chyba</string>
     <string name="on">Zapnuté</string>
     <string name="off">Vypnuté</string>
+    <string name="on_short">Zap</string>
+    <string name="off_short">Vyp</string>
+    <string name="scheduler_short">Plán</string>
+    <string name="manual_mode_short">Ručne</string>
     <string name="active">Aktívne</string>
     <string name="inactive">Neaktívne</string>
     <string name="turn_on">Zapnúť</string>
@@ -168,6 +176,8 @@
     <string name="saved_ospy_systems">Uložené systémy OSPy</string>
     <string name="about_app">O aplikácii</string>
     <string name="app_version">Verzia aplikácie</string>
+    <string name="app_version_date">Dátum verzie</string>
+    <string name="app_version_date_value">2026-08-25</string>
     <string name="ospy_github">OSPy na GitHube</string>
     <string name="plugins_github">Doplnky OSPy na GitHube</string>
     <string name="app_source_github">Zdrojový kód aplikácie na GitHube</string>
@@ -549,7 +559,6 @@
     <string name="help_logs">Záznam udalostí obsahuje stavy a varovania OSPy. Záznam staníc zobrazuje dokončené chody staníc, ich program a skutočný čas chodu.</string>
     <string name="help_diagnostics">Zobrazuje stav plánovača, výpočtu plánu, výstupného hardvéru a ďalších častí OSPy. Túto sekciu otvorte, keď OSPy hlási problém.</string>
     <string name="help_plugins">Zobrazuje nainštalované doplnky a umožňuje podporované doplnky spustiť alebo zastaviť. Prevádzkové údaje otvoria mobilný stav, históriu a akcie doplnku, ak ich poskytuje.</string>
-    <string name="help_system">Zobrazuje verziu OSPy a stav aktualizácií a ponúka aktualizáciu, zálohovanie a reštart. Dostupné zálohy sú predvolene zbalené; rozbalením karty ich zobrazíte alebo stiahnete.</string>
     <string name="help_settings">Nastavuje zámok aplikácie, vzhľad, kategórie upozornení, registráciu push upozornení, automatický výber inštalácie a jazyk aplikácie. Uložené systémy OSPy otvoria správu inštalácií.</string>
     <string name="help_notification_speech">Čítanie upozornení nahlas využíva službu prevodu textu na reč Android a nevyžaduje reštart aplikácie. Po jeho povolení sa v Stave reči zobrazí, či je vybratý jazyk aplikácie pripravený alebo či chýba hlas alebo jazyk. Testovacia reč overí aktuálny hlas. Režim iba pre stanicu číta spustenie a zastavenie stanice; dodatočný prepínač prečíta každú povolenú kategóriu upozornení.</string>
     <string name="notify_automation">Pravidlá automatizácie</string>
@@ -560,7 +569,6 @@
     <string name="automation_rule_cleared_message">Pravidlo automatizácie sa vrátilo do normálu: %1$s</string>
     <string name="automation_rule_test_message">Oznámenie o teste pravidiel automatizácie: %1$s</string>
     <string name="service_outages">Výpadky služieb</string>
-    <string name="service_outages_description">Prehľad výpadkov služby iba na čítanie nakonfigurovaných v OSPy. Výpadky spravujte na stránke OSPy Programy.</string>
     <string name="no_service_outages">Nie sú nakonfigurované žiadne výpadky služby.</string>
     <string name="service_outage_start">Štart</string>
     <string name="service_outage_end">Koniec</string>
@@ -571,4 +579,16 @@
     <string name="plugin_group_stopped">Vypnuté</string>
     <string name="plugin_group_no_data">Bez prevádzkových údajov</string>
     <string name="plugin_group_title">%1$s (%2$d)</string>
+    <string name="help_system">Shows OSPy version and update state, and provides update, backup and restart actions. Service outages can be created, edited or deleted with local date-and-time pickers. Available backups are collapsed by default; expand the card to view or download them.</string>
+    <string name="service_outages_description">Create and manage periods when automatic program runs must be blocked. Manual runs remain available.</string>
+    <string name="add_service_outage">Add outage</string>
+    <string name="edit_service_outage">Edit outage</string>
+    <string name="service_outage_name">Outage name</string>
+    <string name="invalid_service_outage">Enter a name and select an end date and time later than the start.</string>
+    <string name="confirm_delete_service_outage">Delete service outage “%1$s”?</string>
+    <string name="pause_between_programs">Pause between programs</string>
+    <string name="pause_between_programs_description">Adds a persistent idle period between different automatic programs. Stations within one program and manual runs are not affected.</string>
+    <string name="program_pause_hours">Hours</string>
+    <string name="program_pause_value">%1$d h · %2$d min · %3$d s</string>
+    <string name="invalid_program_pause">Enter 0–8760 hours and 0–59 minutes and seconds. The maximum pause is one year.</string>
 </resources>

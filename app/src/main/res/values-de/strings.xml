@@ -62,6 +62,8 @@
     <string name="connecting_last_installation">Verbindung mit der letzten Installation wird hergestellt…</string>
     <string name="connecting_please_wait">Bitte warten Sie, während OSPy die gespeicherte Verbindung prüft.</string>
     <string name="choose_another_installation">Andere Installation auswählen</string>
+    <string name="switch_installation">OSPy-System wechseln</string>
+    <string name="switch_installation_accessibility">%1$s. Tippen, um das OSPy-System zu wechseln.</string>
     <string name="unlock">OSPy entsperren</string>
     <string name="unlock_subtitle">Biometrie oder Geräteanmeldedaten</string>
     <string name="protected_storage_error">Fehler des geschützten Speichers</string>
@@ -88,6 +90,8 @@
     <string name="rain">Regen</string>
     <string name="rain_delay">Regenverzögerung</string>
     <string name="active_stations">Aktive Stationen</string>
+    <string name="rain_sensor">Regensensor</string>
+    <string name="rain_sensor_off">Aus</string>
     <string name="notifications">Benachrichtigungen</string>
     <string name="warnings">Warnungen</string>
     <string name="ok_status">OK</string>
@@ -95,6 +99,10 @@
     <string name="error_status">Fehler</string>
     <string name="on">Ein</string>
     <string name="off">Aus</string>
+    <string name="on_short">Ein</string>
+    <string name="off_short">Aus</string>
+    <string name="scheduler_short">Plan</string>
+    <string name="manual_mode_short">Manuell</string>
     <string name="active">Aktiv</string>
     <string name="inactive">Inaktiv</string>
     <string name="turn_on">Einschalten</string>
@@ -168,6 +176,8 @@
     <string name="saved_ospy_systems">Gespeicherte OSPy-Systeme</string>
     <string name="about_app">Über die App</string>
     <string name="app_version">App-Version</string>
+    <string name="app_version_date">Versionsdatum</string>
+    <string name="app_version_date_value">2026-08-25</string>
     <string name="ospy_github">OSPy auf GitHub</string>
     <string name="plugins_github">OSPy-Plug-ins auf GitHub</string>
     <string name="app_source_github">App-Quellcode auf GitHub</string>
@@ -543,7 +553,6 @@
     <string name="help_logs">Das Ereignisprotokoll enthält OSPy-Zustände und Warnungen. Das Stationsprotokoll zeigt abgeschlossene Stationsläufe, ihr Programm und die tatsächliche Laufzeit.</string>
     <string name="help_diagnostics">Zeigt den Zustand von Zeitplaner, Planberechnung, Ausgangshardware und weiteren OSPy-Komponenten. Öffnen Sie diesen Bereich, wenn OSPy ein Problem meldet.</string>
     <string name="help_plugins">Zeigt installierte Plug-ins und ermöglicht das Starten oder Stoppen unterstützter Plug-ins. Betriebsdaten öffnen den mobilen Status, Verlauf und Aktionen eines Plug-ins, sofern verfügbar.</string>
-    <string name="help_system">Zeigt OSPy-Version und Aktualisierungsstatus und bietet Aktualisierung, Sicherung und Neustart. Verfügbare Sicherungen sind standardmäßig eingeklappt; erweitern Sie die Karte, um sie anzuzeigen oder herunterzuladen.</string>
     <string name="help_settings">Steuert Anwendungssperre, Darstellung, Benachrichtigungskategorien, Push-Registrierung, automatische Installationsauswahl und Anwendungssprache. Gespeicherte OSPy-Systeme öffnet die Installationsverwaltung.</string>
     <string name="help_notification_speech">Das Vorlesen von Benachrichtigungen nutzt den Text-to-Speech-Dienst Android und erfordert keinen Neustart der Anwendung. Nach der Aktivierung zeigt der Sprachstatus an, ob die ausgewählte Anwendungssprache bereit ist oder ob eine Stimme oder Sprache fehlt. Testsprache überprüft die aktuelle Stimme. Der Nur-Station-Modus liest Stationsstarts und -stopps; Der zusätzliche Schalter liest jede aktivierte Benachrichtigungskategorie.</string>
     <string name="notify_automation">Automatisierungsregeln</string>
@@ -554,7 +563,6 @@
     <string name="automation_rule_cleared_message">Die Automatisierungsregel wurde wieder normalisiert: %1$s</string>
     <string name="automation_rule_test_message">Testbenachrichtigung für Automatisierungsregeln: %1$s</string>
     <string name="service_outages">Serviceausfälle</string>
-    <string name="service_outages_description">Schreibgeschützter Überblick über die in OSPy konfigurierten Dienstausfälle. Verwalten Sie Ausfälle auf der Seite „OSPy-Programme“.</string>
     <string name="no_service_outages">Es sind keine Dienstausfälle konfiguriert.</string>
     <string name="service_outage_start">Starten</string>
     <string name="service_outage_end">Ende</string>
@@ -565,4 +573,16 @@
     <string name="plugin_group_stopped">Gestoppt</string>
     <string name="plugin_group_no_data">Keine Betriebsdaten</string>
     <string name="plugin_group_title">%1$s (%2$d)</string>
+    <string name="help_system">Shows OSPy version and update state, and provides update, backup and restart actions. Service outages can be created, edited or deleted with local date-and-time pickers. Available backups are collapsed by default; expand the card to view or download them.</string>
+    <string name="service_outages_description">Create and manage periods when automatic program runs must be blocked. Manual runs remain available.</string>
+    <string name="add_service_outage">Add outage</string>
+    <string name="edit_service_outage">Edit outage</string>
+    <string name="service_outage_name">Outage name</string>
+    <string name="invalid_service_outage">Enter a name and select an end date and time later than the start.</string>
+    <string name="confirm_delete_service_outage">Delete service outage “%1$s”?</string>
+    <string name="pause_between_programs">Pause between programs</string>
+    <string name="pause_between_programs_description">Adds a persistent idle period between different automatic programs. Stations within one program and manual runs are not affected.</string>
+    <string name="program_pause_hours">Hours</string>
+    <string name="program_pause_value">%1$d h · %2$d min · %3$d s</string>
+    <string name="invalid_program_pause">Enter 0–8760 hours and 0–59 minutes and seconds. The maximum pause is one year.</string>
 </resources>

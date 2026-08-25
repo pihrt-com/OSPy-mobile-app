@@ -62,6 +62,8 @@
     <string name="connecting_last_installation">正在连接到上次安装...</string>
     <string name="connecting_please_wait">OSPy 正在检查已保存的连接，请稍候。</string>
     <string name="choose_another_installation">选择其他安装</string>
+    <string name="switch_installation">切换 OSPy 系统</string>
+    <string name="switch_installation_accessibility">%1$s。点按以切换 OSPy 系统。</string>
     <string name="unlock">解锁OSPy</string>
     <string name="unlock_subtitle">生物识别或设备凭证</string>
     <string name="protected_storage_error">受保护的存储错误</string>
@@ -88,6 +90,8 @@
     <string name="rain">雨</string>
     <string name="rain_delay">下雨延迟</string>
     <string name="active_stations">活跃站</string>
+    <string name="rain_sensor">雨量传感器</string>
+    <string name="rain_sensor_off">已关闭</string>
     <string name="notifications">通知</string>
     <string name="warnings">警告</string>
     <string name="ok_status">好的</string>
@@ -95,6 +99,10 @@
     <string name="error_status">错误</string>
     <string name="on">开</string>
     <string name="off">关闭</string>
+    <string name="on_short">开</string>
+    <string name="off_short">关</string>
+    <string name="scheduler_short">计划</string>
+    <string name="manual_mode_short">手动</string>
     <string name="active">活跃</string>
     <string name="inactive">不活跃</string>
     <string name="turn_on">打开</string>
@@ -168,6 +176,8 @@
     <string name="saved_ospy_systems">已保存 OSPy 个系统</string>
     <string name="about_app">关于申请</string>
     <string name="app_version">应用版本</string>
+    <string name="app_version_date">版本日期</string>
+    <string name="app_version_date_value">2026-08-25</string>
     <string name="ospy_github">OSPy 于 GitHub</string>
     <string name="plugins_github">OSPy GitHub 上的插件</string>
     <string name="app_source_github">申请来源GitHub</string>
@@ -543,7 +553,6 @@
     <string name="help_logs">事件日志记录 OSPy 状态和警告。站点日志显示已完成的站点运行、其计划和实际持续时间。</string>
     <string name="help_diagnostics">显示调度程序、调度计算、输出硬件和其他 OSPy 组件的运行状况。当 OSPy 报告问题时打开此部分。</string>
     <string name="help_plugins">显示已安装的插件并允许启动或停止支持的插件。操作数据会在提供时打开插件的移动状态、历史记录和操作。</string>
-    <string name="help_system">显示 OSPy 版本和更新状态，并提供更新、备份和重启操作。可用备份默认折叠；展开卡片即可查看或下载它们。</string>
     <string name="help_settings">控制应用程序锁定、外观、通知类别、推送注册、自动安装选择和应用程序语言。保存OSPy系统打开安装管理。</string>
     <string name="help_notification_speech">大声朗读通知使用 Android 文本转语音服务，不需要重新启动应用程序。启用后，语音状态会显示所选应用程序语言是否已准备好或者是否缺少语音或语言。测试语音验证当前语音。仅车站模式读取车站启动和停止；附加开关读取每个启用的通知类别。</string>
     <string name="notify_automation">自动化规则</string>
@@ -554,7 +563,6 @@
     <string name="automation_rule_cleared_message">自动化规则恢复正常：%1$s</string>
     <string name="automation_rule_test_message">自动化规则测试通知：%1$s</string>
     <string name="service_outages">服务中断</string>
-    <string name="service_outages_description">OSPy 中配置的服务中断的只读概述。在 OSPy 程序页面上管理中断。</string>
     <string name="no_service_outages">未配置服务中断。</string>
     <string name="service_outage_start">开始</string>
     <string name="service_outage_end">结束</string>
@@ -565,4 +573,16 @@
     <string name="plugin_group_stopped">已停止</string>
     <string name="plugin_group_no_data">无运行数据</string>
     <string name="plugin_group_title">%1$s (%2$d)</string>
+    <string name="help_system">Shows OSPy version and update state, and provides update, backup and restart actions. Service outages can be created, edited or deleted with local date-and-time pickers. Available backups are collapsed by default; expand the card to view or download them.</string>
+    <string name="service_outages_description">Create and manage periods when automatic program runs must be blocked. Manual runs remain available.</string>
+    <string name="add_service_outage">Add outage</string>
+    <string name="edit_service_outage">Edit outage</string>
+    <string name="service_outage_name">Outage name</string>
+    <string name="invalid_service_outage">Enter a name and select an end date and time later than the start.</string>
+    <string name="confirm_delete_service_outage">Delete service outage “%1$s”?</string>
+    <string name="pause_between_programs">Pause between programs</string>
+    <string name="pause_between_programs_description">Adds a persistent idle period between different automatic programs. Stations within one program and manual runs are not affected.</string>
+    <string name="program_pause_hours">Hours</string>
+    <string name="program_pause_value">%1$d h · %2$d min · %3$d s</string>
+    <string name="invalid_program_pause">Enter 0–8760 hours and 0–59 minutes and seconds. The maximum pause is one year.</string>
 </resources>
