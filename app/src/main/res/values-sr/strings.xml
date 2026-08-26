@@ -13,6 +13,7 @@
     <string name="connect">Повежите се безбедно</string>
     <string name="back">Назад</string>
     <string name="open">Отвори</string>
+    <string name="close">Затвори</string>
     <string name="remove">Уклони</string>
     <string name="edit">Уреди</string>
     <string name="edit_installation">Уредите инсталацију</string>
@@ -163,6 +164,7 @@
     <string name="health">Здравље</string>
     <string name="check_updates">Проверите ажурирања</string>
     <string name="create_backup">Направите резервну копију</string>
+    <string name="download_backup">Преузми резервну копију</string>
     <string name="restart_ospy">Поново покрените OSPy</string>
     <string name="current_version">Тренутна верзија</string>
     <string name="current_commit">Цуррент цоммит</string>
@@ -177,7 +179,7 @@
     <string name="about_app">О апликацији</string>
     <string name="app_version">Верзија апликације</string>
     <string name="app_version_date">Датум верзије</string>
-    <string name="app_version_date_value">2026-08-25</string>
+    <string name="app_version_date_value">2026-08-26</string>
     <string name="ospy_github">OSPy на GitHub</string>
     <string name="plugins_github">OSPy додаци на GitHub</string>
     <string name="app_source_github">Извор апликације на GitHub</string>

@@ -4,7 +4,7 @@ Open Sprinkler Python [Git-Hub source](https://github.com/martinpihrt/OSPy)
 # OSPy Mobile APP
 Android client for the OSPy `/api/v1`. App on [Google store](https://play.google.com/store/apps/details?id=com.pihrt.ospy.mobile)
 
-Current source version: **0.3.33** (`versionCode 40`).
+Current source version: **0.3.35** (`versionCode 43`).
 
 ## Screenshots
 
@@ -15,6 +15,11 @@ Current source version: **0.3.33** (`versionCode 40`).
 ### Čeština
 
 <p><a href="docs/screenshots/cs/overview.png"><img src="docs/screenshots/cs/overview.png" width="23%" alt="Český přehled"></a> <a href="docs/screenshots/cs/stations.png"><img src="docs/screenshots/cs/stations.png" width="23%" alt="České stanice"></a> <a href="docs/screenshots/cs/programs.png"><img src="docs/screenshots/cs/programs.png" width="23%" alt="České programy"></a> <a href="docs/screenshots/cs/sensors.png"><img src="docs/screenshots/cs/sensors.png" width="23%" alt="České snímače"></a></p>
+
+## Included in version 0.3.35
+- Formatted plug-in backup sizes in B, kB or MB instead of displaying a raw byte count.
+- Localized backup commands and Venetian Blind Open, Stop and Close commands through application XML resources.
+- Increased the Android package version to `0.3.35` (`versionCode 43`).
 
 ## Included in version 0.3.33
 - Split installed plug-ins into expandable Running, Stopped and No operating data groups, with the number of plug-ins shown in every group heading. Running plug-ins with operating data are expanded by default; the other groups are collapsed.

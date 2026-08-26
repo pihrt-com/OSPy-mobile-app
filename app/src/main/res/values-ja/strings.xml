@@ -13,6 +13,7 @@
     <string name="connect">安全に接続する</string>
     <string name="back">戻る</string>
     <string name="open">開く</string>
+    <string name="close">閉じる</string>
     <string name="remove">削除</string>
     <string name="edit">編集</string>
     <string name="edit_installation">インストールの編集</string>
@@ -163,6 +164,7 @@
     <string name="health">健康</string>
     <string name="check_updates">アップデートを確認する</string>
     <string name="create_backup">バックアップの作成</string>
+    <string name="download_backup">バックアップをダウンロード</string>
     <string name="restart_ospy">再起動 OSPy</string>
     <string name="current_version">現在のバージョン</string>
     <string name="current_commit">現在のコミット</string>
@@ -177,7 +179,7 @@
     <string name="about_app">アプリケーションについて</string>
     <string name="app_version">アプリケーションのバージョン</string>
     <string name="app_version_date">バージョン日</string>
-    <string name="app_version_date_value">2026-08-25</string>
+    <string name="app_version_date_value">2026-08-26</string>
     <string name="ospy_github">OSPy で OSPy</string>
     <string name="plugins_github">OSPy 上の OSPy プラグイン</string>
     <string name="app_source_github">アプリケーションソース: GitHub</string>

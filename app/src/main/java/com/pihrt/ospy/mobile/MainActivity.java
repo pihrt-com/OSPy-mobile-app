@@ -4412,7 +4412,7 @@ public final class MainActivity extends ComponentActivity {
                                 for (int j = 0; j < metrics.length(); j++) {
                                     JSONObject metric = metrics.optJSONObject(j);
                                     if (metric == null) continue;
-                                    String unit = metric.optString("unit");
+                                    String unit = mobileMetricUnit(metric);
                                     addPair(
                                             card, mobileMetricLabel(metric),
                                             mobileMetricValue(metric) +
@@ -4505,7 +4505,7 @@ public final class MainActivity extends ComponentActivity {
             if (action == null || action.optString("id").isEmpty()) continue;
             String actionId = action.optString("id");
             Button button = compactButton(
-                    action.optString("label", actionId), NAVY);
+                    mobileActionLabel(action), NAVY);
             button.setOnClickListener(v -> {
                 button.setEnabled(false);
                 JSONObject payload = action.optJSONObject("payload");
@@ -4555,8 +4555,7 @@ public final class MainActivity extends ComponentActivity {
             String filename = download.optString("filename");
             if (filename.isEmpty()) continue;
             Button button = compactButton(
-                    download.optString(
-                            "label", getString(R.string.download)), GREEN);
+                    mobileDownloadLabel(download), GREEN);
             button.setOnClickListener(v -> downloadPluginFile(
                     plugin.optString("id"), download.optString("id"),
                     filename));
@@ -5103,6 +5102,10 @@ public final class MainActivity extends ComponentActivity {
     private String mobileMetricValue(JSONObject metric) {
         String id = metric.optString("id");
         Object rawValue = metric.opt("value");
+        if ("data_size".equals(metric.optString("quantity")) &&
+                rawValue instanceof Number) {
+            return formatFileSize(((Number) rawValue).longValue());
+        }
         if (rawValue instanceof Boolean) {
             return getString((Boolean) rawValue ? R.string.on : R.string.off);
         }
@@ -5184,6 +5187,36 @@ public final class MainActivity extends ComponentActivity {
             return getString(R.string.not_available);
         }
         return value;
+    }
+
+    private String mobileMetricUnit(JSONObject metric) {
+        return "data_size".equals(metric.optString("quantity"))
+                ? ""
+                : metric.optString("unit");
+    }
+
+    private String mobileActionLabel(JSONObject action) {
+        String id = action.optString("id");
+        switch (id) {
+            case "create_backup":
+                return getString(R.string.create_backup);
+            case "open":
+                return getString(R.string.open);
+            case "stop":
+                return getString(R.string.stop);
+            case "close":
+            case "closed":
+                return getString(R.string.close);
+            default:
+                return action.optString("label", id);
+        }
+    }
+
+    private String mobileDownloadLabel(JSONObject download) {
+        if ("latest_backup".equals(download.optString("id"))) {
+            return getString(R.string.download_backup);
+        }
+        return download.optString("label", getString(R.string.download));
     }
 
     private void addMobileImage(LinearLayout parent, JSONObject imageData) {

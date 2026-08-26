@@ -13,6 +13,7 @@
     <string name="connect">Безопасное подключение</string>
     <string name="back">Назад</string>
     <string name="open">Открыть</string>
+    <string name="close">Закрыть</string>
     <string name="remove">Удалить</string>
     <string name="edit">Редактировать</string>
     <string name="edit_installation">Редактировать установку</string>
@@ -163,6 +164,7 @@
     <string name="health">Здоровье</string>
     <string name="check_updates">Проверить обновления</string>
     <string name="create_backup">Создать резервную копию</string>
+    <string name="download_backup">Скачать резервную копию</string>
     <string name="restart_ospy">Перезагрузить OSPy</string>
     <string name="current_version">Текущая версия</string>
     <string name="current_commit">Текущий коммит</string>
@@ -177,7 +179,7 @@
     <string name="about_app">О приложении</string>
     <string name="app_version">Версия приложения</string>
     <string name="app_version_date">Дата версии</string>
-    <string name="app_version_date_value">2026-08-25</string>
+    <string name="app_version_date_value">2026-08-26</string>
     <string name="ospy_github">OSPy на GitHub</string>
     <string name="plugins_github">OSPy плагины на GitHub</string>
     <string name="app_source_github">Источник заявки на GitHub</string>

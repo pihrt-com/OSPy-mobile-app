@@ -12,7 +12,8 @@
     <string name="two_factor">Código 2FA (cuando está habilitado)</string>
     <string name="connect">Conéctese de forma segura</string>
     <string name="back">Atrás</string>
-    <string name="open">Abierto</string>
+    <string name="open">Abrir</string>
+    <string name="close">Cerrar</string>
     <string name="remove">Quitar</string>
     <string name="edit">Editar</string>
     <string name="edit_installation">Editar instalación</string>
@@ -163,6 +164,7 @@
     <string name="health">Salud</string>
     <string name="check_updates">comprobar actualizaciones</string>
     <string name="create_backup">Crear copia de seguridad</string>
+    <string name="download_backup">Descargar copia de seguridad</string>
     <string name="restart_ospy">Reiniciar OSPy</string>
     <string name="current_version">Versión actual</string>
     <string name="current_commit">compromiso actual</string>
@@ -177,7 +179,7 @@
     <string name="about_app">Acerca de la aplicación</string>
     <string name="app_version">Versión de la aplicación</string>
     <string name="app_version_date">Fecha de versión</string>
-    <string name="app_version_date_value">2026-08-25</string>
+    <string name="app_version_date_value">2026-08-26</string>
     <string name="ospy_github">OSPy en GitHub</string>
     <string name="plugins_github">OSPy complementos en GitHub</string>
     <string name="app_source_github">Fuente de la aplicación en GitHub</string>

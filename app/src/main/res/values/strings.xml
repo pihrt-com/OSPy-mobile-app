@@ -13,6 +13,7 @@
     <string name="connect">Connect securely</string>
     <string name="back">Back</string>
     <string name="open">Open</string>
+    <string name="close">Close</string>
     <string name="remove">Remove</string>
     <string name="edit">Edit</string>
     <string name="edit_installation">Edit installation</string>
@@ -163,6 +164,7 @@
     <string name="health">Health</string>
     <string name="check_updates">Check updates</string>
     <string name="create_backup">Create backup</string>
+    <string name="download_backup">Download backup</string>
     <string name="restart_ospy">Restart OSPy</string>
     <string name="current_version">Current version</string>
     <string name="current_commit">Current commit</string>
@@ -177,7 +179,7 @@
     <string name="about_app">About the application</string>
     <string name="app_version">Application version</string>
     <string name="app_version_date">Version date</string>
-    <string name="app_version_date_value">2026-08-25</string>
+    <string name="app_version_date_value">2026-08-26</string>
     <string name="ospy_github">OSPy on GitHub</string>
     <string name="plugins_github">OSPy plug-ins on GitHub</string>
     <string name="app_source_github">Application source on GitHub</string>

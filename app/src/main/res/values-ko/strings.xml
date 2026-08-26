@@ -13,6 +13,7 @@
     <string name="connect">안전하게 연결하세요</string>
     <string name="back">뒤로</string>
     <string name="open">열기</string>
+    <string name="close">닫기</string>
     <string name="remove">제거</string>
     <string name="edit">편집</string>
     <string name="edit_installation">설치 편집</string>
@@ -163,6 +164,7 @@
     <string name="health">건강</string>
     <string name="check_updates">업데이트 확인</string>
     <string name="create_backup">백업 만들기</string>
+    <string name="download_backup">백업 다운로드</string>
     <string name="restart_ospy">OSPy 다시 시작</string>
     <string name="current_version">현재 버전</string>
     <string name="current_commit">현재 커밋</string>
@@ -177,7 +179,7 @@
     <string name="about_app">응용 프로그램에 대해</string>
     <string name="app_version">애플리케이션 버전</string>
     <string name="app_version_date">버전 날짜</string>
-    <string name="app_version_date_value">2026-08-25</string>
+    <string name="app_version_date_value">2026-08-26</string>
     <string name="ospy_github">OSPy 에 GitHub</string>
     <string name="plugins_github">GitHub의 OSPy 플러그인</string>
     <string name="app_source_github">GitHub의 애플리케이션 소스</string>

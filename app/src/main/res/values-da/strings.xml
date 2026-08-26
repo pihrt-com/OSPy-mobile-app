@@ -13,6 +13,7 @@
     <string name="connect">Forbind sikkert</string>
     <string name="back">Tilbage</string>
     <string name="open">Åbn</string>
+    <string name="close">Luk</string>
     <string name="remove">Fjern</string>
     <string name="edit">Rediger</string>
     <string name="edit_installation">Rediger installation</string>
@@ -163,6 +164,7 @@
     <string name="health">Sundhed</string>
     <string name="check_updates">Tjek opdateringer</string>
     <string name="create_backup">Opret backup</string>
+    <string name="download_backup">Hent backup</string>
     <string name="restart_ospy">Genstart OSPy</string>
     <string name="current_version">Nuværende version</string>
     <string name="current_commit">Nuværende forpligtelse</string>
@@ -177,7 +179,7 @@
     <string name="about_app">Om ansøgningen</string>
     <string name="app_version">Applikationsversion</string>
     <string name="app_version_date">Versionsdato</string>
-    <string name="app_version_date_value">2026-08-25</string>
+    <string name="app_version_date_value">2026-08-26</string>
     <string name="ospy_github">OSPy på GitHub</string>
     <string name="plugins_github">OSPy plug-ins på GitHub</string>
     <string name="app_source_github">Applikationskilde på GitHub</string>

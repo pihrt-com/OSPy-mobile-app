@@ -13,6 +13,7 @@
     <string name="connect">Bezpečně připojit</string>
     <string name="back">Zpět</string>
     <string name="open">Otevřít</string>
+    <string name="close">Zavřít</string>
     <string name="remove">Odstranit</string>
     <string name="edit">Upravit</string>
     <string name="edit_installation">Upravit instalaci</string>
@@ -163,6 +164,7 @@
     <string name="health">Zdraví</string>
     <string name="check_updates">Zkontrolovat aktualizace</string>
     <string name="create_backup">Vytvořit zálohu</string>
+    <string name="download_backup">Stáhnout zálohu</string>
     <string name="restart_ospy">Restartovat OSPy</string>
     <string name="current_version">Aktuální verze</string>
     <string name="current_commit">Aktuální commit</string>
@@ -177,7 +179,7 @@
     <string name="about_app">O aplikaci</string>
     <string name="app_version">Verze aplikace</string>
     <string name="app_version_date">Datum verze</string>
-    <string name="app_version_date_value">2026-08-25</string>
+    <string name="app_version_date_value">2026-08-26</string>
     <string name="ospy_github">OSPy na GitHubu</string>
     <string name="plugins_github">Rozšíření OSPy na GitHubu</string>
     <string name="app_source_github">Zdrojový kód aplikace na GitHubu</string>
