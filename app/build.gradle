@@ -23,8 +23,8 @@ android {
         applicationId "com.pihrt.ospy.mobile"
         minSdk 26
         targetSdk 37
-        versionCode 43
-        versionName "0.3.35"
+        versionCode 44
+        versionName "0.3.36"
     }
 
     signingConfigs {
@@ -64,6 +64,8 @@ dependencies {
     // Pin current releases so the generated bundle does not inherit them.
     implementation "androidx.activity:activity:1.13.0"
     implementation "androidx.fragment:fragment:1.9.0"
+    implementation "androidx.credentials:credentials:1.6.0"
+    implementation "androidx.credentials:credentials-play-services-auth:1.6.0"
     implementation "com.github.bumptech.glide:glide:5.0.9"
     implementation platform("com.google.firebase:firebase-bom:34.18.0")
     implementation "com.google.firebase:firebase-analytics"

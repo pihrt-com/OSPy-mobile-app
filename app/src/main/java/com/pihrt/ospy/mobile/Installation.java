@@ -4,6 +4,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.net.URI;
+import java.util.Locale;
 
 final class Installation {
     String id;
@@ -46,12 +47,27 @@ final class Installation {
     }
 
     boolean isPrivateAddress() {
+        return needsLocalNetworkAccess(baseUrl);
+    }
+
+    static boolean needsLocalNetworkAccess(String value) {
         try {
-            String host = URI.create(baseUrl).getHost();
+            String host = URI.create(normalize(value)).getHost();
             if (host == null) return false;
-            host = host.toLowerCase();
+            host = host.toLowerCase(Locale.ROOT);
+            if (host.startsWith("[") && host.endsWith("]")) {
+                host = host.substring(1, host.length() - 1);
+            }
+            if ("::1".equals(host)) return true;
+            if (host.contains(":") &&
+                    (host.startsWith("fc") || host.startsWith("fd"))) return true;
+            if (host.contains(":") && host.startsWith("fe") && host.length() > 2) {
+                int secondNibble = Character.digit(host.charAt(2), 16);
+                if (secondNibble >= 8 && secondNibble <= 11) return true;
+            }
             if ("localhost".equals(host) || host.startsWith("127.")) return true;
-            if (host.startsWith("10.") || host.startsWith("192.168.")) return true;
+            if (host.startsWith("10.") || host.startsWith("192.168.") ||
+                    host.startsWith("169.254.")) return true;
             if (host.startsWith("172.")) {
                 String[] parts = host.split("\\.");
                 if (parts.length > 1) {
@@ -59,6 +75,7 @@ final class Installation {
                     return second >= 16 && second <= 31;
                 }
             }
+            return host.endsWith(".local") || !host.contains(".");
         } catch (Exception ignored) {
             // An invalid URL is handled by the connection screen.
         }

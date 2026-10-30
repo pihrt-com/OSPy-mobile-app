@@ -188,6 +188,8 @@
     <string name="watch_network">현재 네트워크에 따라 설치를 선택하세요.</string>
     <string name="open_last_installation">마지막으로 사용한 설치를 자동으로 엽니다.</string>
     <string name="no_reachable_installation">저장된 OSPy 설치에 연결할 수 없습니다.</string>
+    <string name="local_network_permission_required">이 OSPy 설치에 연결하려면 로컬 네트워크 액세스를 허용하세요.</string>
+    <string name="restore_credentials_failed">자동 계정 복원을 사용할 수 없습니다. OSPy에 수동으로 연결하세요.</string>
     <string name="now">지금</string>
     <string name="rain_status">비 상태</string>
     <string name="radar_source">레이더 소스</string>

@@ -188,6 +188,8 @@
     <string name="watch_network">Installation entsprechend dem aktuellen Netzwerk auswählen</string>
     <string name="open_last_installation">Zuletzt verwendete Installation automatisch öffnen</string>
     <string name="no_reachable_installation">Keine passende gespeicherte OSPy-Installation ist erreichbar.</string>
+    <string name="local_network_permission_required">Erlauben Sie den Zugriff auf das lokale Netzwerk, um eine Verbindung zu dieser OSPy-Installation herzustellen.</string>
+    <string name="restore_credentials_failed">Die automatische Kontowiederherstellung war nicht verfügbar. Stellen Sie die Verbindung zu OSPy manuell her.</string>
     <string name="now">Jetzt</string>
     <string name="rain_status">Regenstatus</string>
     <string name="radar_source">Radarquelle</string>

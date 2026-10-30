@@ -188,6 +188,8 @@
     <string name="watch_network">Vælg installation i henhold til det aktuelle netværk</string>
     <string name="open_last_installation">Åbn den sidst brugte installation automatisk</string>
     <string name="no_reachable_installation">Ingen passende gemt OSPy installation er tilgængelig.</string>
+    <string name="local_network_permission_required">Tillad adgang til det lokale netværk for at oprette forbindelse til denne OSPy-installation.</string>
+    <string name="restore_credentials_failed">Automatisk kontogendannelse var ikke tilgængelig. Opret forbindelse til OSPy manuelt.</string>
     <string name="now">Nu</string>
     <string name="rain_status">Regnstatus</string>
     <string name="radar_source">Radarkilde</string>

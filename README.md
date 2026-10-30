@@ -4,7 +4,7 @@ Open Sprinkler Python [Git-Hub source](https://github.com/martinpihrt/OSPy)
 # OSPy Mobile APP
 Android client for the OSPy `/api/v1`. App on [Google store](https://play.google.com/store/apps/details?id=com.pihrt.ospy.mobile)
 
-Current source version: **0.3.35** (`versionCode 43`).
+Current source version: **0.3.36** (`versionCode 44`).
 
 ## Screenshots
 
@@ -15,6 +15,13 @@ Current source version: **0.3.35** (`versionCode 43`).
 ### Čeština
 
 <p><a href="docs/screenshots/cs/overview.png"><img src="docs/screenshots/cs/overview.png" width="23%" alt="Český přehled"></a> <a href="docs/screenshots/cs/stations.png"><img src="docs/screenshots/cs/stations.png" width="23%" alt="České stanice"></a> <a href="docs/screenshots/cs/programs.png"><img src="docs/screenshots/cs/programs.png" width="23%" alt="České programy"></a> <a href="docs/screenshots/cs/sensors.png"><img src="docs/screenshots/cs/sensors.png" width="23%" alt="České snímače"></a></p>
+
+## Included in version 0.3.36
+- Added the Android 17 local-network runtime permission and requests it only when an OSPy address targets a private, link-local, loopback, `.local` or single-label host. Public installations remain usable when the permission is declined.
+- Added Android Restore Credentials. After an authenticated connection, the application creates a Play-services restore key bound to `www.pihrt.com`; a replacement phone can recover a new OSPy token session without backing up the password, refresh token or access token.
+- Backed up only the installation name, address, username and certificate preference needed to locate OSPy. Encrypted token storage remains excluded from Android backup.
+- Added the production Digital Asset Links source file at `deployment/www.pihrt.com/.well-known/assetlinks.json`.
+- Increased the Android package version to `0.3.36` (`versionCode 44`). This version requires matching OSPy Mobile API Restore Credentials support.
 
 ## Included in version 0.3.35
 - Formatted plug-in backup sizes in B, kB or MB instead of displaying a raw byte count.

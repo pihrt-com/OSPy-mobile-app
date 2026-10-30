@@ -50,4 +50,13 @@ final class AppPreferences {
     void setLastInstallationId(String id) {
         values.edit().putString("last_installation_id", id == null ? "" : id).apply();
     }
+
+    String restoreKeyInstallationId() {
+        return values.getString("restore_key_installation_id", "");
+    }
+
+    void setRestoreKeyInstallationId(String id) {
+        values.edit().putString(
+                "restore_key_installation_id", id == null ? "" : id).apply();
+    }
 }

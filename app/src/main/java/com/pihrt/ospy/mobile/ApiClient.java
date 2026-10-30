@@ -125,8 +125,8 @@ final class ApiClient {
                 JSONObject envelope = executeRaw("POST", "/auth/login", body, "");
                 JSONObject data = envelope.getJSONObject("data");
                 pendingChallengeId = "";
-                updateAccessSession(data);
                 installation.id = data.getString("device_id");
+                updateAccessSession(data);
                 installation.username = username;
                 installation.refreshToken = data.getString("refresh_token");
                 JSONObject server = executeRaw("GET", "/server", null, "");
@@ -140,6 +140,55 @@ final class ApiClient {
                     pendingChallengeId = error.details.optString("challenge_id", "");
                 }
                 main.post(() -> callback.failure(message(error)));
+            } catch (Exception error) {
+                main.post(() -> callback.failure(message(error)));
+            }
+        });
+    }
+
+    void restoreOptions(String username, Callback callback) {
+        executor.execute(() -> {
+            try {
+                JSONObject device = new JSONObject()
+                        .put("id", installation.id)
+                        .put("name", android.os.Build.MODEL)
+                        .put("app_version", BuildConfig.VERSION_NAME);
+                JSONObject body = new JSONObject()
+                        .put("username", username)
+                        .put("device", device);
+                JSONObject response = executeRaw(
+                        "POST", "/auth/restore/options", body, "");
+                main.post(() -> callback.success(response));
+            } catch (Exception error) {
+                main.post(() -> callback.failure(message(error)));
+            }
+        });
+    }
+
+    void restore(String challengeId, String credentialJson, Callback callback) {
+        executor.execute(() -> {
+            try {
+                JSONObject device = new JSONObject()
+                        .put("id", installation.id)
+                        .put("name", android.os.Build.MODEL)
+                        .put("app_version", BuildConfig.VERSION_NAME);
+                JSONObject body = new JSONObject()
+                        .put("challenge_id", challengeId)
+                        .put("credential", new JSONObject(credentialJson))
+                        .put("device", device);
+                JSONObject envelope = executeRaw(
+                        "POST", "/auth/restore", body, "");
+                JSONObject data = envelope.getJSONObject("data");
+                installation.id = data.getString("device_id");
+                updateAccessSession(data);
+                installation.username = data.getString("username");
+                installation.refreshToken = data.getString("refresh_token");
+                JSONObject server = executeRaw(
+                        "GET", "/server", null, data.getString("access_token"));
+                installation.name = server.getJSONObject("data").optString(
+                        "name", installation.baseUrl);
+                store.upsert(installation);
+                main.post(() -> callback.success(envelope));
             } catch (Exception error) {
                 main.post(() -> callback.failure(message(error)));
             }

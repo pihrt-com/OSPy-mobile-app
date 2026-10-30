@@ -188,6 +188,8 @@
     <string name="watch_network">Vyberať inštaláciu podľa aktuálnej siete</string>
     <string name="open_last_installation">Automaticky otvoriť naposledy použitú inštaláciu</string>
     <string name="no_reachable_installation">Žiadna vhodná uložená inštalácia OSPy nie je dostupná.</string>
+    <string name="local_network_permission_required">Ak sa chcete pripojiť k tejto inštalácii OSPy, povoľte prístup k miestnej sieti.</string>
+    <string name="restore_credentials_failed">Automatické obnovenie účtu nebolo dostupné. Pripojte sa k OSPy ručne.</string>
     <string name="now">Teraz</string>
     <string name="rain_status">Stav dažďa</string>
     <string name="radar_source">Zdroj radaru</string>

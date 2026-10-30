@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="asset_statements" translatable="false">[{"include":"https://www.pihrt.com/.well-known/assetlinks.json"}]</string>
     <string name="app_name">OSPy</string>
     <string name="reconnect">Sign in again</string>
     <string name="reconnect_installation">Sign in to installation again</string>
@@ -188,6 +189,8 @@
     <string name="watch_network">Select installation according to the current network</string>
     <string name="open_last_installation">Open the last used installation automatically</string>
     <string name="no_reachable_installation">No suitable saved OSPy installation is reachable.</string>
+    <string name="local_network_permission_required">Allow local network access to connect to this OSPy installation.</string>
+    <string name="restore_credentials_failed">Automatic account restoration was not available. Connect to OSPy manually.</string>
     <string name="now">Now</string>
     <string name="rain_status">Rain status</string>
     <string name="radar_source">Radar source</string>

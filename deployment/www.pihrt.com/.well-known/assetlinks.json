@@ -1,0 +1,14 @@
+[
+  {
+    "relation": [
+      "delegate_permission/common.get_login_creds"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.pihrt.ospy.mobile",
+      "sha256_cert_fingerprints": [
+        "A4:88:9D:EC:C2:B0:CE:81:C6:A8:81:40:C0:80:71:A9:AA:12:49:95:F4:0D:32:68:A2:79:DF:95:F1:E7:1E:DE"
+      ]
+    }
+  }
+]

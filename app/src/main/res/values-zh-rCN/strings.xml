@@ -188,6 +188,8 @@
     <string name="watch_network">根据当前网络选择安装</string>
     <string name="open_last_installation">自动打开上次使用的安装</string>
     <string name="no_reachable_installation">无法访问合适的已保存 OSPy 安装。</string>
+    <string name="local_network_permission_required">请允许访问本地网络，以连接到此 OSPy 安装。</string>
+    <string name="restore_credentials_failed">无法自动恢复账号。请手动连接到 OSPy。</string>
     <string name="now">现在</string>
     <string name="rain_status">降雨情况</string>
     <string name="radar_source">雷达源</string>

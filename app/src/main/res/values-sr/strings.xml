@@ -188,6 +188,8 @@
     <string name="watch_network">Изаберите инсталацију према тренутној мрежи</string>
     <string name="open_last_installation">Аутоматски отворите последњу коришћену инсталацију</string>
     <string name="no_reachable_installation">Није доступна ниједна одговарајућа сачувана инсталација OSPy.</string>
+    <string name="local_network_permission_required">Дозволите приступ локалној мрежи да бисте се повезали са овом OSPy инсталацијом.</string>
+    <string name="restore_credentials_failed">Аутоматско враћање налога није било доступно. Повежите се са OSPy ручно.</string>
     <string name="now">Сада</string>
     <string name="rain_status">Стање кише</string>
     <string name="radar_source">Радарски извор</string>

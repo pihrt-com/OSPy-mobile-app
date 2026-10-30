@@ -188,6 +188,8 @@
     <string name="watch_network">Wybieraj instalację zgodnie z bieżącą siecią</string>
     <string name="open_last_installation">Automatycznie otwieraj ostatnio używaną instalację</string>
     <string name="no_reachable_installation">Nie można połączyć się z żadną odpowiednią zapisaną instalacją OSPy.</string>
+    <string name="local_network_permission_required">Zezwól na dostęp do sieci lokalnej, aby połączyć się z tą instalacją OSPy.</string>
+    <string name="restore_credentials_failed">Automatyczne przywracanie konta nie było dostępne. Połącz się z OSPy ręcznie.</string>
     <string name="now">Teraz</string>
     <string name="rain_status">Stan deszczu</string>
     <string name="radar_source">Źródło radaru</string>

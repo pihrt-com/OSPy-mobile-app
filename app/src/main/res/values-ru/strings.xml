@@ -188,6 +188,8 @@
     <string name="watch_network">Выбор установки в соответствии с текущей сетью</string>
     <string name="open_last_installation">Автоматически открывать последнюю использованную установку</string>
     <string name="no_reachable_installation">Подходящая сохраненная установка OSPy недоступна.</string>
+    <string name="local_network_permission_required">Разрешите доступ к локальной сети, чтобы подключиться к этой установке OSPy.</string>
+    <string name="restore_credentials_failed">Автоматическое восстановление учетной записи недоступно. Подключитесь к OSPy вручную.</string>
     <string name="now">Сейчас</string>
     <string name="rain_status">Статус дождя</string>
     <string name="radar_source">Радарный источник</string>

@@ -81,6 +81,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 public final class MainActivity extends ComponentActivity {
     private static final int REQUEST_NOTIFICATIONS = 10;
     private static final int REQUEST_UNLOCK_CREDENTIAL = 11;
+    private static final int REQUEST_LOCAL_NETWORK = 12;
     private static final int REQUEST_SAVE_BACKUP = 41;
     private static final long LIVE_REFRESH_MS = 10_000L;
     private static final long UPDATE_OPERATION_POLL_MS = 1_500L;
@@ -106,6 +107,7 @@ public final class MainActivity extends ComponentActivity {
     private int HEADING;
 
     private InstallationStore installationStore;
+    private RestoreCredentials restoreCredentials;
     private AppPreferences appPreferences;
     private List<Installation> installations = new ArrayList<>();
     private Installation current;
@@ -129,6 +131,8 @@ public final class MainActivity extends ComponentActivity {
     private boolean requestInFlight = false;
     private int connectionAttemptGeneration = 0;
     private boolean unlockStarted = false;
+    private Runnable pendingLocalNetworkGrantedAction;
+    private Runnable pendingLocalNetworkDeniedAction;
     private byte[] pendingBackupData;
     private float overviewPullStartY = 0f;
     private boolean overviewPullTracking = false;
@@ -298,6 +302,8 @@ public final class MainActivity extends ComponentActivity {
         applyThemePalette();
         applySystemBarAppearance();
         installationStore = new InstallationStore(this);
+        restoreCredentials = new RestoreCredentials(
+                this, installationStore, appPreferences);
         notifications = new NotificationCenter(this);
         NotificationScheduler.update(this, true);
         if (Build.VERSION.SDK_INT >= 33 &&
@@ -318,6 +324,16 @@ public final class MainActivity extends ComponentActivity {
             int requestCode, String[] permissions, int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         if (requestCode == REQUEST_NOTIFICATIONS && !unlockStarted) unlock();
+        if (requestCode == REQUEST_LOCAL_NETWORK) {
+            boolean granted = grantResults.length > 0 &&
+                    grantResults[0] == PackageManager.PERMISSION_GRANTED;
+            Runnable action = granted
+                    ? pendingLocalNetworkGrantedAction
+                    : pendingLocalNetworkDeniedAction;
+            pendingLocalNetworkGrantedAction = null;
+            pendingLocalNetworkDeniedAction = null;
+            if (action != null) action.run();
+        }
     }
 
     @Override
@@ -417,6 +433,7 @@ public final class MainActivity extends ComponentActivity {
             return;
         }
         if (!appPreferences.openLastInstallation() || installations.isEmpty()) {
+            if (installations.isEmpty() && tryRestoreCredentials()) return;
             showInstallations();
             return;
         }
@@ -438,7 +455,62 @@ public final class MainActivity extends ComponentActivity {
         openFirstReachable(candidates);
     }
 
+    private boolean tryRestoreCredentials() {
+        Installation restored = restoreCredentials.restoredInstallation();
+        if (restored == null) return false;
+        if (restored.isPrivateAddress() && !hasLocalNetworkPermission()) {
+            requestLocalNetworkPermission(
+                    () -> restoreInstallation(restored),
+                    () -> {
+                        showInstallations();
+                        toast(getString(R.string.local_network_permission_required));
+                    });
+            return true;
+        }
+        restoreInstallation(restored);
+        return true;
+    }
+
+    private void restoreInstallation(Installation installation) {
+        showConnecting();
+        restoreCredentials.restore(
+                installation,
+                new RestoreCredentials.Callback() {
+                    @Override public void success(
+                            Installation restored, ApiClient restoredApi) {
+                        installations = new ArrayList<>();
+                        installations.add(restored);
+                        open(restored, restoredApi);
+                        PushRegistrationManager.syncAll(MainActivity.this);
+                    }
+
+                    @Override public void failure(String message) {
+                        showInstallations();
+                        toast(getString(R.string.restore_credentials_failed));
+                    }
+                });
+    }
+
     private void openFirstReachable(List<Installation> candidates) {
+        if (requiresLocalNetworkPermission(candidates)) {
+            requestLocalNetworkPermission(
+                    () -> openFirstReachable(candidates),
+                    () -> {
+                        List<Installation> publicCandidates = new ArrayList<>();
+                        for (Installation candidate : candidates) {
+                            if (!candidate.isPrivateAddress()) {
+                                publicCandidates.add(candidate);
+                            }
+                        }
+                        if (publicCandidates.isEmpty()) {
+                            showInstallations();
+                            toast(getString(R.string.local_network_permission_required));
+                        } else {
+                            openFirstReachable(publicCandidates);
+                        }
+                    });
+            return;
+        }
         if (candidates.isEmpty()) {
             showInstallations();
             toast(getString(R.string.no_reachable_installation));
@@ -1364,6 +1436,14 @@ public final class MainActivity extends ComponentActivity {
                 toast(getString(R.string.complete_address));
                 return;
             }
+            if (Installation.needsLocalNetworkAccess(base) &&
+                    !hasLocalNetworkPermission()) {
+                requestLocalNetworkPermission(
+                        connect::performClick,
+                        () -> toast(getString(
+                                R.string.local_network_permission_required)));
+                return;
+            }
             connect.setEnabled(false);
             boolean allowUnverified = base.startsWith("https://") &&
                     unverified.isChecked();
@@ -1478,6 +1558,15 @@ public final class MainActivity extends ComponentActivity {
     }
 
     private void open(Installation installation, ApiClient connectedApi) {
+        if (installation.isPrivateAddress() && !hasLocalNetworkPermission()) {
+            requestLocalNetworkPermission(
+                    () -> open(installation, connectedApi),
+                    () -> {
+                        showInstallations();
+                        toast(getString(R.string.local_network_permission_required));
+                    });
+            return;
+        }
         connectionAttemptGeneration++;
         appPreferences.setLastInstallationId(installation.id);
         current = installation;
@@ -1492,6 +1581,34 @@ public final class MainActivity extends ComponentActivity {
         // A confirmed foreground connection is the most reliable opportunity
         // to retry FCM/App Check and relay registration on restrictive phones.
         PushRegistrationManager.syncAll(this);
+        restoreCredentials.registerIfNeeded(api, installation);
+    }
+
+    private boolean hasLocalNetworkPermission() {
+        return Build.VERSION.SDK_INT < 37 ||
+                checkSelfPermission(Manifest.permission.ACCESS_LOCAL_NETWORK) ==
+                        PackageManager.PERMISSION_GRANTED;
+    }
+
+    private boolean requiresLocalNetworkPermission(List<Installation> candidates) {
+        if (hasLocalNetworkPermission()) return false;
+        for (Installation candidate : candidates) {
+            if (candidate.isPrivateAddress()) return true;
+        }
+        return false;
+    }
+
+    private void requestLocalNetworkPermission(
+            Runnable grantedAction, Runnable deniedAction) {
+        if (hasLocalNetworkPermission()) {
+            grantedAction.run();
+            return;
+        }
+        pendingLocalNetworkGrantedAction = grantedAction;
+        pendingLocalNetworkDeniedAction = deniedAction;
+        requestPermissions(
+                new String[]{Manifest.permission.ACCESS_LOCAL_NETWORK},
+                REQUEST_LOCAL_NETWORK);
     }
 
     private void resetNotificationBaseline() {
@@ -6530,6 +6647,7 @@ public final class MainActivity extends ComponentActivity {
                         notifications.clearInstallation(installation.id);
                         PushRegistrationManager.clearLocalState(
                                 this, installation.id);
+                        restoreCredentials.clearIfOwned(installation);
                         NotificationScheduler.update(this, false);
                         showInstallations();
                     } catch (Exception error) {
