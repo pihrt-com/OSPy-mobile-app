@@ -3,17 +3,31 @@ plugins {
     id "com.google.gms.google-services"
 }
 
-def signingPropertiesFile = new File(
-        System.getProperty("user.home"),
-        "android-keys/ospy-mobile-signing.properties"
-)
+def signingPropertiesOverride = System.getenv("OSPY_MOBILE_SIGNING_PROPERTIES")
+def signingPropertiesFile = signingPropertiesOverride
+        ? file(signingPropertiesOverride)
+        : new File(
+                System.getProperty("user.home"),
+                "android-keys/ospy-mobile-signing.properties"
+        )
 def signingProperties = new Properties()
+def signingStoreFile = null
 if (signingPropertiesFile.isFile()) {
     signingPropertiesFile.withInputStream { signingProperties.load(it) }
+    def configuredStoreFile = signingProperties.getProperty("storeFile")
+    if (configuredStoreFile) {
+        signingStoreFile = file(configuredStoreFile)
+        if (!signingStoreFile.isFile()) {
+            signingStoreFile = new File(
+                    signingPropertiesFile.parentFile,
+                    new File(configuredStoreFile).name
+            )
+        }
+    }
 }
 def releaseSigningAvailable = ["storeFile", "storePassword", "keyAlias", "keyPassword"].every {
     signingProperties.getProperty(it)
-}
+} && signingStoreFile != null && signingStoreFile.isFile()
 
 android {
     namespace "com.pihrt.ospy.mobile"
@@ -30,7 +44,7 @@ android {
     signingConfigs {
         release {
             if (releaseSigningAvailable) {
-                storeFile file(signingProperties.getProperty("storeFile"))
+                storeFile signingStoreFile
                 storePassword signingProperties.getProperty("storePassword")
                 keyAlias signingProperties.getProperty("keyAlias")
                 keyPassword signingProperties.getProperty("keyPassword")

@@ -262,13 +262,15 @@ Install Android Studio with Android SDK 37 and JDK 17. Open this directory, allo
 
 The repository intentionally does not contain `local.properties`, SDK files, signing keys or built APK files. The checked-in `app/google-services.json` contains the public Firebase project and application identifiers required by the Android build; it is not a service-account credential and cannot authorize server-side FCM sending.
 
+Release signing normally reads `%USERPROFILE%/android-keys/ospy-mobile-signing.properties`. When the protected key directory is elsewhere, set `OSPY_MOBILE_SIGNING_PROPERTIES` to the absolute properties-file path for that build. If its historical `storeFile` path no longer exists after moving to another computer, the build looks for a keystore with the same filename next to the selected properties file; neither file belongs in this repository.
+
 ## Connection and security
 
 Update OSPy to a version that provides `/api/v1`. Add the full HTTP(S) address, user name, password and optional 2FA code. Use HTTPS whenever OSPy is reachable outside a trusted private network. Cleartext HTTP remains allowed for existing LAN-only OSPy installations and is visibly present in the saved address.
 
 OSPy commonly uses a locally generated HTTPS certificate that Android cannot verify. The pairing form therefore offers an explicit per-installation **Trust an unverified HTTPS certificate** option. It disables certificate-chain and host-name verification only for that saved installation and is off by default. Enable it only for your own OSPy on a trusted private network. Use a publicly trusted certificate for any installation exposed through the Internet. If Android cannot resolve a local name such as `ospy`, enter the device's local IP address instead.
 
-Removing an installation deletes its locally protected refresh token. Use the OSPy paired-device endpoint or OSPy web administration to revoke a lost device. Android backup is disabled so tokens cannot leave the device through application backup.
+Removing an installation deletes its locally protected refresh token and its owned Restore Credential. Use the OSPy paired-device endpoint or OSPy web administration to revoke a lost device. Android backup includes only non-secret connection metadata needed to contact the same OSPy installation; passwords, access tokens and refresh tokens remain excluded.
 
 Production push registration uses Play Integrity and therefore must be tested with a build installed through Google Play testing or production. A directly installed debug APK can still use the application and fallback polling, but it cannot obtain a production App Check assertion. Google Play updates preserve saved installations. Direct APK and Google Play builds use different signing identities and Android cannot migrate protected application data through an uninstall or a switch between those identities.
 
