@@ -29,6 +29,8 @@ def releaseSigningAvailable = ["storeFile", "storePassword", "keyAlias", "keyPas
     signingProperties.getProperty(it)
 } && signingStoreFile != null && signingStoreFile.isFile()
 
+def releaseDate = "2026-10-31"
+
 android {
     namespace "com.pihrt.ospy.mobile"
     compileSdk 37
@@ -37,8 +39,9 @@ android {
         applicationId "com.pihrt.ospy.mobile"
         minSdk 26
         targetSdk 37
-        versionCode 44
-        versionName "0.3.36"
+        versionCode 45
+        versionName "0.3.37"
+        buildConfigField "String", "VERSION_DATE", "\"${releaseDate}\""
     }
 
     signingConfigs {

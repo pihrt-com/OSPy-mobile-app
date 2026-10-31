@@ -180,7 +180,6 @@
     <string name="about_app">About the application</string>
     <string name="app_version">Application version</string>
     <string name="app_version_date">Version date</string>
-    <string name="app_version_date_value">2026-08-26</string>
     <string name="ospy_github">OSPy on GitHub</string>
     <string name="plugins_github">OSPy plug-ins on GitHub</string>
     <string name="app_source_github">Application source on GitHub</string>

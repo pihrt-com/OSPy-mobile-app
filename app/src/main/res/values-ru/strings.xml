@@ -179,7 +179,6 @@
     <string name="about_app">О приложении</string>
     <string name="app_version">Версия приложения</string>
     <string name="app_version_date">Дата версии</string>
-    <string name="app_version_date_value">2026-08-26</string>
     <string name="ospy_github">OSPy на GitHub</string>
     <string name="plugins_github">OSPy плагины на GitHub</string>
     <string name="app_source_github">Источник заявки на GitHub</string>

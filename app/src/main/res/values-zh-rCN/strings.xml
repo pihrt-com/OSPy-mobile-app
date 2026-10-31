@@ -179,7 +179,6 @@
     <string name="about_app">关于申请</string>
     <string name="app_version">应用版本</string>
     <string name="app_version_date">版本日期</string>
-    <string name="app_version_date_value">2026-08-26</string>
     <string name="ospy_github">OSPy 于 GitHub</string>
     <string name="plugins_github">OSPy GitHub 上的插件</string>
     <string name="app_source_github">申请来源GitHub</string>

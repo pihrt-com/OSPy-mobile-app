@@ -1147,7 +1147,7 @@ public final class MainActivity extends ComponentActivity {
                 BuildConfig.VERSION_NAME);
         addPair(
                 about, getString(R.string.app_version_date),
-                getString(R.string.app_version_date_value));
+                BuildConfig.VERSION_DATE);
         about.addView(linkButton(
                 getString(R.string.ospy_github),
                 "https://github.com/martinpihrt/OSPy"));
@@ -1156,7 +1156,7 @@ public final class MainActivity extends ComponentActivity {
                 "https://github.com/martinpihrt/OSPy-plugins"));
         about.addView(linkButton(
                 getString(R.string.app_source_github),
-                "https://github.com/martinpihrt/OSPy-mobile-app"));
+                "https://github.com/pihrt-com/OSPy-mobile-app"));
         about.addView(linkButton(
                 getString(R.string.google_play),
                 "https://play.google.com/store/apps/details?id=" +
@@ -1445,6 +1445,7 @@ public final class MainActivity extends ComponentActivity {
                 return;
             }
             connect.setEnabled(false);
+            connect.setText(getString(R.string.loading));
             boolean allowUnverified = base.startsWith("https://") &&
                     unverified.isChecked();
             String username = user.getText().toString().trim();
@@ -1491,6 +1492,7 @@ public final class MainActivity extends ComponentActivity {
 
                         @Override public void failure(String error) {
                             connect.setEnabled(true);
+                            connect.setText(getString(R.string.connect));
                             message(
                                     getString(R.string.connection_failed),
                                     localizedError(error));
@@ -1874,7 +1876,7 @@ public final class MainActivity extends ComponentActivity {
             overviewVersionView.setVisibility(View.GONE);
         } else {
             overviewVersionView.setText(
-                    getString(R.string.version) + ": " +
+                    getString(R.string.version) + " OSPy " +
                             instance.optString("version"));
             overviewVersionView.setVisibility(View.VISIBLE);
         }

@@ -4,7 +4,7 @@ Open Sprinkler Python [Git-Hub source](https://github.com/martinpihrt/OSPy)
 # OSPy Mobile APP
 Android client for the OSPy `/api/v1`. App on [Google store](https://play.google.com/store/apps/details?id=com.pihrt.ospy.mobile)
 
-Current source version: **0.3.36** (`versionCode 44`).
+Current source version: **0.3.37** (`versionCode 45`, release date `2026-10-31`).
 
 ## Screenshots
 
@@ -15,6 +15,13 @@ Current source version: **0.3.36** (`versionCode 44`).
 ### Čeština
 
 <p><a href="docs/screenshots/cs/overview.png"><img src="docs/screenshots/cs/overview.png" width="23%" alt="Český přehled"></a> <a href="docs/screenshots/cs/stations.png"><img src="docs/screenshots/cs/stations.png" width="23%" alt="České stanice"></a> <a href="docs/screenshots/cs/programs.png"><img src="docs/screenshots/cs/programs.png" width="23%" alt="České programy"></a> <a href="docs/screenshots/cs/sensors.png"><img src="docs/screenshots/cs/sensors.png" width="23%" alt="České snímače"></a></p>
+
+## Included in version 0.3.37
+- Corrected the in-app source-code link to the `pihrt-com/OSPy-mobile-app` repository.
+- Made the About screen version date come from the same Gradle release metadata as the package version, with a unit test that must be updated for every release.
+- Identified the server version on Home explicitly as the OSPy version.
+- Added immediate sign-in feedback by disabling the button and changing its label while the request is running; the normal label is restored after a failure.
+- Increased the Android package version to `0.3.37` (`versionCode 45`) with release date `2026-10-31`.
 
 ## Included in version 0.3.36
 - Added the Android 17 local-network runtime permission and requests it only when an OSPy address targets a private, link-local, loopback, `.local` or single-label host. Public installations remain usable when the permission is declined.

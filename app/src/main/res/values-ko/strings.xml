@@ -179,7 +179,6 @@
     <string name="about_app">응용 프로그램에 대해</string>
     <string name="app_version">애플리케이션 버전</string>
     <string name="app_version_date">버전 날짜</string>
-    <string name="app_version_date_value">2026-08-26</string>
     <string name="ospy_github">OSPy 에 GitHub</string>
     <string name="plugins_github">GitHub의 OSPy 플러그인</string>
     <string name="app_source_github">GitHub의 애플리케이션 소스</string>
