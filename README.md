@@ -2,6 +2,13 @@
 Open Sprinkler Python [Git-Hub source](https://github.com/martinpihrt/OSPy)
 
 # OSPy Mobile APP
+
+[![Stable release](https://img.shields.io/github/v/release/pihrt-com/OSPy-mobile-app?display_name=tag&sort=semver&label=stable)](https://github.com/pihrt-com/OSPy-mobile-app/releases/latest)
+[![Downloads](https://img.shields.io/github/downloads/pihrt-com/OSPy-mobile-app/total?label=downloads&logo=github)](https://github.com/pihrt-com/OSPy-mobile-app/releases)
+[![Android build](https://img.shields.io/github/actions/workflow/status/pihrt-com/OSPy-mobile-app/android.yml?branch=main&event=push&label=build&logo=githubactions)](https://github.com/pihrt-com/OSPy-mobile-app/actions/workflows/android.yml?query=branch%3Amain)
+[![Google Play](https://img.shields.io/badge/Google_Play-available-3DDC84?logo=googleplay&logoColor=white)](https://play.google.com/store/apps/details?id=com.pihrt.ospy.mobile)
+[![Android](https://img.shields.io/badge/Android-8.0%2B-3DDC84?logo=android&logoColor=white)](https://github.com/pihrt-com/OSPy-mobile-app#build)
+
 Android client for the OSPy `/api/v1`. App on [Google store](https://play.google.com/store/apps/details?id=com.pihrt.ospy.mobile)
 
 Current source version: **0.3.37** (`versionCode 45`, release date `2026-10-31`).
