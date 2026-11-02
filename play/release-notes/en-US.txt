@@ -1,0 +1,1 @@
+Android 17 local-network permission support and automatic Restore Credentials for moving a signed-in OSPy installation to a replacement phone without backing up passwords or API tokens. The app now identifies the OSPy server version, shows immediate sign-in feedback, uses synchronized version/date metadata, and links to the correct source repository.

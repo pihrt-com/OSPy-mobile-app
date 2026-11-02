@@ -6,3 +6,4 @@ app/build/
 app/release/
 *.aab
 *.iml
+__pycache__/

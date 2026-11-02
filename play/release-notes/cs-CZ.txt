@@ -1,0 +1,1 @@
+Podpora oprávnění místní sítě v Androidu 17 a automatické Restore Credentials pro přenos přihlášené instalace OSPy na nový telefon bez zálohování hesel nebo API tokenů. Aplikace nyní jasně označuje verzi serveru OSPy, ukazuje průběh přihlášení, používá společná metadata verze a data a odkazuje na správný repozitář zdrojového kódu.

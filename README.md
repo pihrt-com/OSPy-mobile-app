@@ -278,6 +278,14 @@ The repository intentionally does not contain `local.properties`, SDK files, sig
 
 Release signing normally reads `%USERPROFILE%/android-keys/ospy-mobile-signing.properties`. When the protected key directory is elsewhere, set `OSPY_MOBILE_SIGNING_PROPERTIES` to the absolute properties-file path for that build. If its historical `storeFile` path no longer exists after moving to another computer, the build looks for a keystore with the same filename next to the selected properties file; neither file belongs in this repository.
 
+### Automated Google Play publishing
+
+The `Publish Google Play` workflow can build, sign, validate, and publish a new production App Bundle through the official Google Play Developer API whenever a GitHub release is published. It can also be started manually with either `completed` or `draft` release status. Before each release, update the localized files in `play/release-notes`; the publisher rejects empty notes and text longer than the Google Play 500-character allowance.
+
+Configure the `google-play-production` GitHub environment and add the following repository or environment secrets: `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD`, and `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON`. The service account must belong to a Google Cloud project with the Google Play Android Developer API enabled and must be invited in Play Console with only the application and release permissions needed for OSPy. Never commit the keystore, passwords, or service-account JSON.
+
+The workflow uploads the AAB in a Google Play edit, assigns the returned version code to the production track, validates the edit, and commits it. If another change is already under review, publication fails without cancelling that review. The workflow introduced after release 0.3.37 applies to future releases; build 45 was uploaded manually.
+
 ## Connection and security
 
 Update OSPy to a version that provides `/api/v1`. Add the full HTTP(S) address, user name, password and optional 2FA code. Use HTTPS whenever OSPy is reachable outside a trusted private network. Cleartext HTTP remains allowed for existing LAN-only OSPy installations and is visibly present in the saved address.

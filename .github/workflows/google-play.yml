@@ -1,0 +1,85 @@
+name: Publish Google Play
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      status:
+        description: Google Play release status
+        required: true
+        default: completed
+        type: choice
+        options:
+          - completed
+          - draft
+
+permissions:
+  contents: read
+
+concurrency:
+  group: google-play-production
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: google-play-production
+    env:
+      ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+      ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+      ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+      ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+      GOOGLE_PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
+      RELEASE_NAME: ${{ github.event.release.name || github.ref_name }}
+      PUBLISH_STATUS: ${{ inputs.status || 'completed' }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.release.tag_name || github.ref }}
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21"
+      - uses: gradle/actions/setup-gradle@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.14"
+      - name: Verify required secrets
+        shell: bash
+        run: |
+          for name in ANDROID_KEYSTORE_BASE64 ANDROID_KEYSTORE_PASSWORD ANDROID_KEY_ALIAS ANDROID_KEY_PASSWORD GOOGLE_PLAY_SERVICE_ACCOUNT_JSON; do
+            if [ -z "${!name}" ]; then
+              echo "Missing required GitHub secret: $name" >&2
+              exit 1
+            fi
+          done
+      - name: Prepare release signing
+        shell: bash
+        run: |
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/ospy-mobile-upload.jks"
+          {
+            printf 'storeFile=%s\n' "$RUNNER_TEMP/ospy-mobile-upload.jks"
+            printf 'storePassword=%s\n' "$ANDROID_KEYSTORE_PASSWORD"
+            printf 'keyAlias=%s\n' "$ANDROID_KEY_ALIAS"
+            printf 'keyPassword=%s\n' "$ANDROID_KEY_PASSWORD"
+          } > "$RUNNER_TEMP/ospy-mobile-signing.properties"
+          echo "OSPY_MOBILE_SIGNING_PROPERTIES=$RUNNER_TEMP/ospy-mobile-signing.properties" >> "$GITHUB_ENV"
+      - name: Validate and build signed bundle
+        run: |
+          python3 tools/check_translations.py
+          python3 tools/audit_hardcoded_strings.py
+          python3 -m unittest discover -s tools -p 'test_*.py'
+          ./gradlew --no-daemon testDebugUnitTest lintRelease bundleRelease
+      - name: Verify bundle signature
+        run: jarsigner -verify app/build/outputs/bundle/release/app-release.aab
+      - name: Install Google Play API client
+        run: python3 -m pip install --disable-pip-version-check google-api-python-client google-auth
+      - name: Publish to Google Play production
+        run: |
+          python3 tools/publish_google_play.py \
+            app/build/outputs/bundle/release/app-release.aab \
+            --name "$RELEASE_NAME" \
+            --status "$PUBLISH_STATUS" \
+            --notes play/release-notes
